@@ -10,7 +10,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "https://demobackend-hx9f.onrender.com",
+        url: "https://appenglish-0uee.onrender.com",
       },
     ],
     components: {
