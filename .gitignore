@@ -3,3 +3,7 @@
 
 # Ignore node modules
 node_modules/
+
+backend/controller/LessonController.js
+
+backend/routes/lesson.js
