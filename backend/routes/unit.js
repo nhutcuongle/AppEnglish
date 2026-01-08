@@ -16,6 +16,11 @@ import {
   isTeacher,
 } from "../middlewares/authMiddleware.js";
 
+import {
+  uploadUnitImage,
+  uploadErrorHandler,
+} from "../middlewares/uploadMiddleware.js";
+
 const router = express.Router();
 
 /**
@@ -26,6 +31,51 @@ const router = express.Router();
  */
 
 /* ================= SCHOOL / ADMIN ================= */
+
+/**
+ * @swagger
+ * /api/units:
+ *   post:
+ *     summary: Nhà trường tạo unit mới
+ *     tags: [Units]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Unit 1 - Greetings
+ *               description:
+ *                 type: string
+ *                 example: Các mẫu câu chào hỏi cơ bản
+ *               isPublished:
+ *                 type: boolean
+ *                 example: true
+ *               order:
+ *                 type: number
+ *                 example: 1
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Tạo unit thành công
+ */
+router.post(
+  "/",
+  authenticate,
+  isSchool,
+  uploadUnitImage,
+  uploadErrorHandler,
+  createUnit
+);
 
 /**
  * @swagger
@@ -43,30 +93,9 @@ router.get("/", authenticate, isSchool, getAllUnitsForSchool);
 
 /**
  * @swagger
- * /api/units:
- *   post:
- *     summary: Nhà trường tạo unit mới
- *     tags: [Units]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [title]
- *     responses:
- *       201:
- *         description: Tạo unit thành công
- */
-router.post("/", authenticate, isSchool, createUnit);
-
-/**
- * @swagger
  * /api/units/{id}:
  *   get:
- *     summary: Nhà trường xem chi tiết unit
+ *     summary: Nhà trường xem chi tiết từng unit
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -86,7 +115,7 @@ router.get("/:id", authenticate, isSchool, getUnitById);
  * @swagger
  * /api/units/{id}:
  *   put:
- *     summary: Nhà trường cập nhật unit
+ *     summary: Nhà trường cập nhật unit (có thể đổi ảnh)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -96,11 +125,35 @@ router.get("/:id", authenticate, isSchool, getUnitById);
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isPublished:
+ *                 type: boolean
+ *               order:
+ *                 type: number
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Cập nhật unit thành công
  */
-router.put("/:id", authenticate, isSchool, updateUnit);
+router.put(
+  "/:id",
+  authenticate,
+  isSchool,
+  uploadUnitImage,
+  uploadErrorHandler,
+  updateUnit
+);
 
 /**
  * @swagger
@@ -114,6 +167,8 @@ router.put("/:id", authenticate, isSchool, updateUnit);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Xóa unit thành công
@@ -140,7 +195,7 @@ router.get("/teacher/all", authenticate, isTeacher, getAllUnitsForTeacher);
  * @swagger
  * /api/units/teacher/{id}:
  *   get:
- *     summary: Giảng viên xem chi tiết unit
+ *     summary: Giảng viên xem chi tiết từng unit
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -148,6 +203,8 @@ router.get("/teacher/all", authenticate, isTeacher, getAllUnitsForTeacher);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Chi tiết unit
@@ -178,6 +235,8 @@ router.get("/public", getPublishedUnits);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Chi tiết unit

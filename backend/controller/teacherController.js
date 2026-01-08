@@ -1,14 +1,18 @@
 import User from "../models/User.js";
 
 /* SCHOOL: CREATE TEACHER */
+import bcrypt from "bcryptjs";
+
 export const createTeacher = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const teacher = await User.create({
       username,
       email,
-      password,
+      password: hashedPassword,
       role: "teacher",
     });
 

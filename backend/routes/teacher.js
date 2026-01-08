@@ -22,20 +22,6 @@ const router = express.Router();
 /**
  * @swagger
  * /api/teachers:
- *   get:
- *     summary: Lấy danh sách giảng viên
- *     tags: [Teachers]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Danh sách giảng viên
- */
-router.get("/", authenticate, isSchool, getTeachers);
-
-/**
- * @swagger
- * /api/teachers:
  *   post:
  *     summary: Tạo giảng viên mới
  *     tags: [Teachers]
@@ -63,6 +49,20 @@ router.get("/", authenticate, isSchool, getTeachers);
  *         description: Tạo giảng viên thành công
  */
 router.post("/", authenticate, isSchool, createTeacher);
+
+/**
+ * @swagger
+ * /api/teachers:
+ *   get:
+ *     summary: Lấy danh sách giảng viên
+ *     tags: [Teachers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách giảng viên
+ */
+router.get("/", authenticate, isSchool, getTeachers);
 
 /**
  * @swagger

@@ -36,3 +36,12 @@ export const uploadLessonVideo = multer({
     }
   },
 }).single("video");
+
+export const uploadErrorHandler = (err, req, res, next) => {
+  if (err) {
+    return res.status(400).json({
+      message: err.message || "Upload thất bại",
+    });
+  }
+  next();
+};

@@ -30,25 +30,6 @@ const router = express.Router();
 /**
  * @swagger
  * /api/users/students:
- *   get:
- *     summary: Lấy danh sách học sinh
- *     tags: [Students]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Danh sách học sinh
- */
-router.get(
-  "/students",
-  authenticate,
-  isSchool,
-  getAllStudents
-);
-
-/**
- * @swagger
- * /api/users/students:
  *   post:
  *     summary: Tạo học sinh mới
  *     tags: [Students]
@@ -60,17 +41,39 @@ router.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, email, password]
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: student01
+ *               email:
+ *                 type: string
+ *                 example: student01@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: 123456
  *     responses:
  *       201:
  *         description: Tạo học sinh thành công
  */
-router.post(
-  "/students",
-  authenticate,
-  isSchool,
-  createStudent
-);
+router.post("/students", authenticate, isSchool, createStudent);
+
+/**
+ * @swagger
+ * /api/users/students:
+ *   get:
+ *     summary: Lấy danh sách học sinh
+ *     tags: [Students]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách học sinh
+ */
+router.get("/students", authenticate, isSchool, getAllStudents);
 
 /**
  * @swagger
@@ -86,16 +89,23 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Cập nhật thành công
  */
-router.put(
-  "/students/:id",
-  authenticate,
-  isSchool,
-  updateStudent
-);
+
+router.put("/students/:id", authenticate, isSchool, updateStudent);
 
 /**
  * @swagger
@@ -113,12 +123,7 @@ router.put(
  *       200:
  *         description: Xóa học sinh thành công
  */
-router.delete(
-  "/students/:id",
-  authenticate,
-  isSchool,
-  deleteStudent
-);
+router.delete("/students/:id", authenticate, isSchool, deleteStudent);
 
 /**
  * @swagger
@@ -136,12 +141,7 @@ router.delete(
  *       200:
  *         description: Khóa học sinh thành công
  */
-router.put(
-  "/students/:id/disable",
-  authenticate,
-  isSchool,
-  disableUser
-);
+router.put("/students/:id/disable", authenticate, isSchool, disableUser);
 
 /**
  * @swagger
@@ -159,12 +159,7 @@ router.put(
  *       200:
  *         description: Mở khóa học sinh thành công
  */
-router.put(
-  "/students/:id/enable",
-  authenticate,
-  isSchool,
-  enableUser
-);
+router.put("/students/:id/enable", authenticate, isSchool, enableUser);
 
 /* ================= TEACHER ================= */
 
