@@ -3,6 +3,7 @@ import 'package:apptienganh10/db/mongodb.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
+import 'package:apptienganh10/widgets/loading_widgets.dart';
 import 'package:intl/intl.dart';
 
 class AssignmentListScreen extends StatefulWidget {
@@ -75,7 +76,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
         future: TeacherService.getFilteredAssignments(widget.filterType, query: _searchQuery),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
+            return ShimmerWidgets.listShimmer();
           }
           
           if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());

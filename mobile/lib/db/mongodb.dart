@@ -68,6 +68,14 @@ class MongoDatabase {
     return data.map((e) => Announcement.fromJson(e)).toList();
   }
 
+  static Future<void> updateAnnouncement(ObjectId id, Map<String, dynamic> data) async {
+    await announcementCollection?.update(where.id(id), data);
+  }
+
+  static Future<void> deleteAnnouncement(ObjectId id) async {
+    await announcementCollection?.remove(where.id(id));
+  }
+
   // --- Thống kê nâng cao ---
 
   static Future<List<Student>> getTopStudents(int count) async {
@@ -100,6 +108,10 @@ class MongoDatabase {
 
   static Future<void> deleteLessonPlan(ObjectId id) async {
     await lessonPlanCollection?.remove(where.id(id));
+  }
+
+  static Future<List<Map<String, dynamic>>> getSubmissions() async {
+    return await db.collection('submissions').find().toList();
   }
 }
 

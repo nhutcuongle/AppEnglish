@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/db/mongodb.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
+import 'package:apptienganh10/widgets/loading_widgets.dart';
 import 'package:intl/intl.dart';
 
 class LessonPlanListScreen extends StatefulWidget {
@@ -125,7 +126,7 @@ class _LessonPlanListScreenState extends State<LessonPlanListScreen> {
         future: MongoDatabase.getLessonPlans(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return ShimmerWidgets.listShimmer();
           }
           final allPlans = snapshot.data ?? [];
           final filteredPlans = allPlans.where((p) => p.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:apptienganh10/db/mongodb.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/screens/teacher/add_announcement_screen.dart';
+import 'package:apptienganh10/widgets/loading_widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
 
 class AnnouncementListScreen extends StatefulWidget {
   const AnnouncementListScreen({super.key});
@@ -38,7 +40,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
         future: MongoDatabase.getAnnouncements(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return ShimmerWidgets.listShimmer();
           }
           if (snapshot.hasError) return _buildError(snapshot.error.toString());
 
@@ -62,12 +64,34 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.campaign_rounded, color: Colors.blue, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat('dd/MM/yyyy HH:mm').format(item.createdAt),
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        Row(
+                          children: [
+                            const Icon(Icons.campaign_rounded, color: Colors.blue, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat('dd/MM/yyyy HH:mm').format(item.createdAt),
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) async {
+                            if (value == 'edit') {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => AddAnnouncementScreen(announcementToEdit: item)),
+                              );
+                              if (result == true) setState(() {});
+                            } else if (value == 'delete') {
+                              _deleteAnnouncement(item.id);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit, color: Colors.blue), title: Text('Sửa'))),
+                            const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete, color: Colors.red), title: Text('Xóa'))),
+                          ],
                         ),
                       ],
                     ),
@@ -106,5 +130,32 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
 
   Widget _buildError(String err) {
     return Center(child: Text('Lỗi: $err', style: const TextStyle(color: Colors.red)));
+  }
+
+  Future<void> _deleteAnnouncement(mongo.ObjectId id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: const Text('Bạn có chắc chắn muốn xóa thông báo này không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await MongoDatabase.deleteAnnouncement(id);
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa thông báo')));
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
+    }
   }
 }
