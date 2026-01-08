@@ -7,6 +7,7 @@ import {
   getUnitById,
   updateUnit,
   deleteUnit,
+  getPublishedUnitById,
 } from "../controller/unitController.js";
 
 import {
@@ -38,12 +39,7 @@ const router = express.Router();
  *       200:
  *         description: Danh sách unit
  */
-router.get(
-  "/",
-  authenticate,
-  isSchool,
-  getAllUnitsForSchool
-);
+router.get("/", authenticate, isSchool, getAllUnitsForSchool);
 
 /**
  * @swagger
@@ -64,12 +60,7 @@ router.get(
  *       201:
  *         description: Tạo unit thành công
  */
-router.post(
-  "/",
-  authenticate,
-  isSchool,
-  createUnit
-);
+router.post("/", authenticate, isSchool, createUnit);
 
 /**
  * @swagger
@@ -89,12 +80,7 @@ router.post(
  *       200:
  *         description: Chi tiết unit
  */
-router.get(
-  "/:id",
-  authenticate,
-  isSchool,
-  getUnitById
-);
+router.get("/:id", authenticate, isSchool, getUnitById);
 
 /**
  * @swagger
@@ -114,12 +100,7 @@ router.get(
  *       200:
  *         description: Cập nhật unit thành công
  */
-router.put(
-  "/:id",
-  authenticate,
-  isSchool,
-  updateUnit
-);
+router.put("/:id", authenticate, isSchool, updateUnit);
 
 /**
  * @swagger
@@ -137,12 +118,7 @@ router.put(
  *       200:
  *         description: Xóa unit thành công
  */
-router.delete(
-  "/:id",
-  authenticate,
-  isSchool,
-  deleteUnit
-);
+router.delete("/:id", authenticate, isSchool, deleteUnit);
 
 /* ================= TEACHER ================= */
 
@@ -158,12 +134,7 @@ router.delete(
  *       200:
  *         description: Danh sách unit
  */
-router.get(
-  "/teacher/all",
-  authenticate,
-  isTeacher,
-  getAllUnitsForTeacher
-);
+router.get("/teacher/all", authenticate, isTeacher, getAllUnitsForTeacher);
 
 /**
  * @swagger
@@ -181,12 +152,7 @@ router.get(
  *       200:
  *         description: Chi tiết unit
  */
-router.get(
-  "/teacher/:id",
-  authenticate,
-  isTeacher,
-  getUnitById
-);
+router.get("/teacher/:id", authenticate, isTeacher, getUnitById);
 
 /* ================= STUDENT ================= */
 
@@ -200,10 +166,7 @@ router.get(
  *       200:
  *         description: Danh sách unit đã publish
  */
-router.get(
-  "/public",
-  getPublishedUnits
-);
+router.get("/public", getPublishedUnits);
 
 /**
  * @swagger
@@ -219,9 +182,6 @@ router.get(
  *       200:
  *         description: Chi tiết unit
  */
-router.get(
-  "/public/:id",
-  getUnitById
-);
+router.get("/public/:id", getPublishedUnitById);
 
 export default router;

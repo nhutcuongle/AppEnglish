@@ -8,7 +8,8 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
-dotenv.config();
+import teacherRoutes from "./routes/teacher.js";
+import unitRoutes from "./routes/unit.js";
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.use("/swagger", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/teachers", teacherRoutes); 
+app.use("/api/units", unitRoutes);      
 
 app.get("/", (req, res) => {
   res.send("API is running...");
