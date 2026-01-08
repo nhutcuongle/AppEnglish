@@ -4,9 +4,14 @@ import {
   getTeachers,
   updateTeacher,
   deleteTeacher,
+  getMyClassStudents,
 } from "../controller/teacherController.js";
 
-import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
+import {
+  authenticate,
+  isSchool,
+  isTeacher,
+} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -117,5 +122,51 @@ router.put("/:id", authenticate, isSchool, updateTeacher);
  *         description: Không tìm thấy giảng viên
  */
 router.delete("/:id", authenticate, isSchool, deleteTeacher);
+
+/**
+ * @swagger
+ * /api/teachers/my-class/students:
+ *   get:
+ *     summary: Lấy danh sách học sinh lớp chủ nhiệm của giảng viên(teacher)
+ *     description: |
+ *       API dành cho **giảng viên**.
+ *       Trả về danh sách học sinh của lớp mà giảng viên đang làm giáo viên chủ nhiệm.
+ *     tags: [Teachers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách học sinh thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 class:
+ *                   type: string
+ *                   example: "10A1"
+ *                 students:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "64b9f3d8c2a1e9a123456789"
+ *                       username:
+ *                         type: string
+ *                         example: "student01"
+ *                       email:
+ *                         type: string
+ *                         example: "student01@gmail.com"
+ *       401:
+ *         description: Không có quyền truy cập (chưa đăng nhập hoặc không phải giảng viên)
+ *       404:
+ *         description: Giảng viên chưa được phân lớp
+ *       500:
+ *         description: Lỗi server
+ */
+
+router.get("/my-class/students", authenticate, isTeacher, getMyClassStudents);
 
 export default router;

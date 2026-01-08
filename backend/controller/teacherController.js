@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Class from "../models/Class.js";
 
 /* SCHOOL: CREATE TEACHER */
 import bcrypt from "bcryptjs";
@@ -65,6 +66,25 @@ export const deleteTeacher = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy giảng viên" });
 
     res.json({ message: "Xóa giảng viên thành công" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* TEACHER: GET MY CLASS STUDENTS */
+export const getMyClassStudents = async (req, res) => {
+  try {
+    const classData = await Class.findOne({
+      homeroomTeacher: req.user.id,
+    }).populate("students", "username email");
+
+    if (!classData)
+      return res.status(404).json({ message: "Bạn chưa được phân lớp" });
+
+    res.json({
+      class: classData.name,
+      students: classData.students,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
@@ -15,6 +14,12 @@ const userSchema = new mongoose.Schema(
     },
 
     isDisabled: { type: Boolean, default: false },
+    
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      default: null,
+    },
   },
   { timestamps: true }
 );

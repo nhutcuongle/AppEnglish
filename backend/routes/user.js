@@ -11,7 +11,6 @@ import {
 
 import {
   authenticate,
-  isAdmin,
   isSchool,
   isTeacher,
 } from "../middlewares/authMiddleware.js";
@@ -22,16 +21,18 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Students
- *   description: Quản lý học sinh (School / Admin)
+ *   description: Quản lý học sinh (School / Teacher)
  */
 
-/* ================= SCHOOL / ADMIN ================= */
+/* =====================================================
+   SCHOOL
+===================================================== */
 
 /**
  * @swagger
  * /api/users/students:
  *   post:
- *     summary: Tạo học sinh mới
+ *     summary: Tạo học sinh mới (có thể gán lớp)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -48,16 +49,24 @@ const router = express.Router();
  *             properties:
  *               username:
  *                 type: string
- *                 example: student01
+ *                 example: "Nguyễn Văn A"
  *               email:
  *                 type: string
- *                 example: student01@gmail.com
+ *                 example: "a@gmail.com"
  *               password:
  *                 type: string
- *                 example: 123456
+ *                 example: "123456"
+ *               classId:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "64b9f3d8c2a1e9a987654321"
  *     responses:
  *       201:
  *         description: Tạo học sinh thành công
+ *       400:
+ *         description: Lớp không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
  */
 router.post("/students", authenticate, isSchool, createStudent);
 
@@ -72,6 +81,8 @@ router.post("/students", authenticate, isSchool, createStudent);
  *     responses:
  *       200:
  *         description: Danh sách học sinh
+ *       401:
+ *         description: Chưa đăng nhập
  */
 router.get("/students", authenticate, isSchool, getAllStudents);
 
@@ -79,7 +90,7 @@ router.get("/students", authenticate, isSchool, getAllStudents);
  * @swagger
  * /api/users/students/{id}:
  *   put:
- *     summary: Cập nhật học sinh
+ *     summary: Cập nhật thông tin học sinh (không đổi lớp)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -89,6 +100,7 @@ router.get("/students", authenticate, isSchool, getAllStudents);
  *         required: true
  *         schema:
  *           type: string
+ *           example: "64b9f3d8c2a1e9a123456789"
  *     requestBody:
  *       required: true
  *       content:
@@ -103,8 +115,9 @@ router.get("/students", authenticate, isSchool, getAllStudents);
  *     responses:
  *       200:
  *         description: Cập nhật thành công
+ *       404:
+ *         description: Không tìm thấy học sinh
  */
-
 router.put("/students/:id", authenticate, isSchool, updateStudent);
 
 /**
@@ -119,9 +132,13 @@ router.put("/students/:id", authenticate, isSchool, updateStudent);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Xóa học sinh thành công
+ *       404:
+ *         description: Không tìm thấy học sinh
  */
 router.delete("/students/:id", authenticate, isSchool, deleteStudent);
 
@@ -137,9 +154,11 @@ router.delete("/students/:id", authenticate, isSchool, deleteStudent);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: Khóa học sinh thành công
+ *         description: Khóa tài khoản thành công
  */
 router.put("/students/:id/disable", authenticate, isSchool, disableUser);
 
@@ -155,25 +174,35 @@ router.put("/students/:id/disable", authenticate, isSchool, disableUser);
  *       - name: id
  *         in: path
  *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: Mở khóa học sinh thành công
+ *         description: Mở khóa tài khoản thành công
  */
 router.put("/students/:id/enable", authenticate, isSchool, enableUser);
 
-/* ================= TEACHER ================= */
+/* =====================================================
+   TEACHER
+===================================================== */
 
 /**
  * @swagger
  * /api/users/students/assignable:
  *   get:
- *     summary: Giảng viên lấy danh sách học sinh đang hoạt động
+ *     summary: Giáo viên lấy danh sách học sinh đang hoạt động
+ *     description: |
+ *       Dùng để gán bài / giao bài cho học sinh.
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Danh sách học sinh
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
  */
 router.get(
   "/students/assignable",
