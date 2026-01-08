@@ -21,7 +21,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/users/teachers:
+ * /api/teachers:
  *   get:
  *     summary: Lấy danh sách giảng viên
  *     tags: [Teachers]
@@ -31,16 +31,11 @@ const router = express.Router();
  *       200:
  *         description: Danh sách giảng viên
  */
-router.get(
-  "/teachers",
-  authenticate,
-  isSchool,
-  getTeachers
-);
+router.get("/", authenticate, isSchool, getTeachers);
 
 /**
  * @swagger
- * /api/users/teachers:
+ * /api/teachers:
  *   post:
  *     summary: Tạo giảng viên mới
  *     tags: [Teachers]
@@ -67,16 +62,11 @@ router.get(
  *       201:
  *         description: Tạo giảng viên thành công
  */
-router.post(
-  "/teachers",
-  authenticate,
-  isSchool,
-  createTeacher
-);
+router.post("/", authenticate, isSchool, createTeacher);
 
 /**
  * @swagger
- * /api/users/teachers/{id}:
+ * /api/teachers/{id}:
  *   put:
  *     summary: Cập nhật giảng viên
  *     tags: [Teachers]
@@ -106,16 +96,11 @@ router.post(
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-router.put(
-  "/teachers/:id",
-  authenticate,
-  isSchool,
-  updateTeacher
-);
+router.put("/:id", authenticate, isSchool, updateTeacher);
 
 /**
  * @swagger
- * /api/users/teachers/{id}:
+ * /api/teachers/{id}:
  *   delete:
  *     summary: Xóa giảng viên
  *     tags: [Teachers]
@@ -131,11 +116,6 @@ router.put(
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-router.delete(
-  "/teachers/:id",
-  authenticate,
-  isSchool,
-  deleteTeacher
-);
+router.delete("/:id", authenticate, isSchool, deleteTeacher);
 
 export default router;
