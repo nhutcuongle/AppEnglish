@@ -17,7 +17,7 @@ import {
 } from "../middlewares/authMiddleware.js";
 
 import {
-  uploadUnitImage,
+  uploadSingleImage,
   uploadErrorHandler,
 } from "../middlewares/uploadMiddleware.js";
 
@@ -72,7 +72,7 @@ router.post(
   "/",
   authenticate,
   isSchool,
-  uploadUnitImage,
+  uploadSingleImage,
   uploadErrorHandler,
   createUnit
 );
@@ -150,7 +150,7 @@ router.put(
   "/:id",
   authenticate,
   isSchool,
-  uploadUnitImage,
+  uploadSingleImage,
   uploadErrorHandler,
   updateUnit
 );

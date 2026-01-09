@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-         url: "https://appenglish-0uee.onrender.com",
-       // url: "http://localhost:5000",
+       //  url: "https://appenglish-0uee.onrender.com",
+        url: "http://localhost:5000",
       },
     ],
 
@@ -38,7 +38,7 @@ const swaggerOptions = {
       },
         {
         name: "Lessons",
-       description:" Quản lý bài học (School CRUD, Teacher / Student xem)",
+       description:" Quản lý bài học(có test full routes này: upload hình ảnh video audio dùng postman upload cho tao trên ui chạy đéo đc) (School CRUD, Teacher / Student xem)",
       },
     ],
     components: {

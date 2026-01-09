@@ -12,6 +12,9 @@ import teacherRoutes from "./routes/teacher.js";
 import unitRoutes from "./routes/unit.js";
 import lessonRoutes from "./routes/lesson.js";
 import classRoutes from "./routes/class.js";
+//import uploadRoutes from "./routes/upload.js";
+
+
 const app = express();
 
 app.use(cors());
@@ -26,6 +29,11 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/units", unitRoutes);      
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/classes", classRoutes);
+//app.use("/api/uploads", uploadRoutes);
+
+
+
+
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

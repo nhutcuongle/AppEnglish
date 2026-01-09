@@ -7,6 +7,10 @@ import {
 } from "../controller/lessonController.js";
 
 import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
+import {
+  uploadMultipleMedia,
+  uploadErrorHandler,
+} from "../middlewares/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -14,7 +18,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Lessons
- *   description: Quản lý bài học (School CRUD, Teacher / Student xem)
+ *   description: Quản lý bài học(School CRUD, Teacher / Student xem)
  */
 
 /* ================= SCHOOL / ADMIN ================= */
@@ -23,14 +27,14 @@ const router = express.Router();
  * @swagger
  * /api/lessons:
  *   post:
- *     summary: Nhà trường tạo lesson mới
+ *     summary: Nhà trường tạo lesson mới (có upload media)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -45,66 +49,56 @@ const router = express.Router();
  *                 example: Listening - Greetings
  *               content:
  *                 type: string
- *                 example: Nội dung bài nghe chào hỏi
- *               order:
- *                 type: number
- *                 example: 1
  *               isPublished:
  *                 type: boolean
- *                 example: false
+ *
  *               images:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                       example: https://res.cloudinary.com/xxx/image1.webp
- *                     caption:
- *                       type: string
- *                       example: Ảnh minh họa
- *                     order:
- *                       type: number
- *                       example: 1
+ *                   type: string
+ *                   format: binary
+ *               imageCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *
  *               audios:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                       example: https://res.cloudinary.com/xxx/audio1.mp3
- *                     caption:
- *                       type: string
- *                       example: Bài nghe số 1
- *                     order:
- *                       type: number
- *                       example: 1
+ *                   type: string
+ *                   format: binary
+ *               audioCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *
  *               videos:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                       example: https://res.cloudinary.com/xxx/video1.mp4
- *                     caption:
- *                       type: string
- *                       example: Video hội thoại
- *                     order:
- *                       type: number
- *                       example: 1
+ *                   type: string
+ *                   format: binary
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       201:
  *         description: Tạo lesson thành công
  */
-router.post("/", authenticate, isSchool, createLesson);
+router.post(
+  "/",
+  authenticate,
+  isSchool,
+  uploadMultipleMedia,
+  uploadErrorHandler,
+  createLesson
+);
 
 /**
  * @swagger
  * /api/lessons/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật lesson (cập nhật từng phần)
+ *     summary: Nhà trường cập nhật lesson (nội dung + media đã reorder)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []
@@ -124,10 +118,9 @@ router.post("/", authenticate, isSchool, createLesson);
  *                 type: string
  *               content:
  *                 type: string
- *               order:
- *                 type: number
  *               isPublished:
  *                 type: boolean
+ *
  *               images:
  *                 type: array
  *                 items:
@@ -139,6 +132,7 @@ router.post("/", authenticate, isSchool, createLesson);
  *                       type: string
  *                     order:
  *                       type: number
+ *
  *               audios:
  *                 type: array
  *                 items:
@@ -150,6 +144,7 @@ router.post("/", authenticate, isSchool, createLesson);
  *                       type: string
  *                     order:
  *                       type: number
+ *
  *               videos:
  *                 type: array
  *                 items:
@@ -197,7 +192,7 @@ router.delete("/:id", authenticate, isSchool, deleteLesson);
  * @swagger
  * /api/lessons/unit/{unitId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách lesson theo unit (chỉ lesson đã publish)
+ *     summary: Giáo viên & học sinh xem danh sách lesson theo unit
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []

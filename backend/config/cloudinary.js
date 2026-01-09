@@ -22,11 +22,41 @@ const storage = new CloudinaryStorage({
 const videoStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "lms/videos",
+    folder: "lms/media", // 👈 đổi tên cho đúng bản chất
     resource_type: "video",
-    allowed_formats: ["mp4", "mov", "avi", "webm"],
-    transformation: [{ quality: "auto", fetch_format: "mp4" }],
+    allowed_formats: ["mp4", "mov", "avi", "webm", "mp3", "wav", "m4a", "ogg"],
+    transformation: [{ quality: "auto" }],
+  },
+});
+const lessonMediaStorage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => {
+    if (file.mimetype.startsWith("image/")) {
+      return {
+        folder: "lms/lesson-images",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        transformation: [{ quality: "auto", fetch_format: "webp" }],
+      };
+    }
+
+    return {
+      folder: "lms/lesson-media",
+      resource_type: "video",
+      allowed_formats: [
+        "mp4",
+        "mov",
+        "avi",
+        "webm",
+        "mp3",
+        "wav",
+        "m4a",
+        "ogg",
+      ],
+      transformation: [{ quality: "auto" }],
+    };
   },
 });
 
-export { cloudinary, storage, videoStorage };
+export { cloudinary, storage, videoStorage, lessonMediaStorage };
+
+
