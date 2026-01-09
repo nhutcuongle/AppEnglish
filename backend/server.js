@@ -1,7 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config();
 import cors from "cors";
 
 import swaggerUi from "swagger-ui-express";
@@ -12,8 +12,7 @@ import teacherRoutes from "./routes/teacher.js";
 import unitRoutes from "./routes/unit.js";
 import lessonRoutes from "./routes/lesson.js";
 import classRoutes from "./routes/class.js";
-//import uploadRoutes from "./routes/upload.js";
-
+import vocabularyRoutes from "./routes/vocabulary.js";
 
 const app = express();
 
@@ -25,14 +24,11 @@ app.use("/swagger", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/teachers", teacherRoutes); 
-app.use("/api/units", unitRoutes);      
+app.use("/api/teachers", teacherRoutes);
+app.use("/api/units", unitRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/classes", classRoutes);
-//app.use("/api/uploads", uploadRoutes);
-
-
-
+app.use("/api/vocabularies", vocabularyRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");
@@ -42,7 +38,7 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI).then(() => {
   console.log("MongoDB connected");
-
+  
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

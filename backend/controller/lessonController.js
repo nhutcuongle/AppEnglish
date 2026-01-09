@@ -41,10 +41,28 @@ import Lesson from "../models/Lesson.js";
 // };
 export const createLesson = async (req, res) => {
   try {
-    const { unit, title, content, isPublished } = req.body;
+    const { unit, lessonType, title, content, isPublished } = req.body;
 
+    /* ===== VALIDATE ===== */
     if (!unit || !title) {
       return res.status(400).json({ message: "Thiếu unit hoặc title" });
+    }
+
+    if (!lessonType) {
+      return res.status(400).json({ message: "Thiếu lessonType" });
+    }
+
+    const allowedTypes = [
+      "vocabulary",
+      "grammar",
+      "reading",
+      "listening",
+      "speaking",
+      "writing",
+    ];
+
+    if (!allowedTypes.includes(lessonType)) {
+      return res.status(400).json({ message: "lessonType không hợp lệ" });
     }
 
     /* ===== AUTO LESSON ORDER ===== */
@@ -65,7 +83,7 @@ export const createLesson = async (req, res) => {
       req.files?.images?.map((file, index) => ({
         url: file.path,
         caption: imageCaptions[index] || "",
-        order: index + 1, // ✅ AUTO
+        order: index + 1,
       })) || [];
 
     /* ===== AUDIO ===== */
@@ -79,7 +97,7 @@ export const createLesson = async (req, res) => {
       req.files?.audios?.map((file, index) => ({
         url: file.path,
         caption: audioCaptions[index] || "",
-        order: index + 1, // ✅ AUTO
+        order: index + 1,
       })) || [];
 
     /* ===== VIDEO ===== */
@@ -93,11 +111,13 @@ export const createLesson = async (req, res) => {
       req.files?.videos?.map((file, index) => ({
         url: file.path,
         caption: videoCaptions[index] || "",
-        order: index + 1, // ✅ AUTO
+        order: index + 1,
       })) || [];
 
+    /* ===== CREATE ===== */
     const lesson = await Lesson.create({
       unit,
+      lessonType,
       title,
       content,
       isPublished,
@@ -115,7 +135,6 @@ export const createLesson = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 /* ================= GET LESSONS BY UNIT ================= */
 export const getLessonsByUnit = async (req, res) => {

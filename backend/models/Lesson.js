@@ -29,6 +29,20 @@ const lessonSchema = new mongoose.Schema(
       index: true,
     },
 
+    lessonType: {
+      type: String,
+      enum: [
+        "vocabulary",
+        "grammar",
+        "reading",
+        "listening",
+        "speaking",
+        "writing",
+      ],
+      required: true,
+      index: true,
+    },
+
     title: {
       type: String,
       required: true,
@@ -37,7 +51,7 @@ const lessonSchema = new mongoose.Schema(
 
     content: {
       type: String,
-      default: "", // HTML / rich text
+      default: "",
     },
 
     images: [mediaSchema],

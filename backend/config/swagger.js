@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-       //  url: "https://appenglish-0uee.onrender.com",
-        url: "http://localhost:5000",
+          url: "https://appenglish-0uee.onrender.com",
+      //  url: "http://localhost:5000",
       },
     ],
 
@@ -24,7 +24,7 @@ const swaggerOptions = {
         name: "Teachers",
         description: "Quản lý giảng viên (School)",
       },
-       {
+      {
         name: "Classes",
         description: " Quản lý lớp học (School)",
       },
@@ -36,9 +36,14 @@ const swaggerOptions = {
         name: "Units",
         description: "Quản lý Unit (School / Teacher / Student)",
       },
-        {
+      {
         name: "Lessons",
-       description:" Quản lý bài học(có test full routes này: upload hình ảnh video audio dùng postman upload cho tao trên ui chạy đéo đc) (School CRUD, Teacher / Student xem)",
+        description:
+          " Quản lý bài học(có test full routes này: upload hình ảnh video audio dùng postman upload cho tao trên ui chạy đéo đc) (School CRUD, Teacher / Student xem)",
+      },
+      {
+        name: "Vocabulary",
+        description: "  Quản lý từ vựng theo lesson",
       },
     ],
     components: {

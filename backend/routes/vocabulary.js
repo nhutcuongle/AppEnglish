@@ -1,10 +1,10 @@
 import express from "express";
 import {
-  createLesson,
-  getLessonsByUnit,
-  updateLesson,
-  deleteLesson,
-} from "../controller/lessonController.js";
+  createVocabulary,
+  getVocabularyByLesson,
+  updateVocabulary,
+  deleteVocabulary,
+} from "../controller/vocabularyController.js";
 
 import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
 import {
@@ -17,18 +17,18 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Lessons
- *   description: Quản lý bài học (School CRUD, Teacher / Student xem)
+ *   name: Vocabulary
+ *   description: Quản lý từ vựng theo lesson (School CRUD, Teacher / Student xem)
  */
 
 /* ================= SCHOOL / ADMIN ================= */
 
 /**
  * @swagger
- * /api/lessons:
+ * /api/vocabularies:
  *   post:
- *     summary: Nhà trường tạo lesson mới (mỗi lesson = 1 skill)
- *     tags: [Lessons]
+ *     summary: Nhà trường tạo từ vựng mới
+ *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -38,32 +38,29 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - unit
- *               - lessonType
- *               - title
+ *               - lesson
+ *               - word
+ *               - meaning
  *             properties:
- *               unit:
+ *               lesson:
  *                 type: string
  *                 example: 695f79f2927eb2fb1a5d9ed3
  *
- *               lessonType:
+ *               word:
  *                 type: string
- *                 description: Loại bài học / kỹ năng
- *                 enum:
- *                   - vocabulary
- *                   - grammar
- *                   - reading
- *                   - listening
- *                   - speaking
- *                   - writing
- *                 example: listening
+ *                 example: family
  *
- *               title:
+ *               phonetic:
  *                 type: string
- *                 example: Listening – Family Life
+ *                 example: /ˈfæm.əl.i/
  *
- *               content:
+ *               meaning:
  *                 type: string
+ *                 example: gia đình
+ *
+ *               example:
+ *                 type: string
+ *                 example: My family is very close.
  *
  *               isPublished:
  *                 type: boolean
@@ -102,9 +99,9 @@ const router = express.Router();
  *                   type: string
  *     responses:
  *       201:
- *         description: Tạo lesson thành công
+ *         description: Tạo từ vựng thành công
  *       400:
- *         description: Thiếu hoặc sai lessonType
+ *         description: Dữ liệu không hợp lệ
  */
 router.post(
   "/",
@@ -112,15 +109,15 @@ router.post(
   isSchool,
   uploadMultipleMedia,
   uploadErrorHandler,
-  createLesson
+  createVocabulary
 );
 
 /**
  * @swagger
- * /api/lessons/{id}:
+ * /api/vocabularies/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật lesson (không đổi lessonType)
- *     tags: [Lessons]
+ *     summary: Nhà trường cập nhật từ vựng
+ *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -135,9 +132,13 @@ router.post(
  *           schema:
  *             type: object
  *             properties:
- *               title:
+ *               word:
  *                 type: string
- *               content:
+ *               phonetic:
+ *                 type: string
+ *               meaning:
+ *                 type: string
+ *               example:
  *                 type: string
  *               isPublished:
  *                 type: boolean
@@ -179,18 +180,25 @@ router.post(
  *                       type: number
  *     responses:
  *       200:
- *         description: Cập nhật lesson thành công
+ *         description: Cập nhật từ vựng thành công
  *       404:
- *         description: Không tìm thấy lesson
+ *         description: Không tìm thấy từ vựng
  */
-router.patch("/:id", authenticate, isSchool, updateLesson);
+router.patch(
+  "/:id",
+  authenticate,
+  isSchool,
+  uploadMultipleMedia,
+  uploadErrorHandler,
+  updateVocabulary
+);
 
 /**
  * @swagger
- * /api/lessons/{id}:
+ * /api/vocabularies/{id}:
  *   delete:
- *     summary: Nhà trường xóa lesson
- *     tags: [Lessons]
+ *     summary: Nhà trường xóa từ vựng
+ *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,32 +209,36 @@ router.patch("/:id", authenticate, isSchool, updateLesson);
  *           type: string
  *     responses:
  *       200:
- *         description: Xóa lesson thành công
+ *         description: Xóa từ vựng thành công
  *       404:
- *         description: Không tìm thấy lesson
+ *         description: Không tìm thấy từ vựng
  */
-router.delete("/:id", authenticate, isSchool, deleteLesson);
+router.delete("/:id", authenticate, isSchool, deleteVocabulary);
 
 /* ================= TEACHER / STUDENT ================= */
 
 /**
  * @swagger
- * /api/lessons/unit/{unitId}:
+ * /api/vocabularies/lesson/{lessonId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách lesson theo unit
- *     tags: [Lessons]
+ *     summary: Giáo viên & học sinh xem danh sách từ vựng theo lesson
+ *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: unitId
+ *       - name: lessonId
  *         in: path
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Danh sách lesson
+ *         description: Danh sách từ vựng
  */
-router.get("/unit/:unitId", authenticate, getLessonsByUnit);
+router.get(
+  "/lesson/:lessonId",
+  authenticate,
+  getVocabularyByLesson
+);
 
 export default router;
