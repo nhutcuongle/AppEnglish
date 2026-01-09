@@ -106,7 +106,7 @@ class SchoolDashboardTab extends StatelessWidget {
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
-            _buildStatsCards(),
+            _buildStatsCards(context),
             const SizedBox(height: 28),
             _buildQuickActions(context),
             const SizedBox(height: 28),
@@ -174,7 +174,7 @@ class SchoolDashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -194,6 +194,7 @@ class SchoolDashboardTab extends StatelessWidget {
             Icons.school_rounded,
             const Color(0xFF1976D2),
             'Khối 10',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentManagementScreen())),
           ),
         ),
         const SizedBox(width: 12),
@@ -210,9 +211,11 @@ class SchoolDashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, String badge) {
-    return Container(
-      padding: const EdgeInsets.all(16),
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, String badge, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -270,6 +273,7 @@ class SchoolDashboardTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 /* GET ALL STUDENTS */
 export const getAllStudents = async (req, res) => {
@@ -13,12 +14,17 @@ export const getAllStudents = async (req, res) => {
 /* CREATE STUDENT */
 export const createStudent = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, phone, classes } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const student = await User.create({
       username,
       email,
-      password,
+      password: hashedPassword,
+      fullName: fullName || "",
+      phone: phone || "",
+      classes: classes || [],
       role: "student",
     });
 
@@ -34,9 +40,18 @@ export const createStudent = async (req, res) => {
 /* UPDATE STUDENT */
 export const updateStudent = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    // Hash password if provided
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    } else {
+      delete updateData.password; // Do not overwrite with empty/null if logic fails elsewhere
+    }
+
     const student = await User.findOneAndUpdate(
       { _id: req.params.id, role: "student" },
-      req.body,
+      updateData,
       { new: true }
     ).select("-password");
 

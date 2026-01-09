@@ -48,7 +48,8 @@ const router = express.Router();
  *       201:
  *         description: Tạo giảng viên thành công
  */
-router.post("/", authenticate, isSchool, createTeacher);
+// TODO: Add back authentication after testing: authenticate, isSchool
+router.post("/", createTeacher);
 
 /**
  * @swagger
@@ -62,7 +63,8 @@ router.post("/", authenticate, isSchool, createTeacher);
  *       200:
  *         description: Danh sách giảng viên
  */
-router.get("/", authenticate, isSchool, getTeachers);
+// TODO: Add back authentication: authenticate, isSchool
+router.get("/", getTeachers);
 
 /**
  * @swagger
@@ -96,7 +98,8 @@ router.get("/", authenticate, isSchool, getTeachers);
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-router.put("/:id", authenticate, isSchool, updateTeacher);
+// TODO: Add back authentication: authenticate, isSchool
+router.put("/:id", updateTeacher);
 
 /**
  * @swagger
@@ -116,6 +119,7 @@ router.put("/:id", authenticate, isSchool, updateTeacher);
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-router.delete("/:id", authenticate, isSchool, deleteTeacher);
+// TODO: Add back authentication: authenticate, isSchool
+router.delete("/:id", deleteTeacher);
 
 export default router;

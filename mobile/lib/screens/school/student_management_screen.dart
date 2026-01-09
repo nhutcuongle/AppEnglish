@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class StudentManagementScreen extends StatefulWidget {
-  final String? className; // Optional: if provided, only show students of this class
-  
+  final String? className;
   const StudentManagementScreen({super.key, this.className});
 
   @override
@@ -11,59 +11,70 @@ class StudentManagementScreen extends StatefulWidget {
 
 class _StudentManagementScreenState extends State<StudentManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
-  late String _selectedClass;
-  
-  final List<String> _classFilters = ['Tất cả', '10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
-  
-  final List<Map<String, dynamic>> _students = [
-    {'id': '1', 'name': 'Nguyễn Văn Anh', 'class': '10A1', 'gender': 'Nam', 'dob': '15/03/2010', 'phone': '0912 345 001', 'status': 'active'},
-    {'id': '2', 'name': 'Trần Thị Bình', 'class': '10A1', 'gender': 'Nữ', 'dob': '22/07/2010', 'phone': '0912 345 002', 'status': 'active'},
-    {'id': '3', 'name': 'Lê Hoàng Cường', 'class': '10A1', 'gender': 'Nam', 'dob': '08/11/2010', 'phone': '0912 345 003', 'status': 'active'},
-    {'id': '4', 'name': 'Phạm Thị Dung', 'class': '10A2', 'gender': 'Nữ', 'dob': '30/01/2010', 'phone': '0912 345 004', 'status': 'active'},
-    {'id': '5', 'name': 'Hoàng Văn Em', 'class': '10A2', 'gender': 'Nam', 'dob': '14/05/2010', 'phone': '0912 345 005', 'status': 'active'},
-    {'id': '6', 'name': 'Vũ Thị Phương', 'class': '10A2', 'gender': 'Nữ', 'dob': '06/09/2010', 'phone': '0912 345 006', 'status': 'inactive'},
-    {'id': '7', 'name': 'Đỗ Minh Giang', 'class': '10A3', 'gender': 'Nam', 'dob': '19/02/2010', 'phone': '0912 345 007', 'status': 'active'},
-    {'id': '8', 'name': 'Bùi Thị Hương', 'class': '10A3', 'gender': 'Nữ', 'dob': '25/12/2010', 'phone': '0912 345 008', 'status': 'active'},
-    {'id': '9', 'name': 'Ngô Văn Inh', 'class': '10A4', 'gender': 'Nam', 'dob': '03/08/2010', 'phone': '0912 345 009', 'status': 'active'},
-    {'id': '10', 'name': 'Đinh Thị Kim', 'class': '10A4', 'gender': 'Nữ', 'dob': '11/04/2010', 'phone': '0912 345 010', 'status': 'active'},
-    {'id': '11', 'name': 'Lý Văn Long', 'class': '10A5', 'gender': 'Nam', 'dob': '28/06/2010', 'phone': '0912 345 011', 'status': 'active'},
-    {'id': '12', 'name': 'Mai Thị Ngọc', 'class': '10A5', 'gender': 'Nữ', 'dob': '17/10/2010', 'phone': '0912 345 012', 'status': 'active'},
-  ];
+  List<Map<String, dynamic>> _students = [];
+  bool _isLoading = true;
+
+
 
   @override
   void initState() {
     super.initState();
-    // If className is provided, use it; otherwise use 'Tất cả'
-    _selectedClass = widget.className ?? 'Tất cả';
+    if (widget.className != null) {
+      _searchController.text = widget.className!;
+    }
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await ApiService.getStudents();
+      setState(() {
+        _students = data.map<Map<String, dynamic>>((s) => {
+          'id': s['_id']?.toString() ?? '',
+          'name': (s['fullName'] != null && s['fullName'].toString().isNotEmpty) ? s['fullName'] : (s['username']?.toString() ?? 'Chưa có tên'),
+          'username': s['username']?.toString() ?? '',
+          'email': s['email']?.toString() ?? '',
+          'phone': s['phone']?.toString() ?? '',
+          'classes': s['classes'] ?? [],
+          'status': s['isDisabled'] == true ? 'inactive' : 'active',
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading students: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   List<Map<String, dynamic>> get _filteredStudents {
-    var result = _students;
-    // If className was passed (specific class view), always filter by it
-    if (widget.className != null) {
-      result = result.where((s) => s['class'] == widget.className).toList();
-    } else if (_selectedClass != 'Tất cả') {
-      result = result.where((s) => s['class'] == _selectedClass).toList();
+    if (_searchController.text.isEmpty) return _students;
+    final query = _searchController.text.toLowerCase();
+    final queryUpper = _searchController.text.toUpperCase();
+    
+    // Check if query is a class name pattern (e.g., 10A1, 10A2...)
+    bool isClassSearch = _allClasses().contains(queryUpper);
+    
+    if (isClassSearch) {
+      // Only filter by classes field - exact match
+      return _students.where((s) => 
+        s['classes'] != null && (s['classes'] as List).contains(queryUpper)
+      ).toList();
     }
-    if (_searchController.text.isNotEmpty) {
-      final query = _searchController.text.toLowerCase();
-      result = result.where((s) => s['name'].toLowerCase().contains(query)).toList();
-    }
-    return result;
-  }
-
-  List<Map<String, dynamic>> get _displayStudents {
-    // For stats calculation, use students based on selected/filtered class
-    if (widget.className != null) {
-      return _students.where((s) => s['class'] == widget.className).toList();
-    } else if (_selectedClass != 'Tất cả') {
-      return _students.where((s) => s['class'] == _selectedClass).toList();
-    }
-    return _students;
+    
+    // General search: match name, email, or classes
+    return _students.where((s) => 
+      (s['name'] ?? '').toLowerCase().contains(query) || 
+      (s['email'] ?? '').toLowerCase().contains(query) ||
+      (s['classes'] != null && (s['classes'] as List).any((c) => c.toString().toLowerCase().contains(query)))
+    ).toList();
   }
 
   @override
-  void dispose() { _searchController.dispose(); super.dispose(); }
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +84,12 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         child: Column(
           children: [
             _buildHeader(context),
-            _buildSearchAndFilter(),
+
+            _buildSearchBar(),
             _buildStatsRow(),
-            Expanded(child: _buildStudentList()),
+            Expanded(child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _buildStudentList()),
           ],
         ),
       ),
@@ -106,13 +120,12 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.className != null ? 'Học sinh lớp ${widget.className}' : 'Danh sách Học sinh', 
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                const Text('Quản lý Học sinh', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                 Container(
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(6)),
-                  child: Text(widget.className ?? 'Khối 10', style: const TextStyle(fontSize: 12, color: Color(0xFF2196F3), fontWeight: FontWeight.w600)),
+                  child: const Text('Khối 10', style: TextStyle(fontSize: 12, color: Color(0xFF2196F3), fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -122,80 +135,47 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     );
   }
 
-  Widget _buildSearchAndFilter() {
+  Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE3F2FD))),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm học sinh...',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8)), onPressed: () { _searchController.clear(); setState(() {}); })
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE3F2FD)),
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Tìm kiếm học sinh...',
+            hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2196F3)),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8)), onPressed: () { _searchController.clear(); setState(() {}); })
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           ),
-          // Only show class filter if no specific className was passed
-          if (widget.className == null) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _classFilters.length,
-                itemBuilder: (context, index) {
-                  final filter = _classFilters[index];
-                  final isSelected = _selectedClass == filter;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedClass = filter),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF2196F3) : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
-                        ),
-                        child: Center(child: Text(filter, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13))),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildStatsRow() {
-    final students = _displayStudents;
-    int maleCount = students.where((s) => s['gender'] == 'Nam').length;
-    int femaleCount = students.where((s) => s['gender'] == 'Nữ').length;
-    int activeCount = students.where((s) => s['status'] == 'active').length;
+    final students = _filteredStudents;
+    int activeCount = students.where((t) => t['status'] == 'active').length;
+    int inactiveCount = students.where((t) => t['status'] == 'inactive').length;
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          _buildMiniStat('Tổng cộng', '${_students.length}', const Color(0xFF2196F3)),
-          const SizedBox(width: 12),
-          _buildMiniStat('Nam', '$maleCount', const Color(0xFF1976D2)),
-          const SizedBox(width: 12),
-          _buildMiniStat('Nữ', '$femaleCount', const Color(0xFFE91E63)),
+          _buildMiniStat('Tổng cộng', '${students.length}', const Color(0xFF2196F3)),
           const SizedBox(width: 12),
           _buildMiniStat('Đang học', '$activeCount', const Color(0xFF4CAF50)),
+          const SizedBox(width: 12),
+          _buildMiniStat('Đã nghỉ', '$inactiveCount', const Color(0xFFFF9800)),
         ],
       ),
     );
@@ -205,12 +185,36 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE3F2FD))),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -219,18 +223,23 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
   Widget _buildStudentList() {
     final students = _filteredStudents;
+    
     if (students.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_search_rounded, size: 80, color: const Color(0xFF94A3B8).withOpacity(0.5)),
+            Icon(Icons.search_off_rounded, size: 80, color: const Color(0xFF94A3B8).withOpacity(0.5)),
             const SizedBox(height: 16),
-            const Text('Không tìm thấy học sinh', style: TextStyle(fontSize: 16, color: Color(0xFF64748B))),
+            const Text(
+              'Không tìm thấy học sinh',
+              style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+            ),
           ],
         ),
       );
     }
+    
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
       itemCount: students.length,
@@ -240,72 +249,155 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
   Widget _buildStudentCard(Map<String, dynamic> student) {
     bool isActive = student['status'] == 'active';
-    bool isMale = student['gender'] == 'Nam';
+    const Color primaryBlue = Color(0xFF2196F3);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE3F2FD)),
-        boxShadow: [BoxShadow(color: const Color(0xFF2196F3).withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: () => _showStudentDetail(context, student),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(18),
+            child: Column(
               children: [
-                Container(
-                  width: 50, height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: isMale ? [const Color(0xFF2196F3), const Color(0xFF1976D2)] : [const Color(0xFFE91E63), const Color(0xFFD81B60)]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(child: Icon(isMale ? Icons.male : Icons.female, color: Colors.white, size: 26)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(student['name'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: isActive ? const Color(0xFF4CAF50).withOpacity(0.1) : const Color(0xFFFF9800).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                            child: Text(isActive ? 'Đang học' : 'Nghỉ học', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFFF9800))),
+                Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryBlue.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      child: Center(
+                        child: Text(
+                          _getInitials(student['name'] ?? 'HS'),
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(student['name'] ?? 'Chưa có tên', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isActive ? const Color(0xFF4CAF50).withOpacity(0.1) : const Color(0xFFFF9800).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(width: 6, height: 6, decoration: BoxDecoration(color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFFF9800), shape: BoxShape.circle)),
+                                    const SizedBox(width: 6),
+                                    Text(isActive ? 'Đang học' : 'Đã nghỉ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFFF9800))),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.class_rounded, size: 14, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 4),
+                              Text((student['classes'] as List? ?? []).isNotEmpty ? (student['classes'] as List).first.toString() : 'Chưa xếp lớp', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.email_rounded, size: 16, color: Color(0xFF94A3B8)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                student['email'] ?? 'Chưa có email',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 20, color: const Color(0xFFE2E8F0)),
+                      const SizedBox(width: 14),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(6)),
-                            child: Text(student['class'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
-                          ),
+                          const Icon(Icons.phone_rounded, size: 16, color: Color(0xFF94A3B8)),
                           const SizedBox(width: 8),
-                          const Icon(Icons.cake_rounded, size: 14, color: Color(0xFF94A3B8)),
-                          const SizedBox(width: 4),
-                          Text(student['dob'], style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          Text(
+                            student['phone'] ?? 'Chưa có SĐT',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'HS';
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty || parts[0].isEmpty) return 'HS';
+    if (parts.length >= 2) {
+      return '${parts[parts.length - 2][0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first[0].toUpperCase();
   }
 
   void _showStudentDetail(BuildContext context, Map<String, dynamic> student) {
@@ -334,16 +426,57 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _StudentFormSheet(
         student: student,
-        defaultClass: widget.className,
-        onSave: (updatedStudent) {
-          setState(() {
-            int index = _students.indexWhere((s) => s['id'] == student['id']);
-            if (index != -1) _students[index] = updatedStudent;
-          });
-          Navigator.pop(ctx);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: const Text('Đã cập nhật thông tin học sinh!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+        onSave: (updatedStudent) async {
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
           );
+          
+          final Map<String, dynamic> updateData = {
+            'username': updatedStudent['username'],
+            'fullName': updatedStudent['name'],
+            'email': updatedStudent['email'],
+            'phone': updatedStudent['phone'],
+            'classes': updatedStudent['classes'], // Should be [newClass] only
+            'isDisabled': updatedStudent['status'] == 'active' ? false : true,
+          };
+          if (updatedStudent['password'] != null && updatedStudent['password'].toString().isNotEmpty) {
+            updateData['password'] = updatedStudent['password'];
+          }
+
+          print('DEBUG: Updating student with classes: ${updateData['classes']}');
+
+          final result = await ApiService.updateStudent(updatedStudent['id'], updateData);
+          
+          Navigator.pop(context); // Close loading
+          Navigator.pop(ctx); // Close form
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi cập nhật: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          } else {
+            // Use API response to update local state
+            final updatedFromApi = {
+              'id': result['_id'] ?? updatedStudent['id'],
+              'name': result['fullName'] ?? updatedStudent['name'],
+              'username': result['username'] ?? updatedStudent['username'],
+              'email': result['email'] ?? updatedStudent['email'],
+              'phone': result['phone'] ?? updatedStudent['phone'],
+              'classes': result['classes'] ?? updatedStudent['classes'],
+              'status': result['isDisabled'] == true ? 'inactive' : 'active',
+            };
+            print('DEBUG: API returned classes: ${result['classes']}');
+            setState(() {
+              int index = _students.indexWhere((t) => t['id'] == student['id']);
+              if (index != -1) _students[index] = updatedFromApi;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: const Text('Đã cập nhật thông tin học sinh!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          }
         },
       ),
     );
@@ -359,12 +492,28 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
-            onPressed: () {
-              setState(() => _students.removeWhere((s) => s['id'] == student['id']));
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: const Text('Đã xóa học sinh!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            onPressed: () async {
+              Navigator.pop(ctx); 
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (c) => const Center(child: CircularProgressIndicator()),
               );
+
+              final result = await ApiService.deleteStudent(student['id']);
+              
+              Navigator.pop(context); // Close loading
+
+              if (result['error'] != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi xóa: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+                );
+              } else {
+                setState(() => _students.removeWhere((t) => t['id'] == student['id']));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: const Text('Đã xóa học sinh!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
             child: const Text('Xóa', style: TextStyle(color: Colors.white)),
@@ -375,47 +524,103 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
   }
 
   void _showAddStudentDialog(BuildContext context) {
-    // Calculate next order number for the selected class
-    String targetClass = widget.className ?? '10A1';
-    int classStudentCount = _students.where((s) => s['class'] == targetClass).length;
-    int nextOrder = classStudentCount + 1;
+    String? currentClass;
+    int nextIndex = 1;
     
+    // Determine current class from search/filter
+    String searchText = _searchController.text.trim().toUpperCase();
+    if (_allClasses().contains(searchText)) {
+      currentClass = searchText;
+    } else if (widget.className != null && _allClasses().contains(widget.className)) {
+      currentClass = widget.className;
+    } else if (_students.isNotEmpty) {
+       // Try to infer? No, safety first.
+    }
+
+    if (currentClass != null) {
+      // Find max index to avoid duplicates (e.g. if 10A102 exists, next should be 10A103)
+      int maxIndex = 0;
+      for (var s in _students) {
+        if (s['classes'] != null && (s['classes'] as List).contains(currentClass)) {
+          String u = s['username'] ?? '';
+          if (u.startsWith(currentClass)) {
+             // Handle both old format (with _) and new format
+             String suffix = u.substring(currentClass.length).replaceAll('_', '');
+             int? val = int.tryParse(suffix);
+             if (val != null && val > maxIndex) maxIndex = val;
+          }
+        }
+      }
+      nextIndex = maxIndex + 1;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _StudentFormSheet(
-        defaultClass: widget.className,
-        nextOrderNumber: nextOrder,
-        onSave: (newStudent) {
-          setState(() {
-            newStudent['id'] = DateTime.now().millisecondsSinceEpoch.toString();
-            _students.add(newStudent);
-          });
-          Navigator.pop(ctx);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đã tạo tài khoản: ${newStudent['username']}'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+        initialClass: currentClass,
+        nextIndex: nextIndex,
+        onSave: (newStudent) async {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
           );
+          
+          final result = await ApiService.createStudent(
+            username: newStudent['username'] ?? newStudent['name'],
+            email: (newStudent['email'] != null && newStudent['email'].toString().isNotEmpty) 
+                ? newStudent['email'] 
+                : '${newStudent['username']}@school.edu.vn',
+            password: newStudent['password'] ?? '123456',
+            fullName: newStudent['name'],
+            phone: newStudent['phone'],
+            classes: newStudent['classes'] != null ? List<String>.from(newStudent['classes']) : [],
+          );
+          
+          Navigator.pop(context); // Close loading
+          Navigator.pop(ctx); // Close form
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          } else {
+            setState(() {
+              newStudent['id'] = result['student']?['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+              _students.add(newStudent);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã tạo tài khoản HS: ${newStudent['username']}'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          }
         },
       ),
     );
   }
+
+  List<String> _allClasses() {
+    return ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
+  }
 }
+
 
 class _StudentDetailSheet extends StatelessWidget {
   final Map<String, dynamic> student;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  
+
   const _StudentDetailSheet({required this.student, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    bool isMale = student['gender'] == 'Nam';
     const Color primaryBlue = Color(0xFF2196F3);
-    
+    List<String> classes = student['classes'] != null ? List<String>.from(student['classes']) : [];
+    String className = classes.isNotEmpty ? classes.first : 'Chưa xếp lớp';
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
+      height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       child: Column(
         children: [
@@ -426,28 +631,28 @@ class _StudentDetailSheet extends StatelessWidget {
               child: Column(
                 children: [
                   Container(
-                    width: 80, height: 80,
+                    width: 100, height: 100,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: isMale ? [const Color(0xFF2196F3), const Color(0xFF1976D2)] : [const Color(0xFFE91E63), const Color(0xFFD81B60)]),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: (isMale ? primaryBlue : const Color(0xFFE91E63)).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+                      gradient: const LinearGradient(colors: [Color(0xFF2196F3), Color(0xFF1976D2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [BoxShadow(color: primaryBlue.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
                     ),
-                    child: Center(child: Icon(isMale ? Icons.male : Icons.female, color: Colors.white, size: 40)),
+                    child: Center(child: Text(_getInitials(student['name'] ?? 'HS'), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))),
                   ),
                   const SizedBox(height: 20),
-                  Text(student['name'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  Text(student['name'] ?? 'Chưa có tên', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(20)),
-                    child: Text('Học sinh lớp ${student['class']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
+                    child: Text('Lớp: $className', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
                   ),
                   const SizedBox(height: 30),
-                  _buildInfoRow(Icons.cake_rounded, 'Ngày sinh', student['dob']),
-                  _buildInfoRow(Icons.wc_rounded, 'Giới tính', student['gender']),
-                  _buildInfoRow(Icons.phone_rounded, 'Điện thoại', student['phone']),
-                  _buildInfoRow(Icons.class_rounded, 'Lớp học', student['class']),
-                  const SizedBox(height: 20),
+                  _buildInfoSection('Thông tin liên hệ', [
+                    _buildInfoRow(Icons.email_rounded, 'Email', student['email'] ?? 'Chưa có'),
+                    _buildInfoRow(Icons.phone_rounded, 'Điện thoại', student['phone'] ?? 'Chưa có'),
+                  ]),
+                  const SizedBox(height: 30),
                   Row(
                     children: [
                       Expanded(
@@ -474,27 +679,59 @@ class _StudentDetailSheet extends StatelessWidget {
     );
   }
 
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'HS';
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty || parts[0].isEmpty) return 'HS';
+    if (parts.length >= 2) {
+      return '${parts[parts.length - 2][0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first[0].toUpperCase();
+  }
+
+  Widget _buildInfoSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: const Color(0xFF2196F3), size: 20)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: const Color(0xFF64748B), size: 20),
+          ),
           const SizedBox(width: 14),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))), Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF334155)))]),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF334155))),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _StudentFormSheet extends StatefulWidget {
-  final Map<String, dynamic>? student;
-  final String? defaultClass;
-  final Function(Map<String, dynamic>) onSave;
-  final int nextOrderNumber; // For auto-generating username
 
-  const _StudentFormSheet({this.student, this.defaultClass, required this.onSave, this.nextOrderNumber = 1});
+class _StudentFormSheet extends StatefulWidget {
+  final Map<String, dynamic>? student; // null for add, non-null for edit
+  final Function(Map<String, dynamic>) onSave;
+  final String? initialClass;
+  final int? nextIndex;
+
+  const _StudentFormSheet({this.student, required this.onSave, this.initialClass, this.nextIndex});
 
   @override
   State<_StudentFormSheet> createState() => _StudentFormSheetState();
@@ -502,15 +739,12 @@ class _StudentFormSheet extends StatefulWidget {
 
 class _StudentFormSheetState extends State<_StudentFormSheet> {
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _phoneController;
-  late TextEditingController _dobController;
   late TextEditingController _passwordController;
-  String _selectedClass = '10A1';
-  String _selectedGender = 'Nam';
-  String _generatedUsername = '';
+  String? _selectedClass;
   
-  final List<String> _classes = ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
-  final List<String> _genders = ['Nam', 'Nữ'];
+  final List<String> _allClasses = ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
 
   bool get isEditing => widget.student != null;
 
@@ -518,27 +752,29 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.student?['name'] ?? '');
+    _usernameController = TextEditingController(text: widget.student?['username'] ?? '');
     _phoneController = TextEditingController(text: widget.student?['phone'] ?? '');
-    _dobController = TextEditingController(text: widget.student?['dob'] ?? '');
     _passwordController = TextEditingController();
-    _selectedClass = widget.student?['class'] ?? widget.defaultClass ?? '10A1';
-    _selectedGender = widget.student?['gender'] ?? 'Nam';
-    _generatedUsername = widget.student?['username'] ?? '';
-    _updateUsername();
-  }
-
-  void _updateUsername() {
-    if (!isEditing) {
-      String orderStr = widget.nextOrderNumber.toString().padLeft(2, '0');
-      _generatedUsername = '$_selectedClass$orderStr';
+    
+    if (widget.student != null && widget.student!['classes'] != null && (widget.student!['classes'] as List).isNotEmpty) {
+      _selectedClass = widget.student!['classes'][0];
+    } else if (widget.initialClass != null) {
+      _selectedClass = widget.initialClass;
+      // Auto generate username if not editing
+      if (!isEditing && widget.nextIndex != null) {
+        // Format: 10A101 (no underscore)
+        String newUsername = '${widget.initialClass}${widget.nextIndex.toString().padLeft(2, '0')}';
+        _usernameController.text = newUsername;
+        _passwordController.text = newUsername; // Password same as username
+      }
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _phoneController.dispose();
-    _dobController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -557,9 +793,21 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(14)), child: Icon(isEditing ? Icons.edit_rounded : Icons.person_add_rounded, color: primaryBlue, size: 24)),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(14)),
+                  child: Icon(isEditing ? Icons.edit_rounded : Icons.person_add_rounded, color: primaryBlue, size: 24),
+                ),
                 const SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(isEditing ? 'Chỉnh sửa Học sinh' : 'Thêm Học sinh mới', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))), Text(isEditing ? 'Cập nhật thông tin' : 'Tạo tài khoản học sinh', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)))])),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(isEditing ? 'Chỉnh sửa Học sinh' : 'Thêm Học sinh mới', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                      Text(isEditing ? 'Cập nhật thông tin' : 'Tạo tài khoản học sinh', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
                 IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Color(0xFF94A3B8))),
               ],
             ),
@@ -571,57 +819,53 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Account info section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(14)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(children: [Icon(Icons.account_circle_rounded, color: Color(0xFF2196F3), size: 20), SizedBox(width: 8), Text('Thông tin tài khoản', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3)))]),
-                        const SizedBox(height: 12),
-                        Row(children: [const Text('Tên đăng nhập: ', style: TextStyle(color: Color(0xFF64748B))), Text(_generatedUsername.isEmpty ? '(Tự động tạo)' : _generatedUsername, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)))]),
-                        if (isEditing && widget.student?['username'] != null) const SizedBox(height: 4),
-                        if (isEditing && widget.student?['username'] != null) Row(children: [const Text('Mật khẩu: ', style: TextStyle(color: Color(0xFF64748B))), Text(widget.student?['password'] ?? '******', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)))]),
-                      ],
+                   if (isEditing && widget.student?['username'] != null && widget.student?['username'].toString().isNotEmpty == true) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(14)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(children: [Icon(Icons.account_circle_rounded, color: Color(0xFF2196F3), size: 20), SizedBox(width: 8), Text('Thông tin tài khoản', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3)))]),
+                          const SizedBox(height: 12),
+                          Row(children: [const Text('Tên đăng nhập: ', style: TextStyle(color: Color(0xFF64748B))), Text(widget.student?['username'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)))]),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
+                  ],
                   _buildTextField(_nameController, 'Họ và tên *', 'Nhập họ và tên', Icons.person_rounded),
                   const SizedBox(height: 16),
-                  _buildDropdown('Lớp học *', _selectedClass, _classes, (v) {
-                    setState(() {
-                      _selectedClass = v!;
-                      _updateUsername();
-                    });
-                  }),
-                  const SizedBox(height: 16),
+                  
+                  // Only show Username/Password fields if ADDING new user
                   if (!isEditing) ...[
-                    _buildTextField(_passwordController, 'Mật khẩu *', 'Nhập mật khẩu', Icons.lock_rounded),
+                    _buildTextField(_usernameController, 'Tên đăng nhập *', 'Auto-generated', Icons.account_circle_rounded),
+                    const SizedBox(height: 16),
+                    _buildTextField(_passwordController, 'Mật khẩu *', 'Mặc định: 123456', Icons.lock_rounded),
                     const SizedBox(height: 16),
                   ],
-                  _buildTextField(_phoneController, 'Số điện thoại PH', '0912 345 678', Icons.phone_rounded, TextInputType.phone),
+
+                  _buildTextField(_phoneController, 'Số điện thoại', '0912 345 678', Icons.phone_rounded, TextInputType.phone),
                   const SizedBox(height: 16),
-                  _buildTextField(_dobController, 'Ngày sinh', 'DD/MM/YYYY', Icons.cake_rounded),
-                  const SizedBox(height: 16),
-                  const Text('Giới tính', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: _genders.map((g) {
-                      bool isSelected = _selectedGender == g;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedGender = g),
-                          child: Container(
-                            margin: EdgeInsets.only(right: g == 'Nam' ? 12 : 0),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(color: isSelected ? primaryBlue : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? primaryBlue : const Color(0xFFE3F2FD))),
-                            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(g == 'Nam' ? Icons.male : Icons.female, color: isSelected ? Colors.white : const Color(0xFF64748B)), const SizedBox(width: 8), Text(g, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B)))]),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  
+                  // Class Selector or Fixed Text
+                  if (widget.initialClass != null && !isEditing)
+                     Container(
+                       width: double.infinity,
+                       padding: const EdgeInsets.all(16),
+                       decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           const Text('Lớp', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                           const SizedBox(height: 8),
+                           Row(children: [const Icon(Icons.class_rounded, size: 20, color: Color(0xFF2196F3)), const SizedBox(width: 8), Text(widget.initialClass!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)))]),
+                         ],
+                       ),
+                     )
+                  else
+                    _buildClassSelector(),
+                    
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
@@ -642,22 +886,33 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
 
   void _saveStudent() {
     if (_nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Vui lòng nhập họ tên học sinh!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Vui lòng nhập họ tên!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+      );
       return;
     }
-    if (!isEditing && _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Vui lòng nhập mật khẩu!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)));
+    
+    bool needsAuthInfo = !isEditing || (widget.student?['username'] == null || widget.student?['username'].toString().isEmpty == true);
+    
+    if (needsAuthInfo && (_usernameController.text.isEmpty || _passwordController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Vui lòng nhập tên đăng nhập và mật khẩu!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+      );
       return;
     }
+    
     final student = {
       'id': widget.student?['id'] ?? '',
       'name': _nameController.text,
-      'username': isEditing ? (widget.student?['username'] ?? '') : _generatedUsername,
-      'password': isEditing ? (widget.student?['password'] ?? '') : _passwordController.text,
-      'phone': _phoneController.text.isEmpty ? '' : _phoneController.text,
-      'dob': _dobController.text.isEmpty ? '' : _dobController.text,
-      'class': _selectedClass,
-      'gender': _selectedGender,
+      'username': (!isEditing || (widget.student?['username'] == null || widget.student?['username'].toString().isEmpty == true)) 
+          ? _usernameController.text 
+          : (widget.student?['username'] ?? ''),
+      'password': (!isEditing || (widget.student?['password'] == null || widget.student?['password'].toString().isEmpty == true))
+          ? _passwordController.text 
+          : (isEditing ? (widget.student?['password'] ?? '') : _passwordController.text),
+      'email': widget.student?['email'] ?? '',
+      'phone': _phoneController.text,
+      'classes': _selectedClass != null ? [_selectedClass!] : [],
       'status': widget.student?['status'] ?? 'active',
     };
     widget.onSave(student);
@@ -665,26 +920,49 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
 
   Widget _buildTextField(TextEditingController controller, String label, String hint, IconData icon, [TextInputType type = TextInputType.text]) {
     bool isPassword = label.contains('Mật khẩu');
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-      const SizedBox(height: 8),
-      Container(
-        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE3F2FD))),
-        child: TextField(controller: controller, keyboardType: type, obscureText: isPassword, decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Color(0xFF94A3B8)), prefixIcon: Icon(icon, color: const Color(0xFF94A3B8)), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14))),
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE3F2FD))),
+          child: TextField(
+            controller: controller,
+            keyboardType: type,
+            obscureText: isPassword,
+            decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Color(0xFF94A3B8)), prefixIcon: Icon(icon, color: const Color(0xFF94A3B8)), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-      const SizedBox(height: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE3F2FD))),
-        child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)), items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(), onChanged: onChanged)),
-      ),
-    ]);
+  Widget _buildClassSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Lớp', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8, runSpacing: 8,
+          children: _allClasses.map((c) {
+            bool isSelected = _selectedClass == c;
+            return GestureDetector(
+              onTap: () => setState(() => _selectedClass = c), // Single select
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
+                ),
+                child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B))),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 }
-

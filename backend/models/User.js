@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema(
     },
 
     isDisabled: { type: Boolean, default: false },
+
+    phone: { type: String, default: "" },
+
+    classes: { type: [String], default: [] },
+
+    fullName: { type: String, default: "" },
   },
   { timestamps: true }
 );

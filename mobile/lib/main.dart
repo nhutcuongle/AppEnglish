@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+import 'package:apptienganh10/screens/school/school_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Bỏ qua lỗi kết nối nếu chuỗi kết nối chưa đúng để vẫn xem được UI
-  try {
-    await MongoDatabase.connect(); 
-  } catch (e) {
-    print("Database connection failed: $e");
-  }
+  // Sử dụng API backend thay vì kết nối MongoDB trực tiếp
   runApp(const MyApp());
 }
 
@@ -19,14 +13,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Học Tiếng Anh 10 - Giáo viên',
+      title: 'Quản lý Trường học',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Hoặc font mặc định sạch sẽ
+        fontFamily: 'Roboto',
       ),
-      home: const TeacherHomeScreen(),
+      home: const SchoolHomeScreen(),
     );
   }
 }

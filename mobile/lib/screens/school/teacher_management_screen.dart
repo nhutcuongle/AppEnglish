@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class TeacherManagementScreen extends StatefulWidget {
   const TeacherManagementScreen({super.key});
@@ -9,23 +10,44 @@ class TeacherManagementScreen extends StatefulWidget {
 
 class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
-  // Dữ liệu mẫu cho giáo viên Tiếng Anh khối 10
-  final List<Map<String, dynamic>> _teachers = [
-    {'id': '1', 'name': 'Trần Thị Bình', 'email': 'tranthibinh@school.edu.vn', 'phone': '0987 654 321', 'classes': ['10A1', '10A2'], 'status': 'active', 'experience': '5 năm', 'degree': 'Thạc sĩ'},
-    {'id': '2', 'name': 'Nguyễn Văn An', 'email': 'nguyenvanan@school.edu.vn', 'phone': '0912 345 678', 'classes': ['10A3', '10A4'], 'status': 'active', 'experience': '8 năm', 'degree': 'Cử nhân'},
-    {'id': '3', 'name': 'Lê Thị Hương', 'email': 'lethihuong@school.edu.vn', 'phone': '0909 111 222', 'classes': ['10A5', '10A6'], 'status': 'active', 'experience': '3 năm', 'degree': 'Thạc sĩ'},
-    {'id': '4', 'name': 'Phạm Minh Tuấn', 'email': 'phamminhtuan@school.edu.vn', 'phone': '0933 444 555', 'classes': ['10A7', '10A8'], 'status': 'active', 'experience': '6 năm', 'degree': 'Cử nhân'},
-    {'id': '5', 'name': 'Hoàng Thị Mai', 'email': 'hoangthimai@school.edu.vn', 'phone': '0977 888 999', 'classes': ['10A1', '10A3'], 'status': 'active', 'experience': '4 năm', 'degree': 'Thạc sĩ'},
-    {'id': '6', 'name': 'Vũ Đức Anh', 'email': 'vuducanh@school.edu.vn', 'phone': '0966 777 888', 'classes': ['10A2', '10A5'], 'status': 'inactive', 'experience': '7 năm', 'degree': 'Tiến sĩ'},
-    {'id': '7', 'name': 'Đỗ Thị Lan', 'email': 'dothilan@school.edu.vn', 'phone': '0944 222 333', 'classes': ['10A4', '10A6'], 'status': 'active', 'experience': '2 năm', 'degree': 'Cử nhân'},
-    {'id': '8', 'name': 'Bùi Văn Hùng', 'email': 'buivanhung@school.edu.vn', 'phone': '0955 666 777', 'classes': ['10A7', '10A8'], 'status': 'active', 'experience': '10 năm', 'degree': 'Thạc sĩ'},
-  ];
+  List<Map<String, dynamic>> _teachers = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeachers();
+  }
+
+  Future<void> _loadTeachers() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await ApiService.getTeachers();
+      setState(() {
+        _teachers = data.map<Map<String, dynamic>>((t) => {
+          'id': t['_id']?.toString() ?? '',
+          'name': (t['fullName'] != null && t['fullName'].toString().isNotEmpty) ? t['fullName'] : (t['username']?.toString() ?? 'Chưa có tên'),
+          'username': t['username']?.toString() ?? '',
+          'email': t['email']?.toString() ?? '',
+          'phone': t['phone']?.toString() ?? '',
+          'classes': t['classes'] ?? [],
+          'status': t['isDisabled'] == true ? 'inactive' : 'active',
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading teachers: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredTeachers {
     if (_searchController.text.isEmpty) return _teachers;
     final query = _searchController.text.toLowerCase();
-    return _teachers.where((t) => t['name'].toLowerCase().contains(query) || t['email'].toLowerCase().contains(query)).toList();
+    return _teachers.where((t) => 
+      (t['name'] ?? '').toLowerCase().contains(query) || 
+      (t['email'] ?? '').toLowerCase().contains(query)
+    ).toList();
   }
 
   @override
@@ -44,7 +66,9 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
             _buildHeader(context),
             _buildSearchBar(),
             _buildStatsRow(),
-            Expanded(child: _buildTeacherList()),
+            Expanded(child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _buildTeacherList()),
           ],
         ),
       ),
@@ -251,7 +275,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          _getInitials(teacher['name']),
+                          _getInitials(teacher['name'] ?? 'GV'),
                           style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -265,7 +289,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: Text(teacher['name'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                                child: Text(teacher['name'] ?? 'Chưa có tên', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -302,7 +326,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
                               const SizedBox(width: 8),
                               const Icon(Icons.class_rounded, size: 14, color: Color(0xFF94A3B8)),
                               const SizedBox(width: 4),
-                              Text('${(teacher['classes'] as List).length} lớp', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                              Text('${(teacher['classes'] as List? ?? []).length} lớp', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                             ],
                           ),
                         ],
@@ -326,7 +350,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                teacher['email'],
+                                teacher['email'] ?? 'Chưa có email',
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -341,7 +365,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
                           const Icon(Icons.phone_rounded, size: 16, color: Color(0xFF94A3B8)),
                           const SizedBox(width: 8),
                           Text(
-                            teacher['phone'],
+                            teacher['phone'] ?? 'Chưa có SĐT',
                             style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
@@ -376,12 +400,14 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
     }
   }
 
-  String _getInitials(String name) {
-    List<String> parts = name.split(' ');
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'GV';
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty || parts[0].isEmpty) return 'GV';
     if (parts.length >= 2) {
-      return '${parts[parts.length - 2][0]}${parts.last[0]}';
+      return '${parts[parts.length - 2][0]}${parts.last[0]}'.toUpperCase();
     }
-    return parts.first[0];
+    return parts.first[0].toUpperCase();
   }
 
   void _showTeacherDetail(BuildContext context, Map<String, dynamic> teacher) {
@@ -410,15 +436,44 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _TeacherFormSheet(
         teacher: teacher,
-        onSave: (updatedTeacher) {
-          setState(() {
-            int index = _teachers.indexWhere((t) => t['id'] == teacher['id']);
-            if (index != -1) _teachers[index] = updatedTeacher;
-          });
-          Navigator.pop(ctx);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: const Text('Đã cập nhật thông tin giáo viên!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+        onSave: (updatedTeacher) async {
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
           );
+          
+          final Map<String, dynamic> updateData = {
+            'username': updatedTeacher['username'],
+            'fullName': updatedTeacher['name'],
+            'email': updatedTeacher['email'],
+            'phone': updatedTeacher['phone'],
+            'classes': updatedTeacher['classes'],
+            'isDisabled': updatedTeacher['status'] == 'active' ? false : true,
+          };
+          if (updatedTeacher['password'] != null && updatedTeacher['password'].toString().isNotEmpty) {
+            updateData['password'] = updatedTeacher['password'];
+          }
+
+          final result = await ApiService.updateTeacher(updatedTeacher['id'], updateData);
+          
+          Navigator.pop(context); // Close loading
+          Navigator.pop(ctx); // Close form
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi cập nhật: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          } else {
+             setState(() {
+              int index = _teachers.indexWhere((t) => t['id'] == teacher['id']);
+              if (index != -1) _teachers[index] = updatedTeacher;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: const Text('Đã cập nhật thông tin giáo viên!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          }
         },
       ),
     );
@@ -434,12 +489,30 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
-            onPressed: () {
-              setState(() => _teachers.removeWhere((t) => t['id'] == teacher['id']));
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: const Text('Đã xóa giáo viên!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog first to show loading if needed, or just handle async
+              
+               // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (c) => const Center(child: CircularProgressIndicator()),
               );
+
+              final result = await ApiService.deleteTeacher(teacher['id']);
+              
+              Navigator.pop(context); // Close loading
+
+              if (result['error'] != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi xóa: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+                );
+              } else {
+                setState(() => _teachers.removeWhere((t) => t['id'] == teacher['id']));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: const Text('Đã xóa giáo viên!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
             child: const Text('Xóa', style: TextStyle(color: Colors.white)),
@@ -455,15 +528,42 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _TeacherFormSheet(
-        onSave: (newTeacher) {
-          setState(() {
-            newTeacher['id'] = DateTime.now().millisecondsSinceEpoch.toString();
-            _teachers.add(newTeacher);
-          });
-          Navigator.pop(ctx);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: const Text('Đã thêm giáo viên mới!'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+        onSave: (newTeacher) async {
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
           );
+          
+          // Call API to create teacher
+          final result = await ApiService.createTeacher(
+            username: newTeacher['username'] ?? newTeacher['name'],
+            email: (newTeacher['email'] != null && newTeacher['email'].toString().isNotEmpty) 
+                ? newTeacher['email'] 
+                : '${newTeacher['username']}@school.edu.vn',
+            password: newTeacher['password'] ?? '123456',
+            fullName: newTeacher['name'],
+            phone: newTeacher['phone'],
+            classes: newTeacher['classes'] != null ? List<String>.from(newTeacher['classes']) : [],
+          );
+          
+          Navigator.pop(context); // Close loading
+          Navigator.pop(ctx); // Close form
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          } else {
+            setState(() {
+              newTeacher['id'] = result['teacher']?['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+              _teachers.add(newTeacher);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã tạo tài khoản GV: ${newTeacher['username']}'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
+            );
+          }
         },
       ),
     );
@@ -480,7 +580,7 @@ class _TeacherDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color primaryBlue = Color(0xFF2196F3);
-    List<String> classes = List<String>.from(teacher['classes']);
+    List<String> classes = teacher['classes'] != null ? List<String>.from(teacher['classes']) : [];
     
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -500,10 +600,10 @@ class _TeacherDetailSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [BoxShadow(color: primaryBlue.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
                     ),
-                    child: Center(child: Text(_getInitials(teacher['name']), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))),
+                    child: Center(child: Text(_getInitials(teacher['name'] ?? 'GV'), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))),
                   ),
                   const SizedBox(height: 20),
-                  Text(teacher['name'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  Text(teacher['name'] ?? 'Chưa có tên', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -512,10 +612,8 @@ class _TeacherDetailSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   _buildInfoSection('Thông tin liên hệ', [
-                    _buildInfoRow(Icons.email_rounded, 'Email', teacher['email']),
-                    _buildInfoRow(Icons.phone_rounded, 'Điện thoại', teacher['phone']),
-                    _buildInfoRow(Icons.workspace_premium_rounded, 'Bằng cấp', teacher['degree'] ?? 'Cử nhân'),
-                    _buildInfoRow(Icons.access_time_rounded, 'Kinh nghiệm', teacher['experience'] ?? '3 năm'),
+                    _buildInfoRow(Icons.email_rounded, 'Email', teacher['email'] ?? 'Chưa có'),
+                    _buildInfoRow(Icons.phone_rounded, 'Điện thoại', teacher['phone'] ?? 'Chưa có'),
                   ]),
                   const SizedBox(height: 24),
                   _buildInfoSection('Lớp phụ trách (${classes.length})', [
@@ -630,12 +728,14 @@ class _TeacherDetailSheet extends StatelessWidget {
     }
   }
 
-  String _getInitials(String name) {
-    List<String> parts = name.split(' ');
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'GV';
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty || parts[0].isEmpty) return 'GV';
     if (parts.length >= 2) {
-      return '${parts[parts.length - 2][0]}${parts.last[0]}';
+      return '${parts[parts.length - 2][0]}${parts.last[0]}'.toUpperCase();
     }
-    return parts.first[0];
+    return parts.first[0].toUpperCase();
   }
 }
 
@@ -722,7 +822,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Account info section for editing
-                  if (isEditing && widget.teacher?['username'] != null) ...[
+                  // Only show readonly info if username exists
+                  if (isEditing && widget.teacher?['username'] != null && widget.teacher?['username'].toString().isNotEmpty == true) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(14)),
@@ -741,7 +842,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
                   ],
                   _buildTextField(_nameController, 'Họ và tên *', 'Nhập họ và tên', Icons.person_rounded),
                   const SizedBox(height: 16),
-                  if (!isEditing) ...[
+                  // Allow editing username if creating NEW or if existing username is MISSING (recovery)
+                  if (!isEditing || (widget.teacher?['username'] == null || widget.teacher?['username'].toString().isEmpty == true)) ...[
                     _buildTextField(_usernameController, 'Tên đăng nhập *', 'gv_nguyenvana', Icons.account_circle_rounded),
                     const SizedBox(height: 16),
                     _buildTextField(_passwordController, 'Mật khẩu *', 'Nhập mật khẩu', Icons.lock_rounded),
@@ -775,7 +877,12 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
       );
       return;
     }
-    if (!isEditing && (_usernameController.text.isEmpty || _passwordController.text.isEmpty)) {
+    // Check validation:
+    // 1. Creating new: Need username & password
+    // 2. Editing check: If username is missing, need username & password to restore it
+    bool needsAuthInfo = !isEditing || (widget.teacher?['username'] == null || widget.teacher?['username'].toString().isEmpty == true);
+    
+    if (needsAuthInfo && (_usernameController.text.isEmpty || _passwordController.text.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: const Text('Vui lòng nhập tên đăng nhập và mật khẩu!'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
       );
@@ -785,8 +892,13 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
     final teacher = {
       'id': widget.teacher?['id'] ?? '',
       'name': _nameController.text,
-      'username': isEditing ? (widget.teacher?['username'] ?? '') : _usernameController.text,
-      'password': isEditing ? (widget.teacher?['password'] ?? '') : _passwordController.text,
+      'username': (!isEditing || (widget.teacher?['username'] == null || widget.teacher?['username'].toString().isEmpty == true)) 
+          ? _usernameController.text 
+          : (widget.teacher?['username'] ?? ''),
+      'password': (!isEditing || (widget.teacher?['password'] == null || widget.teacher?['password'].toString().isEmpty == true))
+          ? _passwordController.text // Use input if creating or restoring
+          : (isEditing ? (widget.teacher?['password'] ?? '') : _passwordController.text), // Logic for password will be handled in onSave conditionally anyway
+      'email': widget.teacher?['email'] ?? '',
       'phone': _phoneController.text,
       'classes': _selectedClasses.isEmpty ? ['10A1'] : _selectedClasses,
       'status': widget.teacher?['status'] ?? 'active',
