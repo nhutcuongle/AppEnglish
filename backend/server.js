@@ -13,6 +13,9 @@ import unitRoutes from "./routes/unit.js";
 import lessonRoutes from "./routes/lesson.js";
 import classRoutes from "./routes/class.js";
 import vocabularyRoutes from "./routes/vocabulary.js";
+import grammarRoutes from "./routes/grammar.js";
+
+
 
 const app = express();
 
@@ -29,6 +32,14 @@ app.use("/api/units", unitRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/vocabularies", vocabularyRoutes);
+app.use("/api/grammar", grammarRoutes);
+
+
+
+
+
+
+
 
 app.get("/", (req, res) => {
   res.send("API is running...");
@@ -38,7 +49,7 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI).then(() => {
   console.log("MongoDB connected");
-  
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

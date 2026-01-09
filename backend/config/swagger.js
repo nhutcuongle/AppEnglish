@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-          url: "https://appenglish-0uee.onrender.com",
-      //  url: "http://localhost:5000",
+        url: "https://appenglish-0uee.onrender.com",
+        //  url: "http://localhost:5000",
       },
     ],
 
@@ -43,7 +43,11 @@ const swaggerOptions = {
       },
       {
         name: "Vocabulary",
-        description: "  Quản lý từ vựng theo lesson",
+        description: "  Quản lý từ vựng theo lesson(School CRUD, Teacher / Student xem)",
+      },
+      {
+        name: "Grammar",
+        description: "   Quản lý ngữ pháp theo lesson",
       },
     ],
     components: {
