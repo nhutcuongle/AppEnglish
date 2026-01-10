@@ -3,7 +3,8 @@ const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true },
 
-    email: { type: String, required: true, unique: true },
+    // Email is optional and sparse (only unique when provided)
+    email: { type: String, sparse: true },
 
     password: { type: String, required: true },
 
@@ -14,7 +15,23 @@ const userSchema = new mongoose.Schema(
     },
 
     isDisabled: { type: Boolean, default: false },
-    
+
+    // Full name for display
+    fullName: { type: String, default: "" },
+
+    // Phone number
+    phone: { type: String, default: "" },
+
+    // Gender: male, female
+    gender: { type: String, enum: ["male", "female", ""], default: "" },
+
+    // Date of birth
+    dateOfBirth: { type: Date, default: null },
+
+    // Classes array (for teachers - multiple classes, for students - their class names)
+    classes: [{ type: String }],
+
+    // Legacy: Single class reference (keeping for backward compatibility)
     class: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Class",
@@ -25,3 +42,4 @@ const userSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("User", userSchema);
+

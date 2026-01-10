@@ -4,7 +4,12 @@ class Assignment {
   final String description;
   final DateTime deadline;
   final String teacherId;
+  final String classId;
   final String type; // 'homework', 'test'
+  final String? unit;
+  final int? timeLimit;
+  final int? totalQuestions;
+  final String? submissionFormat;
 
   Assignment({
     required this.id,
@@ -12,17 +17,27 @@ class Assignment {
     required this.description,
     required this.deadline,
     required this.teacherId,
+    this.classId = '',
     required this.type,
+    this.unit,
+    this.timeLimit,
+    this.totalQuestions,
+    this.submissionFormat,
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
-      id: json['_id'].toString(),
-      title: json['title'],
-      description: json['description'],
-      deadline: DateTime.parse(json['deadline']),
+    return Assignment(
+      id: json['_id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      deadline: json['deadline'] != null ? DateTime.parse(json['deadline']) : DateTime.now(),
       classId: json['classId'] ?? '',
-      teacherId: json['teacherId'],
+      teacherId: json['teacherId'] ?? '',
       type: json['type'] ?? 'homework',
+      unit: json['unit'],
+      timeLimit: json['timeLimit'],
+      totalQuestions: json['totalQuestions'],
+      submissionFormat: json['submissionFormat'],
     );
   }
 
@@ -32,7 +47,12 @@ class Assignment {
       'description': description,
       'deadline': deadline.toIso8601String(),
       'teacherId': teacherId,
+      'classId': classId,
       'type': type,
+      'unit': unit,
+      'timeLimit': timeLimit,
+      'totalQuestions': totalQuestions,
+      'submissionFormat': submissionFormat,
     };
   }
 }

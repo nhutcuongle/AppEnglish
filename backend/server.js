@@ -14,15 +14,10 @@ import teacherRoutes from "./routes/teacher.js";
 import unitRoutes from "./routes/unit.js";
 import lessonRoutes from "./routes/lesson.js";
 import classRoutes from "./routes/class.js";
-<<<<<<< HEAD
 import vocabularyRoutes from "./routes/vocabulary.js";
 import grammarRoutes from "./routes/grammar.js";
-
-
-=======
 import assignmentRoutes from "./routes/assignment.js";
 import announcementRoutes from "./routes/announcement.js";
->>>>>>> origin/Update-frontend-teacher
 
 const app = express();
 
@@ -40,21 +35,11 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/units", unitRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/classes", classRoutes);
-<<<<<<< HEAD
 app.use("/api/vocabularies", vocabularyRoutes);
 app.use("/api/grammar", grammarRoutes);
-
-
-
-
-
-
-
-
-=======
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/announcements", announcementRoutes);
->>>>>>> origin/Update-frontend-teacher
+
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

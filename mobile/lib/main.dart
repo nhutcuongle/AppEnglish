@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/screens/school/school_home_screen.dart';
+import 'package:apptienganh10/screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const SchoolHomeScreen(),
+      home: const LoginScreen(),
     );
   }
 }

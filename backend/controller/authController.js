@@ -46,10 +46,10 @@ export const register = async (req, res) => {
 /* LOGIN */
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Không tìm thấy user" });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
 
     if (user.isDisabled)
       return res.status(403).json({ message: "Tài khoản bị khóa" });

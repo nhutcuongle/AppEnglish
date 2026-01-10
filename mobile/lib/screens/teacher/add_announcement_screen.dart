@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
-import 'package:apptienganh10/models/announcement_models.dart';
+import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/auth_service.dart';
+
 
 class AddAnnouncementScreen extends StatefulWidget {
   final Announcement? announcementToEdit;
@@ -44,7 +45,8 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
 
     try {
       if (_isEditMode) {
-        await ApiService.updateAnnouncement(widget.announcementToEdit!.id, doc);
+        await ApiService.updateAnnouncement(widget.announcementToEdit!.id.toHexString(), doc);
+
       } else {
         await ApiService.createAnnouncement(doc);
       }

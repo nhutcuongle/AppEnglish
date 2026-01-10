@@ -146,47 +146,34 @@ export const getAllStudents = async (req, res) => {
 =========================== */
 export const createStudent = async (req, res) => {
   try {
-    const { username, email, password, classId } = req.body;
-
-    let classData = null;
-
-    // Nếu có classId → validate lớp
-    if (classId) {
-      classData = await Class.findOne({
-        _id: classId,
-        school: req.user.id,
-      });
-
-      if (!classData) {
-        return res.status(400).json({ message: "Lớp không hợp lệ" });
-      }
-    }
+    console.log("Create Student Body:", req.body);
+    const { username, password, fullName, phone, classes, gender, dateOfBirth } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const student = await User.create({
       username,
-      email,
+      email: null, // Students don't need email
       password: hashedPassword,
+      fullName: fullName || "",
+      phone: phone || "",
+      gender: gender || "",
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      classes: classes || [],
       role: "student",
-      class: classData ? classData._id : null,
     });
-
-    // Đồng bộ Class → students[]
-    if (classData) {
-      await Class.findByIdAndUpdate(classData._id, {
-        $addToSet: { students: student._id },
-      });
-    }
 
     res.status(201).json({
       message: "Tạo học sinh thành công",
       student,
     });
   } catch (err) {
+    console.error("Create Student Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
+
+
 
 /* ===========================
    UPDATE STUDENT (KHÔNG ĐỔI LỚP)

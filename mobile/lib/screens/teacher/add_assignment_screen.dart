@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
-import 'package:apptienganh10/models/assignment_model.dart';
+import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 import 'package:intl/intl.dart';
+
 
 class AddAssignmentScreen extends StatefulWidget {
   final String? initialType;
@@ -87,7 +88,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
       try {
         if (_isEditMode) {
-          await ApiService.updateAssignment(widget.assignmentToEdit!.id, data);
+          await ApiService.updateAssignment(widget.assignmentToEdit!.id.toHexString(), data);
+
         } else {
           await ApiService.createAssignment(data);
         }

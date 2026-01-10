@@ -24,14 +24,16 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
     try {
       final data = await ApiService.getTeachers();
       setState(() {
-        _teachers = data.map<Map<String, dynamic>>((t) => {
-          'id': t['_id']?.toString() ?? '',
-          'name': (t['fullName'] != null && t['fullName'].toString().isNotEmpty) ? t['fullName'] : (t['username']?.toString() ?? 'Chưa có tên'),
-          'username': t['username']?.toString() ?? '',
-          'email': t['email']?.toString() ?? '',
-          'phone': t['phone']?.toString() ?? '',
-          'classes': t['classes'] ?? [],
-          'status': t['isDisabled'] == true ? 'inactive' : 'active',
+        _teachers = data.map<Map<String, dynamic>>((t) {
+          return {
+            'id': t['_id']?.toString() ?? '',
+            'name': (t['fullName'] != null && t['fullName'].toString().isNotEmpty) ? t['fullName'] : (t['username']?.toString() ?? 'Chưa có tên'),
+            'username': t['username']?.toString() ?? '',
+            'email': t['email']?.toString() ?? '',
+            'phone': t['phone']?.toString() ?? '',
+            'classes': t['classes'] ?? [],
+            'status': t['isDisabled'] == true ? 'inactive' : 'active',
+          };
         }).toList();
         _isLoading = false;
       });
@@ -556,14 +558,13 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
               SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           } else {
-            setState(() {
-              newTeacher['id'] = result['teacher']?['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
-              _teachers.add(newTeacher);
-            });
+            // Reload from API to get correct data
+            await _loadTeachers();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Đã tạo tài khoản GV: ${newTeacher['username']}'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           }
+
         },
       ),
     );

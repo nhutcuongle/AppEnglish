@@ -20,12 +20,12 @@ class ApiService {
 
   // ==================== AUTH ====================
   
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(String username, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'username': username, 'password': password}),
       );
       
       final data = jsonDecode(response.body);
@@ -143,10 +143,11 @@ class ApiService {
   
   static Future<Map<String, dynamic>> createStudent({
     required String username,
-    required String email,
     required String password,
     String? fullName,
     String? phone,
+    String? gender,
+    String? dateOfBirth,
     List<String>? classes,
   }) async {
     try {
@@ -155,10 +156,11 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({
           'username': username,
-          'email': email,
           'password': password,
           'fullName': fullName ?? '',
           'phone': phone ?? '',
+          'gender': gender ?? '',
+          'dateOfBirth': dateOfBirth,
           'classes': classes ?? [],
         }),
       );
@@ -167,6 +169,7 @@ class ApiService {
       return {'error': 'Lỗi kết nối: $e'};
     }
   }
+
   
   static Future<Map<String, dynamic>> updateStudent(String id, Map<String, dynamic> data) async {
     try {
@@ -216,4 +219,117 @@ class ApiService {
       return {'error': 'Lỗi kết nối: $e'};
     }
   }
+
+  // ==================== ASSIGNMENTS ====================
+
+  static Future<List<dynamic>> getAssignments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/assignments'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching assignments: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createAssignment(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/assignments'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateAssignment(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/assignments/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteAssignment(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/assignments/$id'),
+        headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== ANNOUNCEMENTS ====================
+
+  static Future<List<dynamic>> getAnnouncements() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/announcements'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching announcements: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createAnnouncement(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/announcements'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateAnnouncement(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/announcements/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteAnnouncement(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/announcements/$id'),
+        headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
 }
+

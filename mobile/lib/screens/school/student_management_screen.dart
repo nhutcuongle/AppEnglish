@@ -30,14 +30,17 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     try {
       final data = await ApiService.getStudents();
       setState(() {
-        _students = data.map<Map<String, dynamic>>((s) => {
-          'id': s['_id']?.toString() ?? '',
-          'name': (s['fullName'] != null && s['fullName'].toString().isNotEmpty) ? s['fullName'] : (s['username']?.toString() ?? 'Chưa có tên'),
-          'username': s['username']?.toString() ?? '',
-          'email': s['email']?.toString() ?? '',
-          'phone': s['phone']?.toString() ?? '',
-          'classes': s['classes'] ?? [],
-          'status': s['isDisabled'] == true ? 'inactive' : 'active',
+        _students = data.map<Map<String, dynamic>>((s) {
+          return {
+            'id': s['_id']?.toString() ?? '',
+            'name': (s['fullName'] != null && s['fullName'].toString().isNotEmpty) ? s['fullName'] : (s['username']?.toString() ?? 'Chưa có tên'),
+            'username': s['username']?.toString() ?? '',
+            'phone': s['phone']?.toString() ?? '',
+            'gender': s['gender']?.toString() ?? '',
+            'dateOfBirth': s['dateOfBirth']?.toString() ?? '',
+            'classes': s['classes'] ?? [],
+            'status': s['isDisabled'] == true ? 'inactive' : 'active',
+          };
         }).toList();
         _isLoading = false;
       });
@@ -46,6 +49,8 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       setState(() => _isLoading = false);
     }
   }
+
+
 
   List<Map<String, dynamic>> get _filteredStudents {
     if (_searchController.text.isEmpty) return _students;
@@ -93,14 +98,16 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      // Only show FAB when viewing a specific class
+      floatingActionButton: widget.className != null ? FloatingActionButton.extended(
         onPressed: () => _showAddStudentDialog(context),
         backgroundColor: const Color(0xFF2196F3),
         icon: const Icon(Icons.person_add_rounded, color: Colors.white),
         label: const Text('Thêm HS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
+      ) : null,
     );
   }
+
 
   Widget _buildHeader(BuildContext context) {
     return Container(
@@ -352,36 +359,42 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            const Icon(Icons.email_rounded, size: 16, color: Color(0xFF94A3B8)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                student['email'] ?? 'Chưa có email',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                      // Gender icon
+                      Icon(
+                        student['gender'] == 'male' ? Icons.male_rounded : 
+                        student['gender'] == 'female' ? Icons.female_rounded : Icons.person_rounded,
+                        size: 16,
+                        color: student['gender'] == 'male' ? const Color(0xFF2196F3) : 
+                               student['gender'] == 'female' ? const Color(0xFFEC4899) : const Color(0xFF94A3B8),
                       ),
-                      Container(width: 1, height: 20, color: const Color(0xFFE2E8F0)),
-                      const SizedBox(width: 14),
-                      Row(
-                        children: [
-                          const Icon(Icons.phone_rounded, size: 16, color: Color(0xFF94A3B8)),
-                          const SizedBox(width: 8),
-                          Text(
-                            student['phone'] ?? 'Chưa có SĐT',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                        ],
+                      const SizedBox(width: 8),
+                      Text(
+                        student['gender'] == 'male' ? 'Nam' : 
+                        student['gender'] == 'female' ? 'Nữ' : '-',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                      Container(width: 1, height: 16, color: const Color(0xFFE2E8F0), margin: const EdgeInsets.symmetric(horizontal: 12)),
+                      // Date of birth
+                      const Icon(Icons.cake_rounded, size: 14, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      Text(
+                        _formatDateOfBirth(student['dateOfBirth']),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                      Container(width: 1, height: 16, color: const Color(0xFFE2E8F0), margin: const EdgeInsets.symmetric(horizontal: 12)),
+                      // Phone
+                      const Icon(Icons.phone_rounded, size: 14, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      Text(
+                        (student['phone'] != null && student['phone'].toString().isNotEmpty) 
+                            ? student['phone'] 
+                            : '-',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
                 ),
+
               ],
             ),
           ),
@@ -400,7 +413,18 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     return parts.first[0].toUpperCase();
   }
 
+  String _formatDateOfBirth(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return '-';
+    }
+  }
+
   void _showStudentDetail(BuildContext context, Map<String, dynamic> student) {
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -570,14 +594,15 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           
           final result = await ApiService.createStudent(
             username: newStudent['username'] ?? newStudent['name'],
-            email: (newStudent['email'] != null && newStudent['email'].toString().isNotEmpty) 
-                ? newStudent['email'] 
-                : '${newStudent['username']}@school.edu.vn',
             password: newStudent['password'] ?? '123456',
             fullName: newStudent['name'],
             phone: newStudent['phone'],
+            gender: newStudent['gender'],
+            dateOfBirth: newStudent['dateOfBirth'],
             classes: newStudent['classes'] != null ? List<String>.from(newStudent['classes']) : [],
           );
+
+
           
           Navigator.pop(context); // Close loading
           Navigator.pop(ctx); // Close form
@@ -587,14 +612,13 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
               SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           } else {
-            setState(() {
-              newStudent['id'] = result['student']?['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
-              _students.add(newStudent);
-            });
+            // Reload from API to get correct data
+            await _loadStudents();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Đã tạo tài khoản HS: ${newStudent['username']}'), backgroundColor: const Color(0xFF4CAF50), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           }
+
         },
       ),
     );
@@ -612,6 +636,16 @@ class _StudentDetailSheet extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _StudentDetailSheet({required this.student, required this.onEdit, required this.onDelete});
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Chưa cập nhật';
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'Chưa cập nhật';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -648,10 +682,13 @@ class _StudentDetailSheet extends StatelessWidget {
                     child: Text('Lớp: $className', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
                   ),
                   const SizedBox(height: 30),
-                  _buildInfoSection('Thông tin liên hệ', [
-                    _buildInfoRow(Icons.email_rounded, 'Email', student['email'] ?? 'Chưa có'),
-                    _buildInfoRow(Icons.phone_rounded, 'Điện thoại', student['phone'] ?? 'Chưa có'),
+                  _buildInfoSection('Thông tin cá nhân', [
+                    _buildInfoRow(Icons.person_outline_rounded, 'Giới tính', 
+                      student['gender'] == 'male' ? 'Nam' : (student['gender'] == 'female' ? 'Nữ' : 'Chưa cập nhật')),
+                    _buildInfoRow(Icons.cake_rounded, 'Ngày sinh', _formatDate(student['dateOfBirth'])),
+                    _buildInfoRow(Icons.phone_rounded, 'Điện thoại', (student['phone'] != null && student['phone'].toString().isNotEmpty) ? student['phone'] : 'Chưa có'),
                   ]),
+
                   const SizedBox(height: 30),
                   Row(
                     children: [
@@ -743,10 +780,13 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
   late TextEditingController _phoneController;
   late TextEditingController _passwordController;
   String? _selectedClass;
+  String _selectedGender = ''; // male, female, ''
+  DateTime? _selectedDateOfBirth;
   
   final List<String> _allClasses = ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
 
   bool get isEditing => widget.student != null;
+
 
   @override
   void initState() {
@@ -755,6 +795,12 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
     _usernameController = TextEditingController(text: widget.student?['username'] ?? '');
     _phoneController = TextEditingController(text: widget.student?['phone'] ?? '');
     _passwordController = TextEditingController();
+    
+    // Load gender and dateOfBirth if editing
+    _selectedGender = widget.student?['gender'] ?? '';
+    if (widget.student?['dateOfBirth'] != null) {
+      _selectedDateOfBirth = DateTime.tryParse(widget.student!['dateOfBirth'].toString());
+    }
     
     if (widget.student != null && widget.student!['classes'] != null && (widget.student!['classes'] as List).isNotEmpty) {
       _selectedClass = widget.student!['classes'][0];
@@ -769,6 +815,7 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
       }
     }
   }
+
 
   @override
   void dispose() {
@@ -848,6 +895,119 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
                   _buildTextField(_phoneController, 'Số điện thoại', '0912 345 678', Icons.phone_rounded, TextInputType.phone),
                   const SizedBox(height: 16),
                   
+                  // Gender selector
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Giới tính', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedGender = 'male'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: _selectedGender == 'male' ? const Color(0xFF2196F3) : Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: _selectedGender == 'male' ? const Color(0xFF2196F3) : const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.male_rounded, color: _selectedGender == 'male' ? Colors.white : const Color(0xFF64748B)),
+                                      const SizedBox(width: 8),
+                                      Text('Nam', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedGender == 'male' ? Colors.white : const Color(0xFF64748B))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedGender = 'female'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: _selectedGender == 'female' ? const Color(0xFFEC4899) : Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: _selectedGender == 'female' ? const Color(0xFFEC4899) : const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.female_rounded, color: _selectedGender == 'female' ? Colors.white : const Color(0xFF64748B)),
+                                      const SizedBox(width: 8),
+                                      Text('Nữ', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedGender == 'female' ? Colors.white : const Color(0xFF64748B))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Date of birth picker
+                  GestureDetector(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDateOfBirth ?? DateTime(2010, 1, 1),
+                        firstDate: DateTime(1990),
+                        lastDate: DateTime.now(),
+                        helpText: 'Chọn ngày sinh',
+                      );
+                      if (date != null) {
+                        setState(() => _selectedDateOfBirth = date);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.cake_rounded, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Ngày sinh', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedDateOfBirth != null 
+                                    ? '${_selectedDateOfBirth!.day}/${_selectedDateOfBirth!.month}/${_selectedDateOfBirth!.year}'
+                                    : 'Chưa chọn',
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: _selectedDateOfBirth != null ? const Color(0xFF1E293B) : const Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF94A3B8), size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+
                   // Class Selector or Fixed Text
                   if (widget.initialClass != null && !isEditing)
                      Container(
@@ -910,13 +1070,15 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
       'password': (!isEditing || (widget.student?['password'] == null || widget.student?['password'].toString().isEmpty == true))
           ? _passwordController.text 
           : (isEditing ? (widget.student?['password'] ?? '') : _passwordController.text),
-      'email': widget.student?['email'] ?? '',
       'phone': _phoneController.text,
+      'gender': _selectedGender,
+      'dateOfBirth': _selectedDateOfBirth?.toIso8601String(),
       'classes': _selectedClass != null ? [_selectedClass!] : [],
       'status': widget.student?['status'] ?? 'active',
     };
     widget.onSave(student);
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, String hint, IconData icon, [TextInputType type = TextInputType.text]) {
     bool isPassword = label.contains('Mật khẩu');
