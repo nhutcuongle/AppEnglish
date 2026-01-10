@@ -7,6 +7,8 @@ import 'package:apptienganh10/screens/teacher/assignment_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/class_statistics_screen.dart';
 import 'package:apptienganh10/screens/teacher/announcement_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/lesson_plan_list_screen.dart';
+import 'package:apptienganh10/screens/teacher/gradebook_screen.dart';
+import 'package:apptienganh10/screens/teacher/teacher_calendar_screen.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
@@ -243,6 +245,8 @@ class TeacherDashboardTab extends StatelessWidget {
         _buildToolCard(context, 'Học sinh', Icons.people_rounded, Colors.blue, const StudentListScreen()),
         _buildToolCard(context, 'Bài tập', Icons.assignment_rounded, Colors.orange, const AssignmentListScreen(filterType: 'homework')),
         _buildToolCard(context, 'Kiểm tra', Icons.quiz_rounded, Colors.purple, const AssignmentListScreen(filterType: 'test')),
+        _buildToolCard(context, 'Sổ Điểm', Icons.grid_view_rounded, Colors.teal, const GradebookScreen()),
+        _buildToolCard(context, 'Lịch Dạy', Icons.calendar_today_rounded, Colors.indigo, const TeacherCalendarScreen()),
         _buildToolCard(context, 'Thống kê', Icons.insert_chart_rounded, Colors.green, const ClassStatisticsScreen()),
       ],
     );

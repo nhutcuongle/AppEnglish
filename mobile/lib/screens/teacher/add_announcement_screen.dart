@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/models/announcement_models.dart';
+import 'package:apptienganh10/services/auth_service.dart';
 
 class AddAnnouncementScreen extends StatefulWidget {
-  const AddAnnouncementScreen({super.key});
+  final Announcement? announcementToEdit;
+  const AddAnnouncementScreen({super.key, this.announcementToEdit});
 
   @override
   State<AddAnnouncementScreen> createState() => _AddAnnouncementScreenState();
@@ -12,6 +15,17 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isLoading = false;
+  bool _isEditMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.announcementToEdit != null) {
+      _isEditMode = true;
+      _titleController.text = widget.announcementToEdit!.title;
+      _contentController.text = widget.announcementToEdit!.content;
+    }
+  }
 
   Future<void> _postAnnouncement() async {
     if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
@@ -21,15 +35,19 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
 
     setState(() => _isLoading = true);
 
-    final newDoc = {
+    final doc = {
       'title': _titleController.text,
       'content': _contentController.text,
-      'createdAt': DateTime.now().toIso8601String(),
-      'teacherId': 'teacher_01',
+      // 'createdAt' is handled by backend or model but API expects these
+      'type': 'class', // Default for now
     };
 
     try {
-      await MongoDatabase.insertAnnouncement(newDoc);
+      if (_isEditMode) {
+        await ApiService.updateAnnouncement(widget.announcementToEdit!.id, doc);
+      } else {
+        await ApiService.createAnnouncement(doc);
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đăng thông báo thành công!')));
@@ -45,7 +63,7 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Đăng Thông Báo', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(_isEditMode ? 'Cập nhật Thông báo' : 'Đăng Thông Báo', style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -83,7 +101,7 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
                 ),
                 child: _isLoading 
                     ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text('Gửi Thông Báo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    : Text(_isEditMode ? 'Cập Nhật Thay Đổi' : 'Gửi Thông Báo', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

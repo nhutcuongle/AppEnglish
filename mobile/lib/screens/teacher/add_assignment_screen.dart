@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
-import 'package:apptienganh10/models/teacher_models.dart';
+import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/models/assignment_model.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 import 'package:intl/intl.dart';
 
@@ -73,7 +73,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
         'deadline': _selectedDate.toIso8601String(),
         'type': _selectedType,
         'createdAt': _isEditMode ? widget.assignmentToEdit!.deadline.toIso8601String() : DateTime.now().toIso8601String(), 
-        'teacherId': AuthService.currentTeacherId,
+        'deadline': _selectedDate.toIso8601String(),
+        'type': _selectedType,
+        'classId': '10A1', // TODO: Get from class selection
         if (_selectedType == 'test') ...{
           'timeLimit': int.tryParse(_timeLimitController.text),
           'totalQuestions': int.tryParse(_totalQuestionsController.text),
@@ -85,9 +87,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
       try {
         if (_isEditMode) {
-          await MongoDatabase.updateAssignment(widget.assignmentToEdit!.id, data);
+          await ApiService.updateAssignment(widget.assignmentToEdit!.id, data);
         } else {
-          await MongoDatabase.insertAssignment(data);
+          await ApiService.createAssignment(data);
         }
         
         if (!mounted) return;
