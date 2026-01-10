@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
 import 'package:apptienganh10/screens/school/timetable_screen.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class ClassManagementScreen extends StatefulWidget {
   const ClassManagementScreen({super.key});
@@ -11,27 +12,55 @@ class ClassManagementScreen extends StatefulWidget {
 
 class _ClassManagementScreenState extends State<ClassManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
-  // Dữ liệu mẫu cho lớp học khối 10
-  final List<Map<String, dynamic>> _classes = [
-    {'id': '1', 'name': '10A1', 'homeroomTeacher': 'Trần Thị Bình', 'studentCount': 42, 'maleCount': 20, 'femaleCount': 22, 'room': 'Phòng 101', 'schedule': 'Sáng', 'status': 'active'},
-    {'id': '2', 'name': '10A2', 'homeroomTeacher': 'Nguyễn Văn An', 'studentCount': 40, 'maleCount': 18, 'femaleCount': 22, 'room': 'Phòng 102', 'schedule': 'Sáng', 'status': 'active'},
-    {'id': '3', 'name': '10A3', 'homeroomTeacher': 'Lê Thị Hương', 'studentCount': 38, 'maleCount': 16, 'femaleCount': 22, 'room': 'Phòng 103', 'schedule': 'Sáng', 'status': 'active'},
-    {'id': '4', 'name': '10A4', 'homeroomTeacher': 'Phạm Minh Tuấn', 'studentCount': 41, 'maleCount': 19, 'femaleCount': 22, 'room': 'Phòng 104', 'schedule': 'Sáng', 'status': 'active'},
-    {'id': '5', 'name': '10A5', 'homeroomTeacher': 'Hoàng Thị Mai', 'studentCount': 39, 'maleCount': 17, 'femaleCount': 22, 'room': 'Phòng 105', 'schedule': 'Chiều', 'status': 'active'},
-    {'id': '6', 'name': '10A6', 'homeroomTeacher': 'Vũ Đức Anh', 'studentCount': 40, 'maleCount': 18, 'femaleCount': 22, 'room': 'Phòng 106', 'schedule': 'Chiều', 'status': 'active'},
-    {'id': '7', 'name': '10A7', 'homeroomTeacher': 'Đỗ Thị Lan', 'studentCount': 42, 'maleCount': 20, 'femaleCount': 22, 'room': 'Phòng 107', 'schedule': 'Chiều', 'status': 'active'},
-    {'id': '8', 'name': '10A8', 'homeroomTeacher': 'Bùi Văn Hùng', 'studentCount': 38, 'maleCount': 16, 'femaleCount': 22, 'room': 'Phòng 108', 'schedule': 'Chiều', 'status': 'active'},
-  ];
+  List<Map<String, dynamic>> _classes = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await ApiService.getClasses();
+      setState(() {
+        _classes = data.map<Map<String, dynamic>>((c) {
+          return {
+            'id': c['_id']?.toString() ?? '',
+            'name': c['name']?.toString() ?? '',
+            'grade': c['grade'] ?? 10,
+            'homeroomTeacher': c['homeroomTeacher']?['fullName'] ?? c['homeroomTeacher']?['username'] ?? 'Chưa có',
+            'homeroomTeacherId': c['homeroomTeacher']?['_id']?.toString(),
+            'studentCount': c['studentCount'] ?? (c['students'] as List?)?.length ?? 0,
+            'maleCount': 0, // TODO: Calculate from student data
+            'femaleCount': 0,
+            'maleCount': 0, // TODO: Calculate from student data
+            'femaleCount': 0,
+            'room': c['room'] != null && c['room'].toString().isNotEmpty ? c['room'].toString() : 'Phòng ${c['name']}',
+            'schedule': c['schedule'] ?? ['Sáng'],
+            'status': c['isActive'] == true ? 'active' : 'inactive',
+
+          };
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading classes: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredClasses {
     if (_searchController.text.isEmpty) return _classes;
     final query = _searchController.text.toLowerCase();
-    return _classes.where((c) => c['name'].toLowerCase().contains(query) || c['homeroomTeacher'].toLowerCase().contains(query) || c['room'].toLowerCase().contains(query)).toList();
+    return _classes.where((c) => c['name'].toLowerCase().contains(query) || c['homeroomTeacher'].toLowerCase().contains(query)).toList();
   }
 
   @override
   void dispose() { _searchController.dispose(); super.dispose(); }
+
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +72,14 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
             _buildHeader(context),
             _buildSearchBar(),
             _buildStatsRow(),
-            Expanded(child: _buildClassList()),
+            Expanded(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _loadClasses,
+                    child: _buildClassList(),
+                  ),
+            ),
           ],
         ),
       ),
@@ -118,8 +154,9 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
 
   Widget _buildStatsRow() {
     int totalStudents = _classes.fold(0, (sum, c) => sum + (c['studentCount'] as int));
-    int morningCount = _classes.where((c) => c['schedule'] == 'Sáng').length;
-    int afternoonCount = _classes.where((c) => c['schedule'] == 'Chiều').length;
+    int morningCount = _classes.where((c) => _scheduleContains(c['schedule'], 'Sáng')).length;
+    int afternoonCount = _classes.where((c) => _scheduleContains(c['schedule'], 'Chiều')).length;
+
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -280,13 +317,8 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
                         children: [
                           const Icon(Icons.person_rounded, size: 18, color: Color(0xFF2196F3)),
                           const SizedBox(width: 10),
-                          const Text('GVCN: ', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
+                          const Text('GV: ', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
                           Expanded(child: Text(classData['homeroomTeacher'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(6)),
-                            child: const Text('Tiếng Anh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -300,15 +332,20 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(color: classData['schedule'] == 'Sáng' ? const Color(0xFF4CAF50).withOpacity(0.1) : const Color(0xFFFF9800).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(
+                              color: _getScheduleColor(classData['schedule']).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.schedule_rounded, size: 14, color: classData['schedule'] == 'Sáng' ? const Color(0xFF4CAF50) : const Color(0xFFFF9800)),
+                                Icon(Icons.schedule_rounded, size: 14, color: _getScheduleColor(classData['schedule'])),
                                 const SizedBox(width: 4),
-                                Text(classData['schedule'], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: classData['schedule'] == 'Sáng' ? const Color(0xFF4CAF50) : const Color(0xFFFF9800))),
+                                Text(_formatSchedule(classData['schedule']), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _getScheduleColor(classData['schedule']))),
                               ],
                             ),
                           ),
+
                         ],
                       ),
                     ],
@@ -360,6 +397,37 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
     }
   }
 
+  String _formatSchedule(dynamic schedule) {
+    if (schedule is List) {
+      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
+        return 'Cả ngày';
+      } else if (schedule.contains('Chiều')) {
+        return 'Chiều';
+      }
+      return 'Sáng';
+    }
+    return schedule?.toString() ?? 'Sáng';
+  }
+
+  Color _getScheduleColor(dynamic schedule) {
+    if (schedule is List) {
+      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
+        return const Color(0xFF2196F3); // Blue for both
+      } else if (schedule.contains('Chiều')) {
+        return const Color(0xFF6366F1); // Purple for afternoon
+      }
+      return const Color(0xFF4CAF50); // Green for morning
+    }
+    return const Color(0xFF4CAF50);
+  }
+
+  bool _scheduleContains(dynamic schedule, String value) {
+    if (schedule is List) {
+      return schedule.contains(value);
+    }
+    return schedule?.toString() == value;
+  }
+
   Color _getSubjectColor(String subject) {
     switch (subject) {
       case 'Toán học':
@@ -386,7 +454,101 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ClassDetailSheet(classData: classData),
+      builder: (ctx) => _ClassDetailSheet(
+        classData: classData,
+        onEdit: () {
+          Navigator.pop(ctx);
+          _showEditClassDialog(context, classData);
+        },
+        onDelete: () {
+          Navigator.pop(ctx);
+          _confirmDeleteClass(context, classData);
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteClass(BuildContext context, Map<String, dynamic> classData) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa lớp ${classData['name']}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (c) => const Center(child: CircularProgressIndicator()),
+              );
+              
+              final result = await ApiService.deleteClass(classData['id']);
+              
+              Navigator.pop(context); // Close loading
+              
+              if (result['error'] != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444)),
+                );
+              } else {
+                await _loadClasses();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Đã xóa lớp ${classData['name']}'), backgroundColor: const Color(0xFF4CAF50)),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditClassDialog(BuildContext context, Map<String, dynamic> classData) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AddClassSheet(
+        classToEdit: classData,
+        onSave: (updatedData) async {
+          Navigator.pop(ctx);
+          
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
+          );
+          
+          final result = await ApiService.updateClass(classData['id'], {
+            'name': updatedData['name'],
+            'grade': updatedData['grade'],
+            'schedule': updatedData['schedule'],
+            'room': updatedData['room'],
+          });
+          
+          Navigator.pop(context); // Close loading
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444)),
+            );
+          } else {
+            await _loadClasses();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã cập nhật lớp ${updatedData['name']}'), backgroundColor: const Color(0xFF4CAF50)),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -395,15 +557,62 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _AddClassSheet(),
+      builder: (ctx) => _AddClassSheet(
+        onSave: (classData) async {
+          Navigator.pop(ctx);
+          
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
+          );
+          
+          final result = await ApiService.createClass(
+            name: classData['name'],
+            grade: classData['grade'],
+            schedule: classData['schedule'] != null ? List<String>.from(classData['schedule']) : null,
+            room: classData['room'],
+          );
+          
+          Navigator.pop(context); // Close loading
+          
+          if (result['error'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: ${result['error']}'), backgroundColor: const Color(0xFFEF4444)),
+            );
+          } else {
+            await _loadClasses();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã tạo lớp ${classData['name']}'), backgroundColor: const Color(0xFF4CAF50)),
+            );
+          }
+        },
+      ),
     );
   }
 }
 
+
 class _ClassDetailSheet extends StatelessWidget {
   final Map<String, dynamic> classData;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _ClassDetailSheet({required this.classData});
+  const _ClassDetailSheet({required this.classData, required this.onEdit, required this.onDelete});
+
+  String _formatScheduleDisplay(dynamic schedule) {
+    if (schedule is List) {
+      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
+        return 'Cả ngày';
+      } else if (schedule.contains('Chiều')) {
+        return 'Chiều';
+      }
+      return 'Sáng';
+    }
+    return schedule?.toString() ?? 'Sáng';
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -454,12 +663,13 @@ class _ClassDetailSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _buildInfoSection('Giáo viên chủ nhiệm', [_buildTeacherCard(classData)]),
+                  _buildInfoSection('Giáo viên', [_buildTeacherCard(classData)]),
                   const SizedBox(height: 24),
                   _buildInfoSection('Thông tin lớp học', [
                     _buildInfoRow(Icons.location_on_rounded, 'Phòng học', classData['room']),
-                    _buildInfoRow(Icons.schedule_rounded, 'Ca học', classData['schedule']),
+                    _buildInfoRow(Icons.schedule_rounded, 'Ca học', _formatScheduleDisplay(classData['schedule'])),
                     _buildInfoRow(Icons.calendar_today_rounded, 'Năm học', '2025-2026'),
+
                   ]),
                   const SizedBox(height: 24),
                   // Quick actions
@@ -500,7 +710,7 @@ class _ClassDetailSheet extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: onEdit,
                           icon: const Icon(Icons.edit_rounded),
                           label: const Text('Chỉnh sửa'),
                           style: OutlinedButton.styleFrom(
@@ -514,7 +724,7 @@ class _ClassDetailSheet extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: onDelete,
                           icon: const Icon(Icons.delete_rounded),
                           label: const Text('Xóa lớp'),
                           style: ElevatedButton.styleFrom(
@@ -527,6 +737,7 @@ class _ClassDetailSheet extends StatelessWidget {
                         ),
                       ),
                     ],
+
                   ),
                 ],
               ),
@@ -579,16 +790,9 @@ class _ClassDetailSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(classData['homeroomTeacher'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                const SizedBox(height: 4),
-                const Text('Giáo viên Tiếng Anh', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                Text('GV: ${classData['homeroomTeacher']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
               ],
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF2196F3), size: 20),
           ),
         ],
       ),
@@ -684,17 +888,50 @@ class _ClassDetailSheet extends StatelessWidget {
 }
 
 class _AddClassSheet extends StatefulWidget {
-  const _AddClassSheet();
+  final Function(Map<String, dynamic>) onSave;
+  final Map<String, dynamic>? classToEdit;
+  
+  const _AddClassSheet({required this.onSave, this.classToEdit});
 
   @override
   State<_AddClassSheet> createState() => _AddClassSheetState();
 }
 
 class _AddClassSheetState extends State<_AddClassSheet> {
-  String _selectedGrade = 'Khối 10';
-  String _selectedSchedule = 'Sáng';
-  final List<String> _grades = ['Khối 10', 'Khối 11', 'Khối 12'];
-  final List<String> _schedules = ['Sáng', 'Chiều'];
+  late TextEditingController _nameController;
+  late TextEditingController _roomController;
+  late int _selectedGrade;
+  final List<int> _grades = [10, 11, 12];
+  Set<String> _selectedSchedule = {'Sáng'};
+
+  bool get isEditing => widget.classToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.classToEdit?['name'] ?? '');
+    _roomController = TextEditingController(text: widget.classToEdit?['room']?.toString() ?? '');
+    _selectedGrade = widget.classToEdit?['grade'] ?? 10;
+    
+    // Initialize schedule from classToEdit or default to ['Sáng']
+    if (widget.classToEdit?['schedule'] != null) {
+      final scheduleList = widget.classToEdit!['schedule'];
+      if (scheduleList is List) {
+        _selectedSchedule = Set<String>.from(scheduleList.map((e) => e.toString()));
+      }
+    }
+    if (_selectedSchedule.isEmpty) {
+      _selectedSchedule = {'Sáng'};
+    }
+  }
+
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _roomController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -724,27 +961,27 @@ class _AddClassSheetState extends State<_AddClassSheet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.1),
+                    color: (isEditing ? const Color(0xFF2196F3) : const Color(0xFFF59E0B)).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.add_rounded, color: Color(0xFFF59E0B), size: 24),
+                  child: Icon(isEditing ? Icons.edit_rounded : Icons.add_rounded, color: isEditing ? const Color(0xFF2196F3) : const Color(0xFFF59E0B), size: 24),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Thêm Lớp học mới',
-                        style: TextStyle(
+                        isEditing ? 'Chỉnh sửa lớp học' : 'Thêm Lớp học mới',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1E293B),
                         ),
                       ),
                       Text(
-                        'Điền thông tin lớp học',
-                        style: TextStyle(
+                        isEditing ? 'Cập nhật thông tin lớp' : 'Điền thông tin lớp học',
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF64748B),
                         ),
@@ -759,6 +996,7 @@ class _AddClassSheetState extends State<_AddClassSheet> {
               ],
             ),
           ),
+
           const Divider(height: 1),
           // Form
           Expanded(
@@ -767,32 +1005,145 @@ class _AddClassSheetState extends State<_AddClassSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTextField(
-                    label: 'Tên lớp',
-                    hint: 'VD: 10A4, 11B2...',
-                    icon: Icons.class_rounded,
+                  // Class name field
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Tên lớp *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          hintText: 'VD: 10A4, 11B2...',
+                          prefixIcon: const Icon(Icons.class_rounded, color: Color(0xFF94A3B8)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                  // Room field
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Phòng học', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _roomController,
+                        decoration: InputDecoration(
+                          hintText: 'VD: P.101, Tầng 2...',
+                          prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFF94A3B8)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2)),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   // Grade dropdown
-                  _buildDropdown('Khối', _selectedGrade, _grades, (value) {
-                    setState(() => _selectedGrade = value!);
-                  }),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    label: 'Phòng học',
-                    hint: 'VD: Phòng 101',
-                    icon: Icons.location_on_rounded,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Khối *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: DropdownButton<int>(
+                          value: _selectedGrade,
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          items: _grades.map((g) => DropdownMenuItem(value: g, child: Text('Khối $g'))).toList(),
+                          onChanged: (value) => setState(() => _selectedGrade = value!),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
-                  // Schedule dropdown
-                  _buildDropdown('Ca học', _selectedSchedule, _schedules, (value) {
-                    setState(() => _selectedSchedule = value!);
-                  }),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    label: 'Giáo viên chủ nhiệm',
-                    hint: 'Chọn giáo viên',
-                    icon: Icons.person_rounded,
+                  // Schedule selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Ca học *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (_selectedSchedule.contains('Sáng')) {
+                                    if (_selectedSchedule.length > 1) _selectedSchedule.remove('Sáng');
+                                  } else {
+                                    _selectedSchedule.add('Sáng');
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: _selectedSchedule.contains('Sáng') ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _selectedSchedule.contains('Sáng') ? const Color(0xFF2196F3) : const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.wb_sunny_rounded, size: 18, color: _selectedSchedule.contains('Sáng') ? Colors.white : const Color(0xFF64748B)),
+                                    const SizedBox(width: 8),
+                                    Text('Sáng', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedSchedule.contains('Sáng') ? Colors.white : const Color(0xFF64748B))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (_selectedSchedule.contains('Chiều')) {
+                                    if (_selectedSchedule.length > 1) _selectedSchedule.remove('Chiều');
+                                  } else {
+                                    _selectedSchedule.add('Chiều');
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: _selectedSchedule.contains('Chiều') ? const Color(0xFF1976D2) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _selectedSchedule.contains('Chiều') ? const Color(0xFF1976D2) : const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.nightlight_round, size: 18, color: _selectedSchedule.contains('Chiều') ? Colors.white : const Color(0xFF64748B)),
+                                    const SizedBox(width: 8),
+                                    Text('Chiều', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedSchedule.contains('Chiều') ? Colors.white : const Color(0xFF64748B))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Có thể chọn cả 2 ca', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    ],
                   ),
                   const SizedBox(height: 30),
                   // Submit button
@@ -800,35 +1151,33 @@ class _AddClassSheetState extends State<_AddClassSheet> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.white),
-                                SizedBox(width: 12),
-                                Text('Đã thêm lớp học thành công!'),
-                              ],
-                            ),
-                            backgroundColor: const Color(0xFF10B981),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
+                        if (_nameController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vui lòng nhập tên lớp!'), backgroundColor: Color(0xFFEF4444)),
+                          );
+                          return;
+                        }
+                        widget.onSave({
+                          'name': _nameController.text.trim(),
+                          'grade': _selectedGrade,
+                          'schedule': _selectedSchedule.toList(),
+                          'room': _roomController.text.trim(),
+                        });
                       },
+
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF59E0B),
+                        backgroundColor: const Color(0xFF2196F3),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Thêm Lớp học',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: Text(
+                        isEditing ? 'Cập nhật lớp học' : 'Thêm Lớp học',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
+
                   ),
                 ],
               ),

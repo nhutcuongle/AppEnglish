@@ -1,15 +1,19 @@
 import Class from "../models/Class.js";
+import User from "../models/User.js";
+
 
 /* SCHOOL: CREATE CLASS */
 export const createClass = async (req, res) => {
   try {
-    const { name, grade, homeroomTeacher } = req.body;
+    const { name, grade, homeroomTeacher, schedule, room } = req.body;
 
     const newClass = await Class.create({
       name,
       grade,
       school: req.user.id,
       homeroomTeacher: homeroomTeacher || null,
+      schedule: schedule || ['Sáng'],
+      room: room || "",
     });
 
     res.status(201).json({
@@ -20,6 +24,7 @@ export const createClass = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /* SCHOOL: ASSIGN TEACHER */
 export const assignTeacherToClass = async (req, res) => {
@@ -44,18 +49,34 @@ export const assignTeacherToClass = async (req, res) => {
 export const getAllClasses = async (req, res) => {
   try {
     const classes = await Class.find({ school: req.user.id })
-      .populate("homeroomTeacher", "username email")
+      .populate("homeroomTeacher", "username email fullName")
       .sort({ grade: 1, name: 1 });
 
-    res.json(classes);
+    // Count students for each class by querying Users with matching class name
+    const classesWithCounts = await Promise.all(
+      classes.map(async (classDoc) => {
+        const studentCount = await User.countDocuments({
+          role: "student",
+          classes: classDoc.name, // Students store class name in their classes array
+        });
+
+        return {
+          ...classDoc.toObject(),
+          studentCount,
+        };
+      })
+    );
+
+    res.json(classesWithCounts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 /* SCHOOL: UPDATE CLASS */
 export const updateClass = async (req, res) => {
   try {
-    const { name, grade, homeroomTeacher } = req.body;
+    const { name, grade, homeroomTeacher, schedule, room } = req.body;
 
     // Kiểm tra trùng lớp
     const duplicatedClass = await Class.findOne({
@@ -71,11 +92,17 @@ export const updateClass = async (req, res) => {
         .json({ message: "Lớp đã tồn tại trong hệ thống" });
     }
 
+    const updateData = { name, grade };
+    if (homeroomTeacher !== undefined) updateData.homeroomTeacher = homeroomTeacher;
+    if (schedule !== undefined) updateData.schedule = schedule;
+    if (room !== undefined) updateData.room = room;
+
     const updatedClass = await Class.findOneAndUpdate(
       { _id: req.params.id, school: req.user.id },
-      { name, grade, homeroomTeacher },
+      updateData,
       { new: true }
     ).populate("homeroomTeacher", "username email");
+
 
     if (!updatedClass)
       return res.status(404).json({ message: "Không tìm thấy lớp" });

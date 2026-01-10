@@ -7,6 +7,8 @@ import {
   disableUser,
   enableUser,
   getAssignableStudents,
+  updateProfile,
+  getProfile,
 } from "../controller/userController.js";
 
 import {
@@ -86,6 +88,45 @@ router.post("/students", createStudent);
  *         description: Chưa đăng nhập
  */
 router.get("/students", authenticate, isSchool, getAllStudents);
+
+/**
+ * @swagger
+ * /api/users/profile:
+ *   put:
+ *     summary: Cập nhật thông tin cá nhân (School / Teacher / Student)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               academicYear:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ */
+router.put("/profile", authenticate, updateProfile);
+
+/**
+ * @swagger
+ * /api/users/profile:
+ *   get:
+ *     summary: Lấy thông tin cá nhân
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thông tin user
+ */
+router.get("/profile", authenticate, getProfile);
 
 /**
  * @swagger

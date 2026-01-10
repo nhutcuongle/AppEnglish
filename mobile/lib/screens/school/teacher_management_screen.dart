@@ -756,8 +756,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
   late TextEditingController _phoneController;
   late TextEditingController _passwordController;
   List<String> _selectedClasses = [];
-  
-  final List<String> _allClasses = ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
+  List<String> _allClasses = [];
+  bool _isLoadingClasses = true;
 
   bool get isEditing => widget.teacher != null;
 
@@ -770,6 +770,23 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
     _passwordController = TextEditingController();
     if (widget.teacher != null) {
       _selectedClasses = List<String>.from(widget.teacher!['classes'] ?? []);
+    }
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    try {
+      final classesData = await ApiService.getClasses();
+      if (mounted) {
+        setState(() {
+          _allClasses = classesData.map<String>((e) => e['name'].toString()).toList();
+          _allClasses.sort(); // Sort classes alphabetically
+          _isLoadingClasses = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading classes: $e');
+      if (mounted) setState(() => _isLoadingClasses = false);
     }
   }
 
@@ -933,9 +950,11 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
       children: [
         const Text('Lớp phụ trách', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          children: _allClasses.map((c) {
+        _isLoadingClasses
+            ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+            : Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _allClasses.map((c) {
             bool isSelected = _selectedClasses.contains(c);
             return GestureDetector(
               onTap: () => setState(() => isSelected ? _selectedClasses.remove(c) : _selectedClasses.add(c)),

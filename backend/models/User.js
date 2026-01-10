@@ -37,6 +37,8 @@ const userSchema = new mongoose.Schema(
       ref: "Class",
       default: null,
     },
+    // Academic Year (for School role)
+    academicYear: { type: String, default: "" },
   },
   { timestamps: true }
 );

@@ -4,6 +4,8 @@ import 'package:apptienganh10/screens/school/class_management_screen.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
 import 'package:apptienganh10/screens/school/timetable_screen.dart';
 import 'package:apptienganh10/screens/school/lesson_screen.dart';
+import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/screens/school/school_info_screen.dart';
 
 class SchoolHomeScreen extends StatefulWidget {
   const SchoolHomeScreen({super.key});
@@ -93,8 +95,53 @@ class _SchoolHomeScreenState extends State<SchoolHomeScreen> {
   }
 }
 
-class SchoolDashboardTab extends StatelessWidget {
+class SchoolDashboardTab extends StatefulWidget {
   const SchoolDashboardTab({super.key});
+
+  @override
+  State<SchoolDashboardTab> createState() => _SchoolDashboardTabState();
+}
+
+class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
+  int _teacherCount = 0;
+  int _studentCount = 0;
+  int _classCount = 0;
+  bool _isLoading = true;
+  String _schoolName = 'Trường THPT ABC';
+  String _schoolYear = 'Năm học 2025-2026';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final teachers = await ApiService.getTeachers();
+      final students = await ApiService.getStudents();
+      final classes = await ApiService.getClasses();
+      final profile = await ApiService.getProfile();
+      
+      setState(() {
+        _teacherCount = teachers.length;
+        _studentCount = students.length;
+        _classCount = classes.length;
+        if (!profile.containsKey('error')) {
+          if (profile['fullName'] != null && profile['fullName'].toString().isNotEmpty) {
+            _schoolName = profile['fullName'];
+          }
+          if (profile['academicYear'] != null && profile['academicYear'].toString().isNotEmpty) {
+            _schoolYear = profile['academicYear'];
+          }
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading stats: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,83 +164,100 @@ class SchoolDashboardTab extends StatelessWidget {
     );
   }
 
+
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SchoolInfoScreen()),
+        );
+        if (result == true) {
+          _loadStats();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.school_rounded, color: Colors.white, size: 40),
             ),
-            child: const Icon(Icons.school_rounded, color: Colors.white, size: 40),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Trường THPT ABC',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Text(
+                    _schoolName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Năm học 2025-2026',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 14,
+                  const SizedBox(height: 4),
+                  Text(
+                    _schoolYear,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStatsCards(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             'Giáo viên',
-            '8',
+            '$_teacherCount',
             Icons.people_rounded,
             const Color(0xFF2196F3),
             'Tiếng Anh',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherManagementScreen())),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
             'Học sinh',
-            '320',
+            '$_studentCount',
             Icons.school_rounded,
             const Color(0xFF1976D2),
-            'Khối 10',
+            'Tất cả',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentManagementScreen())),
           ),
         ),
@@ -201,15 +265,17 @@ class SchoolDashboardTab extends StatelessWidget {
         Expanded(
           child: _buildStatCard(
             'Lớp học',
-            '8',
+            '$_classCount',
             Icons.class_rounded,
             const Color(0xFF0D47A1),
-            '10A1-10A8',
+            'Tất cả',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassManagementScreen())),
           ),
         ),
       ],
     );
   }
+
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, String badge, {VoidCallback? onTap}) {
     return GestureDetector(

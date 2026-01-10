@@ -51,6 +51,39 @@ class ApiService {
     }
   }
 
+  // ==================== USER PROFILE ====================
+
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/profile'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'error': 'Failed to load profile'};
+    } catch (e) {
+      return {'error': 'Connection error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProfile(String fullName, String academicYear) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/users/profile'),
+        headers: _headers,
+        body: jsonEncode({
+          'fullName': fullName,
+          'academicYear': academicYear,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Connection error: $e'};
+    }
+  }
+
   // ==================== TEACHERS ====================
   
   static Future<List<dynamic>> getTeachers() async {
@@ -114,6 +147,76 @@ class ApiService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/teachers/$id'),
+        headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== CLASSES ====================
+  
+  static Future<List<dynamic>> getClasses() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/classes'),
+        headers: _headers,
+      );
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching classes: $e');
+      return [];
+    }
+  }
+  
+  static Future<Map<String, dynamic>> createClass({
+    required String name,
+    required int grade,
+    String? homeroomTeacher,
+    List<String>? schedule,
+    String? room,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/classes'),
+        headers: _headers,
+        body: jsonEncode({
+          'name': name,
+          'grade': grade,
+          if (homeroomTeacher != null) 'homeroomTeacher': homeroomTeacher,
+          if (schedule != null) 'schedule': schedule,
+          if (room != null) 'room': room,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  
+  static Future<Map<String, dynamic>> updateClass(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/classes/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+  
+  static Future<Map<String, dynamic>> deleteClass(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/classes/$id'),
         headers: _headers,
       );
       return jsonDecode(response.body);
