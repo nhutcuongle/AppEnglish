@@ -1,4 +1,6 @@
-import 'package:apptienganh10/models/teacher_models.dart';
+import 'package:flutter/material.dart';
+import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/models/announcement_models.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 
 class AddAnnouncementScreen extends StatefulWidget {
@@ -36,15 +38,15 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
     final doc = {
       'title': _titleController.text,
       'content': _contentController.text,
-      'createdAt': _isEditMode ? widget.announcementToEdit!.createdAt.toIso8601String() : DateTime.now().toIso8601String(),
-      'teacherId': AuthService.currentTeacherId,
+      // 'createdAt' is handled by backend or model but API expects these
+      'type': 'class', // Default for now
     };
 
     try {
       if (_isEditMode) {
-        await MongoDatabase.updateAnnouncement(widget.announcementToEdit!.id, doc);
+        await ApiService.updateAnnouncement(widget.announcementToEdit!.id, doc);
       } else {
-        await MongoDatabase.insertAnnouncement(doc);
+        await ApiService.createAnnouncement(doc);
       }
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -60,7 +62,6 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
       appBar: AppBar(
         title: Text(_isEditMode ? 'Cập nhật Thông báo' : 'Đăng Thông Báo', style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,

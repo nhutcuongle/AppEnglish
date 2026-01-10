@@ -2,12 +2,16 @@ import 'package:apptienganh10/db/mongodb.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:apptienganh10/services/auth_service.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class TeacherService {
   // --- Quản lý Học sinh ---
 
   static Future<List<Student>> searchStudents(String query) async {
-    final students = await MongoDatabase.getStudents();
+    // Gọi API thay vì DB trực tiếp
+    final studentsRaw = await ApiService.getStudents();
+    final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
+    
     if (query.isEmpty) return students;
     return students.where((s) => s.name.toLowerCase().contains(query.toLowerCase())).toList();
   }

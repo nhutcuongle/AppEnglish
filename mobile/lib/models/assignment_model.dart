@@ -16,13 +16,13 @@ class Assignment {
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
-    return Assignment(
       id: json['_id'].toString(),
       title: json['title'],
       description: json['description'],
       deadline: DateTime.parse(json['deadline']),
+      classId: json['classId'] ?? '',
       teacherId: json['teacherId'],
-      type: json['type'],
+      type: json['type'] ?? 'homework',
     );
   }
 

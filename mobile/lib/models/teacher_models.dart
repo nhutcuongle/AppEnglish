@@ -1,4 +1,5 @@
 import 'package:mongo_dart/mongo_dart.dart';
+export 'package:mongo_dart/mongo_dart.dart' show ObjectId;
 
 class Assignment {
   final ObjectId id;
@@ -26,8 +27,18 @@ class Assignment {
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
+    dynamic idValue = json['_id'];
+    ObjectId objectId;
+    if (idValue is ObjectId) {
+      objectId = idValue;
+    } else if (idValue is String) {
+      objectId = ObjectId.fromHexString(idValue);
+    } else {
+      objectId = ObjectId();
+    }
+
     return Assignment(
-      id: json['_id'] as ObjectId,
+      id: objectId,
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       deadline: json['deadline'] is String 
@@ -80,10 +91,14 @@ class Submission {
   });
 
   factory Submission.fromJson(Map<String, dynamic> json) {
+    ObjectId id = json['_id'] is String ? ObjectId.fromHexString(json['_id']) : (json['_id'] as ObjectId);
+    ObjectId assignmentId = json['assignmentId'] is String ? ObjectId.fromHexString(json['assignmentId']) : (json['assignmentId'] as ObjectId);
+    ObjectId studentId = json['studentId'] is String ? ObjectId.fromHexString(json['studentId']) : (json['studentId'] as ObjectId);
+    
     return Submission(
-      id: json['_id'] as ObjectId,
-      assignmentId: json['assignmentId'] as ObjectId,
-      studentId: json['studentId'] as ObjectId,
+      id: id,
+      assignmentId: assignmentId,
+      studentId: studentId,
       content: json['content'] ?? '',
       score: json['score'] != null ? (json['score'] as num).toDouble() : null,
       comment: json['comment'],
@@ -111,9 +126,10 @@ class Student {
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
+    ObjectId objectId = json['_id'] is String ? ObjectId.fromHexString(json['_id']) : (json['_id'] ?? ObjectId());
     return Student(
-      id: json['_id'] as ObjectId,
-      name: json['name'] ?? 'Không tên',
+      id: objectId,
+      name: json['username'] ?? json['name'] ?? 'Không tên',
       classId: json['classId'],
       progress: (json['progress'] ?? 0.0).toDouble(),
       score: (json['score'] ?? 0.0).toDouble(),
@@ -137,8 +153,9 @@ class Announcement {
   });
 
   factory Announcement.fromJson(Map<String, dynamic> json) {
+    ObjectId id = json['_id'] is String ? ObjectId.fromHexString(json['_id']) : (json['_id'] as ObjectId);
     return Announcement(
-      id: json['_id'] as ObjectId,
+      id: id,
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       createdAt: json['createdAt'] is String 
@@ -173,8 +190,9 @@ class LessonPlan {
   });
 
   factory LessonPlan.fromJson(Map<String, dynamic> json) {
+    ObjectId id = json['_id'] is String ? ObjectId.fromHexString(json['_id']) : (json['_id'] as ObjectId);
     return LessonPlan(
-      id: json['_id'] as ObjectId,
+      id: id,
       title: json['title'] ?? '',
       unit: json['unit'] ?? '',
       topic: json['topic'] ?? '',

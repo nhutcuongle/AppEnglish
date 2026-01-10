@@ -1,4 +1,5 @@
 import 'package:apptienganh10/models/teacher_models.dart';
+import 'package:apptienganh10/services/api_service.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
 class MongoDatabase {
@@ -38,8 +39,13 @@ class MongoDatabase {
 
   // Lấy danh sách học sinh theo bản ghi (Student)
   static Future<List<Student>> getStudents() async {
-    final data = await userCollection?.find({'role': 'student'}).toList() ?? [];
-    return data.map((e) => Student.fromJson(e)).toList();
+    try {
+      final data = await ApiService.getStudents();
+      return data.map((e) => Student.fromJson(e)).toList();
+    } catch (e) {
+      print('MongoDatabase (ApiService) Error: $e');
+      return [];
+    }
   }
 
   // Lấy danh sách bài tập (Assignment)
@@ -111,11 +117,12 @@ class MongoDatabase {
   }
 
   static Future<List<Map<String, dynamic>>> getSubmissions() async {
-    return await db.collection('submissions').find().toList();
+    return await db!.collection('submissions').find().toList();
   }
 }
 
-const mongoUrl = "mongodb+srv://cuong007266:cuong007266@chodocu.69gk0jt.mongodb.net/lenhutcuong?appName=chodocu";
+// ĐÃ XÓA URL ĐỂ BẢO MẬT. Vui lòng sử dụng ApiService.
+const mongoUrl = ""; 
 const userCollectionName = "users";
 const assignmentCollectionName = "assignments";
 const submissionCollectionName = "submissions";
