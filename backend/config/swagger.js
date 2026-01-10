@@ -11,7 +11,7 @@ const swaggerOptions = {
     servers: [
       {
         url: "https://appenglish-0uee.onrender.com",
-        //  url: "http://localhost:5000",
+       //   url: "http://localhost:5000",
       },
     ],
 
@@ -48,6 +48,14 @@ const swaggerOptions = {
       {
         name: "Grammar",
         description: "   Quản lý ngữ pháp theo lesson",
+      },
+      {
+        name: "Questions",
+        description: " Bài tập / câu hỏi cho tất cả kỹ năng (Teacher CRUD, Student xem)",
+      },
+      {
+        name: "Submissions",
+        description: "Học sinh làm bài & nộp bài (Student only)",
       },
     ],
     components: {

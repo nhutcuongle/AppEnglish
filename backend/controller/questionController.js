@@ -1,38 +1,39 @@
+import Question from "../models/Question.js";
 import Lesson from "../models/Lesson.js";
 
-/* ================= CREATE LESSON ================= */
-export const createLesson = async (req, res) => {
+/* ================= CREATE QUESTION ================= */
+export const createQuestion = async (req, res) => {
   try {
-    const { unit, lessonType, title, content, isPublished } = req.body;
+    const {
+      lesson,
+      skill,
+      type,
+      content,
+      options,
+      correctAnswer,
+      explanation,
+      isPublished,
+    } = req.body;
 
     /* ===== VALIDATE ===== */
-    if (!unit || !title) {
-      return res.status(400).json({ message: "Thiếu unit hoặc title" });
+    if (!lesson || !skill || !type || !content) {
+      return res.status(400).json({
+        message: "Thiếu lesson, skill, type hoặc content",
+      });
     }
 
-    if (!lessonType) {
-      return res.status(400).json({ message: "Thiếu lessonType" });
+    /* ===== CHECK LESSON ===== */
+    const lessonData = await Lesson.findById(lesson);
+    if (!lessonData) {
+      return res.status(400).json({ message: "Lesson không tồn tại" });
     }
 
-    const allowedTypes = [
-      "vocabulary",
-      "grammar",
-      "reading",
-      "listening",
-      "speaking",
-      "writing",
-    ];
-
-    if (!allowedTypes.includes(lessonType)) {
-      return res.status(400).json({ message: "lessonType không hợp lệ" });
-    }
-
-    /* ===== AUTO LESSON ORDER ===== */
-    const lastLesson = await Lesson.findOne({ unit })
+    /* ===== AUTO QUESTION ORDER (THEO LESSON) ===== */
+    const lastQuestion = await Question.findOne({ lesson })
       .sort({ order: -1 })
       .select("order");
 
-    const nextOrder = lastLesson ? lastLesson.order + 1 : 1;
+    const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
 
     /* ===== IMAGE ===== */
     const imageCaptions = Array.isArray(req.body.imageCaptions)
@@ -77,11 +78,14 @@ export const createLesson = async (req, res) => {
       })) || [];
 
     /* ===== CREATE ===== */
-    const lesson = await Lesson.create({
-      unit,
-      lessonType,
-      title,
+    const question = await Question.create({
+      lesson,
+      skill,
+      type,
       content,
+      options,
+      correctAnswer,
+      explanation,
       isPublished,
       order: nextOrder,
       images,
@@ -90,39 +94,41 @@ export const createLesson = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Tạo lesson thành công",
-      lesson,
+      message: "Tạo question thành công",
+      question,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= GET LESSONS BY UNIT ================= */
-export const getLessonsByUnit = async (req, res) => {
+/* ================= GET QUESTIONS BY LESSON ================= */
+export const getQuestionsByLesson = async (req, res) => {
   try {
-    const lessons = await Lesson.find({
-      unit: req.params.unitId,
+    const questions = await Question.find({
+      lesson: req.params.lessonId,
       isPublished: true,
     })
       .sort({ order: 1, createdAt: 1 })
       .lean();
 
     res.json({
-      total: lessons.length,
-      data: lessons,
+      total: questions.length,
+      data: questions,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= UPDATE LESSON (PARTIAL) ================= */
-export const updateLesson = async (req, res) => {
+/* ================= UPDATE QUESTION (PARTIAL) ================= */
+export const updateQuestion = async (req, res) => {
   try {
     const allowedFields = [
-      "title",
       "content",
+      "options",
+      "correctAnswer",
+      "explanation",
       "order",
       "isPublished",
       "images",
@@ -137,36 +143,37 @@ export const updateLesson = async (req, res) => {
       }
     });
 
-    const lesson = await Lesson.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    });
+    const question = await Question.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
 
-    if (!lesson) {
-      return res.status(404).json({ message: "Không tìm thấy lesson" });
+    if (!question) {
+      return res.status(404).json({ message: "Không tìm thấy question" });
     }
 
     res.json({
-      message: "Cập nhật lesson thành công",
-      lesson,
+      message: "Cập nhật question thành công",
+      question,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= DELETE LESSON ================= */
-export const deleteLesson = async (req, res) => {
+/* ================= DELETE QUESTION ================= */
+export const deleteQuestion = async (req, res) => {
   try {
-    const lesson = await Lesson.findByIdAndDelete(req.params.id);
+    const question = await Question.findByIdAndDelete(req.params.id);
 
-    if (!lesson) {
-      return res.status(404).json({ message: "Không tìm thấy lesson" });
+    if (!question) {
+      return res.status(404).json({ message: "Không tìm thấy question" });
     }
 
-    // ⚠️ Gợi ý nâng cấp:
-    // Xóa ảnh / audio / video trên Cloudinary ở đây
+    // ⚠️ nâng cấp sau: xóa media cloud
 
-    res.json({ message: "Xóa lesson thành công" });
+    res.json({ message: "Xóa question thành công" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
