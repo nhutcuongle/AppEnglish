@@ -63,8 +63,7 @@ router.post("/", createTeacher);
  *       200:
  *         description: Danh sách giảng viên
  */
-// TODO: Add back authentication: authenticate, isSchool
-router.get("/", getTeachers);
+router.get("/", authenticate, isSchool, getTeachers);
 
 /**
  * @swagger
@@ -98,8 +97,7 @@ router.get("/", getTeachers);
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-// TODO: Add back authentication: authenticate, isSchool
-router.put("/:id", updateTeacher);
+router.put("/:id", authenticate, isSchool, updateTeacher);
 
 /**
  * @swagger
@@ -119,7 +117,6 @@ router.put("/:id", updateTeacher);
  *       404:
  *         description: Không tìm thấy giảng viên
  */
-// TODO: Add back authentication: authenticate, isSchool
-router.delete("/:id", deleteTeacher);
+router.delete("/:id", authenticate, isSchool, deleteTeacher);
 
 export default router;
