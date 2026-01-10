@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "https://appenglish-0uee.onrender.com",
-       //   url: "http://localhost:5000",
+      //  url: "https://appenglish-0uee.onrender.com",
+          url: "http://localhost:5000",
       },
     ],
 
@@ -25,13 +25,14 @@ const swaggerOptions = {
         description: "Quản lý giảng viên (School)",
       },
       {
-        name: "Classes",
-        description: " Quản lý lớp học (School)",
-      },
-      {
         name: "Students",
         description: "Quản lý học sinh (School / Admin)",
       },
+      {
+        name: "Classes",
+        description: " Quản lý lớp học (School)",
+      },
+    
       {
         name: "Units",
         description: "Quản lý Unit (School / Teacher / Student)",
@@ -68,7 +69,7 @@ const swaggerOptions = {
       },
     },
   },
-  apis: ["./routes/*.js"],
+  apis: ["./docs/*.js"],
 };
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
