@@ -47,3 +47,8 @@ export const isTeacher = (req, res, next) => {
     return res.status(403).json({ message: "Chỉ giảng viên được phép" });
   next();
 };
+export const isStudent = (req, res, next) => {
+  if (req.user.role !== "student")
+    return res.status(403).json({ message: "Chỉ học sinh được phép" });
+  next();
+};
