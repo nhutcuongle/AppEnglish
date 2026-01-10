@@ -30,9 +30,25 @@
  *               password:
  *                 type: string
  *                 example: 123456
+ *               fullName:
+ *                 type: string
+ *                 example: Nguyen Van A
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, ""]
+ *                 example: male
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 example: 1980-01-01
  *     responses:
  *       201:
  *         description: Tạo giảng viên thành công
+ *       400:
+ *         description: Thiếu thông tin hoặc Email/Username đã tồn tại
  */
 
 /**

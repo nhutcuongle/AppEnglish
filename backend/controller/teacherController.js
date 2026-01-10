@@ -7,17 +7,53 @@ import bcrypt from "bcryptjs";
 export const createTeacher = async (req, res) => {
   try {
     console.log("Create Teacher Body:", req.body);
-    const { username, email, password, fullName, phone, classes } = req.body;
+    const {
+      username,
+      email,
+      password,
+      fullName,
+      phone,
+      gender,
+      dateOfBirth,
+    } = req.body;
+
+    // 1. Validate bắt buộc
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        message: "Thiếu username, email hoặc password",
+      });
+    }
+
+    // 2. Check trùng email / username
+    const existingUser = await User.findOne({
+      $or: [{ email: email.toLowerCase() }, { username: username }],
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email hoặc Username đã tồn tại",
+      });
+    }
+
+    // 3. Chuẩn hóa gender
+    let normalizedGender = "";
+    if (gender) {
+      const g = gender.toString().toLowerCase().trim();
+      if (g === "nam" || g === "male") normalizedGender = "male";
+      else if (g === "nữ" || g === "nu" || g === "female")
+        normalizedGender = "female";
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const teacher = await User.create({
       username,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
       fullName: fullName || "",
       phone: phone || "",
-      classes: classes || [],
+      gender: normalizedGender,
+      dateOfBirth: dateOfBirth || null,
       role: "teacher",
     });
 
