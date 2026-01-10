@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 
@@ -52,9 +52,9 @@ class _AddLessonPlanScreenState extends State<AddLessonPlanScreen> {
       };
 
       if (_isEdit) {
-        await MongoDatabase.updateLessonPlan(widget.planToEdit!.id, doc);
+        await ApiService.updateLessonPlan(widget.planToEdit!.id, doc);
       } else {
-        await MongoDatabase.insertLessonPlan(doc);
+        await ApiService.createLessonPlan(doc);
       }
       
       if (!mounted) return;

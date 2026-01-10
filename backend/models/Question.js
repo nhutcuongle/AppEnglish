@@ -16,7 +16,13 @@ const questionSchema = new mongoose.Schema(
     lesson: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
-      required: true,
+      required: false, // Changed to false to allow Assignment-based questions
+      index: true,
+    },
+    assignment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Assignment",
+      required: false,
       index: true,
     },
 

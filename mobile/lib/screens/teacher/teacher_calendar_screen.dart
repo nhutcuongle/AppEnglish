@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:intl/intl.dart';
 
@@ -22,9 +22,9 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
 
   Future<void> _loadEvents() async {
     setState(() => _isLoading = true);
-    final data = await MongoDatabase.getAssignments();
+    final data = await ApiService.getAssignments();
     setState(() {
-      _allEvents = data;
+      _allEvents = data.map((e) => Assignment.fromJson(e)).toList();
       // Sắp xếp theo ngày deadline
       _allEvents.sort((a, b) => a.deadline.compareTo(b.deadline));
       _isLoading = false;

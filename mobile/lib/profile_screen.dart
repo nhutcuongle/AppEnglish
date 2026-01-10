@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:apptienganh10/services/auth_service.dart';
+import 'package:apptienganh10/screens/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -107,7 +109,14 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuCard(context, [
                     _buildMenuItem(Icons.help_outline, "Trung tâm trợ giúp", () {}),
                     _buildMenuItem(Icons.info_outline, "Về ứng dụng", () {}),
-                    _buildMenuItem(Icons.logout, "Đăng xuất", () {}, isDestructive: true),
+                    _buildMenuItem(Icons.logout, "Đăng xuất", () async {
+                      await AuthService.logout();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        (route) => false
+                      );
+                    }, isDestructive: true),
                   ]),
                   
                   const SizedBox(height: 30),

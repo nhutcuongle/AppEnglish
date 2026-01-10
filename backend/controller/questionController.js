@@ -16,20 +16,23 @@ export const createQuestion = async (req, res) => {
     } = req.body;
 
     /* ===== VALIDATE ===== */
-    if (!lesson || !skill || !type || !content) {
+    if ((!lesson && !req.body.assignment) || !skill || !type || !content) {
       return res.status(400).json({
-        message: "Thiếu lesson, skill, type hoặc content",
+        message: "Thiếu lesson/assignment, skill, type hoặc content",
       });
     }
 
-    /* ===== CHECK LESSON ===== */
-    const lessonData = await Lesson.findById(lesson);
-    if (!lessonData) {
-      return res.status(400).json({ message: "Lesson không tồn tại" });
+    if (lesson) {
+      /* ===== CHECK LESSON ===== */
+      const lessonData = await Lesson.findById(lesson);
+      if (!lessonData) {
+        return res.status(400).json({ message: "Lesson không tồn tại" });
+      }
     }
 
-    /* ===== AUTO QUESTION ORDER (THEO LESSON) ===== */
-    const lastQuestion = await Question.findOne({ lesson })
+    // Auto order based on lesson OR assignment
+    const filter = lesson ? { lesson } : { assignment: req.body.assignment };
+    const lastQuestion = await Question.findOne(filter)
       .sort({ order: -1 })
       .select("order");
 
@@ -39,8 +42,8 @@ export const createQuestion = async (req, res) => {
     const imageCaptions = Array.isArray(req.body.imageCaptions)
       ? req.body.imageCaptions
       : req.body.imageCaptions
-      ? [req.body.imageCaptions]
-      : [];
+        ? [req.body.imageCaptions]
+        : [];
 
     const images =
       req.files?.images?.map((file, index) => ({
@@ -53,8 +56,8 @@ export const createQuestion = async (req, res) => {
     const audioCaptions = Array.isArray(req.body.audioCaptions)
       ? req.body.audioCaptions
       : req.body.audioCaptions
-      ? [req.body.audioCaptions]
-      : [];
+        ? [req.body.audioCaptions]
+        : [];
 
     const audios =
       req.files?.audios?.map((file, index) => ({
@@ -67,8 +70,8 @@ export const createQuestion = async (req, res) => {
     const videoCaptions = Array.isArray(req.body.videoCaptions)
       ? req.body.videoCaptions
       : req.body.videoCaptions
-      ? [req.body.videoCaptions]
-      : [];
+        ? [req.body.videoCaptions]
+        : [];
 
     const videos =
       req.files?.videos?.map((file, index) => ({
@@ -79,7 +82,8 @@ export const createQuestion = async (req, res) => {
 
     /* ===== CREATE ===== */
     const question = await Question.create({
-      lesson,
+      lesson: lesson || undefined,
+      assignment: req.body.assignment || undefined,
       skill,
       type,
       content,
@@ -174,6 +178,24 @@ export const deleteQuestion = async (req, res) => {
     // ⚠️ nâng cấp sau: xóa media cloud
 
     res.json({ message: "Xóa question thành công" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ================= GET QUESTIONS BY ASSIGNMENT ================= */
+export const getQuestionsByAssignment = async (req, res) => {
+  try {
+    const questions = await Question.find({
+      assignment: req.params.assignmentId,
+    })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    res.json({
+      total: questions.length,
+      data: questions,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

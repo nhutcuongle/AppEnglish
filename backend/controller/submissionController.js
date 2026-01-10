@@ -1,180 +1,56 @@
 import Submission from "../models/Submission.js";
-import Question from "../models/Question.js";
 
-/* ================= SUBMIT LESSON ================= */
-export const submitLesson = async (req, res) => {
+export const getSubmissions = async (req, res) => {
   try {
-    const { lesson, answers } = req.body;
-    const userId = req.user.id;
+    const { assignmentId, studentId } = req.query;
+    const query = {};
+    if (assignmentId) query.assignmentId = assignmentId;
+    if (studentId) query.studentId = studentId;
 
-    if (!lesson || !Array.isArray(answers)) {
-      return res.status(400).json({ message: "Thiếu dữ liệu submit" });
-    }
+    const submissions = await Submission.find(query)
+      .populate("studentId", "username fullName email")
+      .populate("assignmentId", "title");
 
-    const scores = {
-      vocabulary: 0,
-      grammar: 0,
-      reading: 0,
-      listening: 0,
-      speaking: 0,
-      writing: 0,
-    };
+    res.status(200).json(submissions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-    let totalScore = 0;
-    const checkedAnswers = [];
+export const createSubmission = async (req, res) => {
+  try {
+    const { assignmentId, content } = req.body;
+    const studentId = req.user.id; // From authMiddleware
 
-    for (const ans of answers) {
-      const question = await Question.findById(ans.question).lean();
-      if (!question) continue;
-
-      let isCorrect = null;
-
-      if (question.type !== "essay") {
-        isCorrect =
-          JSON.stringify(ans.userAnswer) ===
-          JSON.stringify(question.correctAnswer);
-
-        if (isCorrect) {
-          scores[question.skill] += 1;
-          totalScore += 1;
-        }
-      }
-
-      checkedAnswers.push({
-        question: ans.question,
-        userAnswer: ans.userAnswer,
-        isCorrect,
+    // Check if exists
+    let submission = await Submission.findOne({ assignmentId, studentId });
+    if (submission) {
+      submission.content = content || submission.content;
+      submission.submittedAt = Date.now();
+      await submission.save();
+    } else {
+      submission = await Submission.create({
+        assignmentId,
+        studentId,
+        content,
       });
     }
 
-    const submission = await Submission.create({
-      user: userId,
-      lesson,
-      answers: checkedAnswers,
-      scores,
-      totalScore,
-    });
-
-    res.status(201).json({
-      message: "Nộp bài thành công",
-      submissionId: submission._id,
-      scores,
-      totalScore,
-    });
+    res.status(201).json(submission);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= STUDENT: VIEW OWN SUBMISSION ================= */
-export const getSubmissionById = async (req, res) => {
+export const gradeSubmission = async (req, res) => {
   try {
-    const submission = await Submission.findById(req.params.id)
-      .populate("lesson", "title lessonType")
-      .lean();
-
-    if (!submission) {
-      return res.status(404).json({ message: "Không tìm thấy bài làm" });
-    }
-
-    if (submission.user.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Không có quyền xem bài này" });
-    }
-
-    res.json({
-      lesson: submission.lesson,
-      scores: submission.scores,
-      totalScore: submission.totalScore,
-      submittedAt: submission.createdAt,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/* ================= STUDENT: VIEW ALL SUBMISSIONS ================= */
-export const getMySubmissions = async (req, res) => {
-  try {
-    const submissions = await Submission.find({ user: req.user.id })
-      .populate("lesson", "title lessonType")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const result = submissions.map((sub) => ({
-      submissionId: sub._id,
-      lesson: sub.lesson,
-      scores: sub.scores,
-      totalScore: sub.totalScore,
-      submittedAt: sub.createdAt,
-    }));
-
-    res.json({
-      total: result.length,
-      data: result,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/* ================= TEACHER: VIEW SCORES BY LESSON ================= */
-export const getScoresByLesson = async (req, res) => {
-  try {
-    const { lessonId } = req.params;
-
-    const submissions = await Submission.find({ lesson: lessonId })
-      .populate("user", "username email")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const result = submissions.map((sub) => ({
-      submissionId: sub._id,
-      student: {
-        id: sub.user._id,
-        username: sub.user.username,
-        email: sub.user.email,
-      },
-      scores: sub.scores,
-      totalScore: sub.totalScore,
-      submittedAt: sub.createdAt,
-    }));
-
-    res.json({
-      totalStudents: result.length,
-      data: result,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/* ================= TEACHER: VIEW SUBMISSION DETAIL (ESSAY) ================= */
-export const getSubmissionDetailForTeacher = async (req, res) => {
-  try {
-    const submission = await Submission.findById(req.params.id)
-      .populate("user", "username email")
-      .populate("lesson", "title lessonType")
-      .populate("answers.question", "content type skill")
-      .lean();
-
-    if (!submission) {
-      return res.status(404).json({ message: "Không tìm thấy bài làm" });
-    }
-
-    res.json({
-      student: submission.user,
-      lesson: submission.lesson,
-      scores: submission.scores,
-      totalScore: submission.totalScore,
-      answers: submission.answers.map((a) => ({
-        question: a.question.content,
-        type: a.question.type,
-        skill: a.question.skill,
-        userAnswer: a.userAnswer,
-        isCorrect: a.isCorrect,
-      })),
-      submittedAt: submission.createdAt,
-    });
+    const { score, comment } = req.body;
+    const submission = await Submission.findByIdAndUpdate(
+      req.params.id,
+      { score, comment, gradedAt: Date.now() },
+      { new: true }
+    );
+    res.status(200).json(submission);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

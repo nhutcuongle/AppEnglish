@@ -45,7 +45,7 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
 
     try {
       if (_isEditMode) {
-        await ApiService.updateAnnouncement(widget.announcementToEdit!.id.toHexString(), doc);
+        await ApiService.updateAnnouncement(widget.announcementToEdit!.id, doc);
 
       } else {
         await ApiService.createAnnouncement(doc);

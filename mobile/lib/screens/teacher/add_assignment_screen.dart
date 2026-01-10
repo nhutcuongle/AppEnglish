@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/auth_service.dart';
+import 'package:apptienganh10/screens/teacher/question_list_screen.dart';
 import 'package:intl/intl.dart';
 
 
@@ -88,7 +89,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
       try {
         if (_isEditMode) {
-          await ApiService.updateAssignment(widget.assignmentToEdit!.id.toHexString(), data);
+          await ApiService.updateAssignment(widget.assignmentToEdit!.id, data);
 
         } else {
           await ApiService.createAssignment(data);
@@ -182,6 +183,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
               
               const SizedBox(height: 40),
               _buildSubmitButton(themeColor),
+              if (_isEditMode && isTest) _buildManageQuestionsButton(),
             ],
           ),
         ),
@@ -349,4 +351,33 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.blueAccent, width: 1)),
     );
   }
+
+  Widget _buildManageQuestionsButton() {
+    return Container(
+      margin: const EdgeInsets.only(top: 15),
+      width: double.infinity,
+      height: 55,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuestionListScreen(
+                assignmentId: widget.assignmentToEdit!.id,
+                assignmentTitle: widget.assignmentToEdit!.title,
+              ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.list_alt),
+        label: const Text('QUẢN LÝ CÂU HỎI', style: TextStyle(fontWeight: FontWeight.bold)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.purple,
+          side: const BorderSide(color: Colors.purple, width: 2),
+           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+      ),
+    );
+  }
 }
+

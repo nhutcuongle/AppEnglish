@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
@@ -43,7 +43,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
     if (confirmed == true) {
       try {
-        await MongoDatabase.deleteAssignment(item.id);
+        await ApiService.deleteAssignment(item.id);
         if (!mounted) return;
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa thành công!')));

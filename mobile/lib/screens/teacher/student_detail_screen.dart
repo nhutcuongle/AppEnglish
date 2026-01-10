@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/screens/teacher/grade_submission_screen.dart';
 import 'package:intl/intl.dart';
@@ -42,7 +42,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
 
             // Danh sách bài tập từ submissions
             FutureBuilder<List<Submission>>(
-              future: MongoDatabase.getSubmissionsByStudent(widget.student.id),
+              future: ApiService.getSubmissions(studentId: widget.student.id).then((raw) => raw.map((e) => Submission.fromJson(e)).toList()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

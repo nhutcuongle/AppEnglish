@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/screens/teacher/add_announcement_screen.dart';
 import 'package:apptienganh10/widgets/loading_widgets.dart';
@@ -36,15 +36,17 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Announcement>>(
-        future: MongoDatabase.getAnnouncements(),
+      body: FutureBuilder<List<dynamic>>(
+        future: ApiService.getAnnouncements(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return ShimmerWidgets.listShimmer();
           }
           if (snapshot.hasError) return _buildError(snapshot.error.toString());
 
-          final data = snapshot.data ?? [];
+          final rawData = snapshot.data ?? [];
+          final data = rawData.map((e) => Announcement.fromJson(e)).toList();
+          
           if (data.isEmpty) return _buildEmpty();
 
           return ListView.builder(
@@ -132,7 +134,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
     return Center(child: Text('Lỗi: $err', style: const TextStyle(color: Colors.red)));
   }
 
-  Future<void> _deleteAnnouncement(mongo.ObjectId id) async {
+  Future<void> _deleteAnnouncement(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -150,7 +152,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
 
     if (confirm == true) {
       try {
-        await MongoDatabase.deleteAnnouncement(id);
+        await ApiService.deleteAnnouncement(id);
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa thông báo')));
       } catch (e) {
