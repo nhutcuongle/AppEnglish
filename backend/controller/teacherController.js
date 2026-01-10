@@ -6,7 +6,8 @@ import bcrypt from "bcryptjs";
 
 export const createTeacher = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    console.log("Create Teacher Body:", req.body);
+    const { username, email, password, fullName, phone, classes } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -14,6 +15,9 @@ export const createTeacher = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      fullName: fullName || "",
+      phone: phone || "",
+      classes: classes || [],
       role: "teacher",
     });
 
