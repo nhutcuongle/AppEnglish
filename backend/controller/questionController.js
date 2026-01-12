@@ -1,5 +1,6 @@
 import Question from "../models/Question.js";
 import Lesson from "../models/Lesson.js";
+import Class from "../models/Class.js";
 
 /* ================= CREATE QUESTION ================= */
 export const createQuestion = async (req, res) => {
@@ -28,8 +29,23 @@ export const createQuestion = async (req, res) => {
       return res.status(400).json({ message: "Lesson không tồn tại" });
     }
 
-    /* ===== AUTO QUESTION ORDER (THEO LESSON) ===== */
-    const lastQuestion = await Question.findOne({ lesson })
+    /* ===== CHECK HOMEROOM TEACHER ===== */
+    const teacherClass = await Class.findOne({
+      homeroomTeacher: req.user._id,
+      isActive: true,
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({
+        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+      });
+    }
+
+    /* ===== AUTO QUESTION ORDER (THEO LESSON + CLASS) ===== */
+    const lastQuestion = await Question.findOne({
+      lesson,
+      class: teacherClass._id,
+    })
       .sort({ order: -1 })
       .select("order");
 
@@ -91,6 +107,7 @@ export const createQuestion = async (req, res) => {
       images,
       audios,
       videos,
+      class: teacherClass._id, // ⭐ GẮN LỚP
     });
 
     res.status(201).json({
@@ -105,8 +122,43 @@ export const createQuestion = async (req, res) => {
 /* ================= GET QUESTIONS BY LESSON ================= */
 export const getQuestionsByLesson = async (req, res) => {
   try {
+    let classId = null;
+
+    /* REQ.USER.CLASS chỉ có ở Student (do authMiddleware populate hoặc có sẵn) 
+       Teacher thì không có field này trong User model -> phải tìm trong Class collection */
+    
+    if (req.user.role === "student") {
+      if (!req.user.class) {
+        return res.status(403).json({
+          message: "Học sinh chưa được xếp lớp",
+        });
+      }
+      classId = req.user.class;
+    } else if (req.user.role === "teacher") {
+       // Tìm lớp mà giáo viên này chủ nhiệm
+      const teacherClass = await Class.findOne({
+        homeroomTeacher: req.user._id,
+        isActive: true,
+      });
+
+      if (!teacherClass) {
+        return res.status(403).json({
+          message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+        });
+      }
+      classId = teacherClass._id;
+    } else if (req.user.role === "admin" || req.user.role === "school") {
+      // Admin/School có thể xem nội dung nếu muốn (tùy logic, ở đây tạm allow all hoặc chặn)
+      // Nếu muốn test nhanh có thể return, hoặc yêu cầu gửi classId trong query
+      // Ở đây tạm thời chặn nếu không logic cụ thể
+       return res.status(403).json({
+          message: "Role này cần gửi classId cụ thể (chưa implement)",
+       });
+    }
+
     const questions = await Question.find({
       lesson: req.params.lessonId,
+      class: classId, // ⭐ FILTER THEO LỚP ĐÃ XÁC ĐỊNH
       isPublished: true,
     })
       .sort({ order: 1, createdAt: 1 })
@@ -121,9 +173,38 @@ export const getQuestionsByLesson = async (req, res) => {
   }
 };
 
-/* ================= UPDATE QUESTION (PARTIAL) ================= */
+/* ================= UPDATE QUESTION ================= */
 export const updateQuestion = async (req, res) => {
   try {
+    // Chỉ Teacher mới được sửa
+    if (req.user.role !== "teacher") {
+       return res.status(403).json({ message: "Chỉ giáo viên mới được sửa câu hỏi" });
+    }
+
+    /* ===== CHECK HOMEROOM TEACHER ===== */
+    const teacherClass = await Class.findOne({
+      homeroomTeacher: req.user._id,
+      isActive: true,
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({
+        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+      });
+    }
+
+    /* ===== CHECK QUESTION BELONGS TO TEACHER'S CLASS ===== */
+    const question = await Question.findOne({
+      _id: req.params.id,
+      class: teacherClass._id, // Question phải thuộc lớp của GV
+    });
+
+    if (!question) {
+      return res.status(404).json({
+        message: "Question không tồn tại hoặc không thuộc lớp chủ nhiệm của bạn",
+      });
+    }
+
     const allowedFields = [
       "content",
       "options",
@@ -136,22 +217,13 @@ export const updateQuestion = async (req, res) => {
       "videos",
     ];
 
-    const updateData = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+        question[field] = req.body[field];
       }
     });
 
-    const question = await Question.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
-    if (!question) {
-      return res.status(404).json({ message: "Không tìm thấy question" });
-    }
+    await question.save();
 
     res.json({
       message: "Cập nhật question thành công",
@@ -165,13 +237,33 @@ export const updateQuestion = async (req, res) => {
 /* ================= DELETE QUESTION ================= */
 export const deleteQuestion = async (req, res) => {
   try {
-    const question = await Question.findByIdAndDelete(req.params.id);
-
-    if (!question) {
-      return res.status(404).json({ message: "Không tìm thấy question" });
+     // Chỉ Teacher mới được xóa
+    if (req.user.role !== "teacher") {
+       return res.status(403).json({ message: "Chỉ giáo viên mới được xóa câu hỏi" });
     }
 
-    // ⚠️ nâng cấp sau: xóa media cloud
+    /* ===== CHECK HOMEROOM TEACHER ===== */
+    const teacherClass = await Class.findOne({
+      homeroomTeacher: req.user._id,
+      isActive: true,
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({
+        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+      });
+    }
+
+    const question = await Question.findOneAndDelete({
+      _id: req.params.id,
+      class: teacherClass._id, // Chỉ xóa nếu thuộc lớp GV chủ nhiệm
+    });
+
+    if (!question) {
+      return res.status(404).json({
+        message: "Question không tồn tại hoặc không thuộc lớp chủ nhiệm của bạn",
+      });
+    }
 
     res.json({ message: "Xóa question thành công" });
   } catch (err) {

@@ -19,6 +19,13 @@ const questionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    
+class: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Class",
+  required: true,
+  index: true,
+},
 
     /* Skill của câu hỏi (đồng bộ lessonType) */
     skill: {

@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   name: Questions
- *   description: Bài tập / câu hỏi cho tất cả kỹ năng (Teacher CRUD, Student xem)
+ *   description: Bài tập / câu hỏi cho tất cả kỹ năng (Teacher CRUD theo lớp chủ nhiệm, Student xem theo lớp học)
  */
 
 /* ================= TEACHER ================= */
@@ -11,7 +11,10 @@
  * @swagger
  * /api/questions:
  *   post:
- *     summary: Giáo viên tạo question mới (có thể upload media)
+ *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm)
+ *     description: >
+ *       Chỉ giáo viên chủ nhiệm mới được tạo câu hỏi.
+ *       Câu hỏi sẽ tự động được gán ID của lớp mà giáo viên đó đang chủ nhiệm.
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -105,13 +108,15 @@
  *         description: Tạo question thành công
  *       400:
  *         description: Dữ liệu không hợp lệ
+ *       403:
+ *         description: Không phải giáo viên chủ nhiệm nên không được tạo
  */
 
 /**
  * @swagger
  * /api/questions/{id}:
  *   patch:
- *     summary: Giáo viên cập nhật question
+ *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -149,14 +154,14 @@
  *       200:
  *         description: Cập nhật question thành công
  *       404:
- *         description: Không tìm thấy question
+ *         description: Không tìm thấy question hoặc không thuộc lớp của GVCN
  */
 
 /**
  * @swagger
  * /api/questions/{id}:
  *   delete:
- *     summary: Giáo viên xóa question
+ *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -170,7 +175,7 @@
  *       200:
  *         description: Xóa question thành công
  *       404:
- *         description: Không tìm thấy question
+ *         description: Không tìm thấy question hoặc không thuộc lớp của GVCN
  */
 
 /* ================= STUDENT / TEACHER ================= */
@@ -179,7 +184,10 @@
  * @swagger
  * /api/questions/lesson/{lessonId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách question theo lesson
+ *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp)
+ *     description: >
+ *       - Giáo viên: Chỉ thấy question của lớp mình chủ nhiệm.
+ *       - Học sinh: Chỉ thấy question của lớp mình đang theo học.
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -192,4 +200,6 @@
  *     responses:
  *       200:
  *         description: Danh sách question
+ *       403:
+ *         description: Học sinh chưa được xếp lớp hoặc giáo viên chưa có lớp chủ nhiệm
  */

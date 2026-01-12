@@ -245,7 +245,9 @@
  * /api/submissions/lesson/{lessonId}/scores:
  *   get:
  *     summary: Xem điểm của học sinh theo bài học
- *     description: Giảng viên xem danh sách điểm của tất cả học sinh đã làm bài học cụ thể
+ *     description: >
+ *       Giảng viên xem danh sách điểm của học sinh trong lớp chủ nhiệm đã làm bài học cụ thể.
+ *       (Chỉ trả về bài nộp của học sinh thuộc lớp GV đang chủ nhiệm)
  *     tags: [Submissions]
  *     security:
  *       - bearerAuth: []
@@ -264,6 +266,9 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 className:
+ *                   type: string
+ *                   example: "10A1"
  *                 totalStudents:
  *                   type: number
  *                   example: 25
@@ -308,7 +313,7 @@
  *       401:
  *         description: Chưa xác thực
  *       403:
- *         description: Chỉ giảng viên được phép
+ *         description: Chỉ giảng viên chủ nhiệm được phép
  *       500:
  *         description: Lỗi server
  */
@@ -318,7 +323,8 @@
  * /api/submissions/teacher/{id}:
  *   get:
  *     summary: Xem chi tiết bài làm của học sinh (dành cho giảng viên)
- *     description: Giảng viên xem chi tiết bài làm của học sinh bao gồm tất cả câu trả lời (để chấm essay)
+ *     description: >
+ *       Giảng viên xem chi tiết bài làm của học sinh lớp mình chủ nhiệm.
  *     tags: [Submissions]
  *     security:
  *       - bearerAuth: []
@@ -401,7 +407,7 @@
  *       401:
  *         description: Chưa xác thực
  *       403:
- *         description: Chỉ giảng viên được phép
+ *         description: Học sinh không thuộc lớp chủ nhiệm của bạn
  *       500:
  *         description: Lỗi server
  */
