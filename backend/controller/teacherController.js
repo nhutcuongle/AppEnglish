@@ -79,6 +79,13 @@ export const getTeachers = async (req, res) => {
 /* SCHOOL: UPDATE TEACHER */
 export const updateTeacher = async (req, res) => {
   try {
+    const { classes: newClasses, ...otherData } = req.body;
+
+    // Get teacher's old classes before update
+    const oldTeacher = await User.findById(req.params.id);
+    const oldClasses = oldTeacher?.classes || [];
+
+    // Update teacher
     const teacher = await User.findOneAndUpdate(
       { _id: req.params.id, role: "teacher" },
       req.body,
@@ -88,11 +95,33 @@ export const updateTeacher = async (req, res) => {
     if (!teacher)
       return res.status(404).json({ message: "Không tìm thấy giảng viên" });
 
+    // Sync homeroomTeacher in Class documents
+    if (newClasses !== undefined) {
+      // Remove teacher from old classes
+      for (const className of oldClasses) {
+        if (!newClasses.includes(className)) {
+          await Class.updateMany(
+            { name: className, homeroomTeacher: req.params.id },
+            { $set: { homeroomTeacher: null } }
+          );
+        }
+      }
+
+      // Add teacher to new classes
+      for (const className of newClasses) {
+        await Class.updateOne(
+          { name: className },
+          { $set: { homeroomTeacher: req.params.id } }
+        );
+      }
+    }
+
     res.json(teacher);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /* SCHOOL: DELETE TEACHER */
 export const deleteTeacher = async (req, res) => {

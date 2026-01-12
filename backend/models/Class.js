@@ -8,7 +8,14 @@ const classSchema = new mongoose.Schema(
       trim: true,
     },
 
+    room: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     grade: {
+
       type: Number,
       required: true, // 10
     },
@@ -36,7 +43,13 @@ const classSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    schedule: {
+      type: [String], // ['Sáng'], ['Chiều'], or ['Sáng', 'Chiều']
+      default: ['Sáng'],
+    },
   },
+
   { timestamps: true }
 );
 

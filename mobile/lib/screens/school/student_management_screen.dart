@@ -12,6 +12,7 @@ class StudentManagementScreen extends StatefulWidget {
 class _StudentManagementScreenState extends State<StudentManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _students = [];
+  List<String> _availableClasses = [];
   bool _isLoading = true;
 
 
@@ -22,7 +23,22 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     if (widget.className != null) {
       _searchController.text = widget.className!;
     }
-    _loadStudents();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([_loadStudents(), _loadAvailableClasses()]);
+  }
+
+  Future<void> _loadAvailableClasses() async {
+    try {
+      final classes = await ApiService.getClasses();
+      setState(() {
+        _availableClasses = classes.map<String>((c) => c['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+      });
+    } catch (e) {
+      print('Error loading classes: $e');
+    }
   }
 
   Future<void> _loadStudents() async {
@@ -625,7 +641,11 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
   }
 
   List<String> _allClasses() {
-    return ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
+    // Return API-loaded classes, or fallback to initial className if available
+    if (_availableClasses.isEmpty && widget.className != null) {
+      return [widget.className!];
+    }
+    return _availableClasses;
   }
 }
 
@@ -783,7 +803,8 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
   String _selectedGender = ''; // male, female, ''
   DateTime? _selectedDateOfBirth;
   
-  final List<String> _allClasses = ['10A1', '10A2', '10A3', '10A4', '10A5', '10A6', '10A7', '10A8'];
+  List<String> _allClasses = [];
+  bool _isLoadingClasses = true;
 
   bool get isEditing => widget.student != null;
 
@@ -806,13 +827,29 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
       _selectedClass = widget.student!['classes'][0];
     } else if (widget.initialClass != null) {
       _selectedClass = widget.initialClass;
-      // Auto generate username if not editing
-      if (!isEditing && widget.nextIndex != null) {
-        // Format: 10A101 (no underscore)
-        String newUsername = '${widget.initialClass}${widget.nextIndex.toString().padLeft(2, '0')}';
-        _usernameController.text = newUsername;
-        _passwordController.text = newUsername; // Password same as username
-      }
+    }
+    
+    // Load classes from API
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    try {
+      final classes = await ApiService.getClasses();
+      setState(() {
+        _allClasses = classes.map<String>((c) => c['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+        _isLoadingClasses = false;
+        
+        // Auto generate username if not editing and has initial class
+        if (!isEditing && widget.initialClass != null && widget.nextIndex != null) {
+          String newUsername = '${widget.initialClass}${widget.nextIndex.toString().padLeft(2, '0')}';
+          _usernameController.text = newUsername;
+          _passwordController.text = newUsername;
+        }
+      });
+    } catch (e) {
+      print('Error loading classes: $e');
+      setState(() => _isLoadingClasses = false);
     }
   }
 
@@ -1106,25 +1143,31 @@ class _StudentFormSheetState extends State<_StudentFormSheet> {
       children: [
         const Text('Lớp', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          children: _allClasses.map((c) {
-            bool isSelected = _selectedClass == c;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedClass = c), // Single select
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
+        if (_isLoadingClasses)
+          const Center(child: CircularProgressIndicator())
+        else if (_allClasses.isEmpty)
+          const Text('Không có lớp nào', style: TextStyle(color: Color(0xFF94A3B8)))
+        else
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _allClasses.map((c) {
+              bool isSelected = _selectedClass == c;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedClass = c), // Single select
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
+                  ),
+                  child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B))),
                 ),
-                child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B))),
-              ),
-            );
-          }).toList(),
-        ),
+              );
+            }).toList(),
+          ),
       ],
     );
   }
 }
+

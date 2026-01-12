@@ -223,3 +223,57 @@ export const deleteStudent = async (req, res) => {
   }
 };
 
+/* ===========================
+   TEACHER: GET ACTIVE STUDENTS
+=========================== */
+export const getAssignableStudents = async (req, res) => {
+  try {
+    const students = await User.find({
+      role: "student",
+      isDisabled: false,
+    })
+      .select("_id username email")
+      .populate("class", "name");
+
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ===========================
+   GET PROFILE (SELF)
+=========================== */
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ===========================
+   UPDATE PROFILE (SELF)
+=========================== */
+export const updateProfile = async (req, res) => {
+  try {
+    const { fullName, academicYear } = req.body;
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
+
+    if (fullName !== undefined) user.fullName = fullName;
+    if (academicYear !== undefined) user.academicYear = academicYear;
+
+    await user.save();
+
+    res.json({
+      message: "Cập nhật thông tin thành công",
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
