@@ -9,7 +9,7 @@ import 'package:apptienganh10/screens/teacher/announcement_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/lesson_plan_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/gradebook_screen.dart';
 import 'package:apptienganh10/screens/teacher/teacher_calendar_screen.dart';
-import 'package:apptienganh10/services/auth_service.dart';
+import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/teacher/teacher_profile_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
@@ -91,30 +91,40 @@ class TeacherDashboardTab extends StatelessWidget {
   }
 
   Widget _buildProfileHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return FutureBuilder<Map<String, dynamic>>(
+      future: ApiService.getProfile(),
+      builder: (context, snapshot) {
+        String name = 'Giáo viên';
+        if (snapshot.hasData && snapshot.data!['fullName'] != null) {
+          name = snapshot.data!['fullName'];
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Chào buổi sáng,', style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
-            Text('${AuthService.teacherName} 👋', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Chào buổi sáng,', style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                Text('$name 👋', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+              ],
+            ),
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.2), width: 2),
+              ),
+              child: const CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.blueAccent, size: 30),
+              ),
+            ),
           ],
-        ),
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.blueAccent.withOpacity(0.2), width: 2),
-          ),
-          child: const CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.person, color: Colors.blueAccent, size: 30),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
+
 
   Widget _buildClassOverview() {
     return FutureBuilder<List<Student>>(

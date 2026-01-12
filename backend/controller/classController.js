@@ -5,7 +5,7 @@ import User from "../models/User.js";
 /* SCHOOL: CREATE CLASS */
 export const createClass = async (req, res) => {
   try {
-    const { name, grade, homeroomTeacher, schedule, room } = req.body;
+    const { name, grade, homeroomTeacher } = req.body;
 
     // 1. Validate dữ liệu cơ bản
     if (!name || !grade) {
@@ -33,8 +33,6 @@ export const createClass = async (req, res) => {
       grade,
       school: req.user.id,
       homeroomTeacher: homeroomTeacher || null,
-      schedule: schedule || ['Sáng'],
-      room: room || "",
     });
 
     res.status(201).json({

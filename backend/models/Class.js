@@ -8,12 +8,6 @@ const classSchema = new mongoose.Schema(
       trim: true,
     },
 
-    room: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
     grade: {
 
       type: Number,
@@ -42,11 +36,6 @@ const classSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
-    },
-
-    schedule: {
-      type: [String], // ['Sáng'], ['Chiều'], or ['Sáng', 'Chiều']
-      default: ['Sáng'],
     },
   },
 

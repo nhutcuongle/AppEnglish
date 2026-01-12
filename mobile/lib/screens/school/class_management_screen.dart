@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
-import 'package:apptienganh10/screens/school/timetable_screen.dart';
+
 import 'package:apptienganh10/services/api_service.dart';
 
 class ClassManagementScreen extends StatefulWidget {
@@ -34,14 +34,9 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
             'homeroomTeacher': c['homeroomTeacher']?['fullName'] ?? c['homeroomTeacher']?['username'] ?? 'Chưa có',
             'homeroomTeacherId': c['homeroomTeacher']?['_id']?.toString(),
             'studentCount': c['studentCount'] ?? (c['students'] as List?)?.length ?? 0,
-            'maleCount': 0, // TODO: Calculate from student data
+            'maleCount': 0,
             'femaleCount': 0,
-            'maleCount': 0, // TODO: Calculate from student data
-            'femaleCount': 0,
-            'room': c['room'] != null && c['room'].toString().isNotEmpty ? c['room'].toString() : 'Phòng ${c['name']}',
-            'schedule': c['schedule'] ?? ['Sáng'],
             'status': c['isActive'] == true ? 'active' : 'inactive',
-
           };
         }).toList();
         _isLoading = false;
@@ -154,10 +149,8 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
 
   Widget _buildStatsRow() {
     int totalStudents = _classes.fold(0, (sum, c) => sum + (c['studentCount'] as int));
-    int morningCount = _classes.where((c) => _scheduleContains(c['schedule'], 'Sáng')).length;
-    int afternoonCount = _classes.where((c) => _scheduleContains(c['schedule'], 'Chiều')).length;
+    int activeCount = _classes.where((c) => c['status'] == 'active').length;
 
-    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -166,9 +159,7 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
           const SizedBox(width: 12),
           _buildMiniStat('Học sinh', '$totalStudents', const Color(0xFF1976D2)),
           const SizedBox(width: 12),
-          _buildMiniStat('Ca sáng', '$morningCount', const Color(0xFF4CAF50)),
-          const SizedBox(width: 12),
-          _buildMiniStat('Ca chiều', '$afternoonCount', const Color(0xFFFF9800)),
+          _buildMiniStat('Đang hoạt động', '$activeCount', const Color(0xFF4CAF50)),
         ],
       ),
     );
@@ -296,10 +287,6 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
                                 decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(8)),
                                 child: const Text('Khối 10', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
                               ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.location_on_rounded, size: 14, color: Color(0xFF94A3B8)),
-                              const SizedBox(width: 4),
-                              Text(classData['room'], style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                             ],
                           ),
                         ],
@@ -329,23 +316,6 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
                           _buildStudentStat(Icons.male_rounded, '${classData['maleCount']}', 'Nam', const Color(0xFF1976D2)),
                           const SizedBox(width: 12),
                           _buildStudentStat(Icons.female_rounded, '${classData['femaleCount']}', 'Nữ', const Color(0xFFE91E63)),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _getScheduleColor(classData['schedule']).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.schedule_rounded, size: 14, color: _getScheduleColor(classData['schedule'])),
-                                const SizedBox(width: 4),
-                                Text(_formatSchedule(classData['schedule']), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _getScheduleColor(classData['schedule']))),
-                              ],
-                            ),
-                          ),
-
                         ],
                       ),
                     ],
@@ -395,37 +365,6 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
       default:
         return const Color(0xFFF59E0B);
     }
-  }
-
-  String _formatSchedule(dynamic schedule) {
-    if (schedule is List) {
-      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
-        return 'Cả ngày';
-      } else if (schedule.contains('Chiều')) {
-        return 'Chiều';
-      }
-      return 'Sáng';
-    }
-    return schedule?.toString() ?? 'Sáng';
-  }
-
-  Color _getScheduleColor(dynamic schedule) {
-    if (schedule is List) {
-      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
-        return const Color(0xFF2196F3); // Blue for both
-      } else if (schedule.contains('Chiều')) {
-        return const Color(0xFF6366F1); // Purple for afternoon
-      }
-      return const Color(0xFF4CAF50); // Green for morning
-    }
-    return const Color(0xFF4CAF50);
-  }
-
-  bool _scheduleContains(dynamic schedule, String value) {
-    if (schedule is List) {
-      return schedule.contains(value);
-    }
-    return schedule?.toString() == value;
   }
 
   Color _getSubjectColor(String subject) {
@@ -531,8 +470,6 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
           final result = await ApiService.updateClass(classData['id'], {
             'name': updatedData['name'],
             'grade': updatedData['grade'],
-            'schedule': updatedData['schedule'],
-            'room': updatedData['room'],
           });
           
           Navigator.pop(context); // Close loading
@@ -570,8 +507,6 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
           final result = await ApiService.createClass(
             name: classData['name'],
             grade: classData['grade'],
-            schedule: classData['schedule'] != null ? List<String>.from(classData['schedule']) : null,
-            room: classData['room'],
           );
           
           Navigator.pop(context); // Close loading
@@ -599,18 +534,6 @@ class _ClassDetailSheet extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _ClassDetailSheet({required this.classData, required this.onEdit, required this.onDelete});
-
-  String _formatScheduleDisplay(dynamic schedule) {
-    if (schedule is List) {
-      if (schedule.contains('Sáng') && schedule.contains('Chiều')) {
-        return 'Cả ngày';
-      } else if (schedule.contains('Chiều')) {
-        return 'Chiều';
-      }
-      return 'Sáng';
-    }
-    return schedule?.toString() ?? 'Sáng';
-  }
 
 
 
@@ -647,7 +570,7 @@ class _ClassDetailSheet extends StatelessWidget {
                         const SizedBox(height: 16),
                         Text('Lớp ${classData['name']}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                         const SizedBox(height: 6),
-                        Text('Khối 10 • ${classData['room']}', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9))),
+                        const Text('Khối 10', style: TextStyle(fontSize: 14, color: Colors.white)),
                         const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -666,10 +589,7 @@ class _ClassDetailSheet extends StatelessWidget {
                   _buildInfoSection('Giáo viên', [_buildTeacherCard(classData)]),
                   const SizedBox(height: 24),
                   _buildInfoSection('Thông tin lớp học', [
-                    _buildInfoRow(Icons.location_on_rounded, 'Phòng học', classData['room']),
-                    _buildInfoRow(Icons.schedule_rounded, 'Ca học', _formatScheduleDisplay(classData['schedule'])),
                     _buildInfoRow(Icons.calendar_today_rounded, 'Năm học', '2025-2026'),
-
                   ]),
                   const SizedBox(height: 24),
                   // Quick actions
@@ -691,13 +611,6 @@ class _ClassDetailSheet extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildQuickAction(context, Icons.calendar_month_rounded, 'Thời khóa biểu', const Color(0xFFF59E0B), () {
-                            Navigator.pop(context);
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => TimetableScreen(className: classData['name'])));
-                          }),
-                        ),
-                        const SizedBox(width: 12),
                         Expanded(
                           child: _buildQuickAction(context, Icons.assignment_rounded, 'Điểm số', const Color(0xFF8B5CF6), () {}),
                         ),
@@ -899,10 +812,8 @@ class _AddClassSheet extends StatefulWidget {
 
 class _AddClassSheetState extends State<_AddClassSheet> {
   late TextEditingController _nameController;
-  late TextEditingController _roomController;
   late int _selectedGrade;
   final List<int> _grades = [10, 11, 12];
-  Set<String> _selectedSchedule = {'Sáng'};
 
   bool get isEditing => widget.classToEdit != null;
 
@@ -910,26 +821,13 @@ class _AddClassSheetState extends State<_AddClassSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.classToEdit?['name'] ?? '');
-    _roomController = TextEditingController(text: widget.classToEdit?['room']?.toString() ?? '');
     _selectedGrade = widget.classToEdit?['grade'] ?? 10;
-    
-    // Initialize schedule from classToEdit or default to ['Sáng']
-    if (widget.classToEdit?['schedule'] != null) {
-      final scheduleList = widget.classToEdit!['schedule'];
-      if (scheduleList is List) {
-        _selectedSchedule = Set<String>.from(scheduleList.map((e) => e.toString()));
-      }
-    }
-    if (_selectedSchedule.isEmpty) {
-      _selectedSchedule = {'Sáng'};
-    }
   }
 
 
   @override
   void dispose() {
     _nameController.dispose();
-    _roomController.dispose();
     super.dispose();
   }
 
@@ -1026,28 +924,6 @@ class _AddClassSheetState extends State<_AddClassSheet> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const SizedBox(height: 20),
-                  // Room field
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Phòng học', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _roomController,
-                        decoration: InputDecoration(
-                          hintText: 'VD: P.101, Tầng 2...',
-                          prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFF94A3B8)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
                   // Grade dropdown
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1071,80 +947,6 @@ class _AddClassSheetState extends State<_AddClassSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  // Schedule selection
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Ca học *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (_selectedSchedule.contains('Sáng')) {
-                                    if (_selectedSchedule.length > 1) _selectedSchedule.remove('Sáng');
-                                  } else {
-                                    _selectedSchedule.add('Sáng');
-                                  }
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: _selectedSchedule.contains('Sáng') ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _selectedSchedule.contains('Sáng') ? const Color(0xFF2196F3) : const Color(0xFFE2E8F0)),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.wb_sunny_rounded, size: 18, color: _selectedSchedule.contains('Sáng') ? Colors.white : const Color(0xFF64748B)),
-                                    const SizedBox(width: 8),
-                                    Text('Sáng', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedSchedule.contains('Sáng') ? Colors.white : const Color(0xFF64748B))),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (_selectedSchedule.contains('Chiều')) {
-                                    if (_selectedSchedule.length > 1) _selectedSchedule.remove('Chiều');
-                                  } else {
-                                    _selectedSchedule.add('Chiều');
-                                  }
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: _selectedSchedule.contains('Chiều') ? const Color(0xFF1976D2) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _selectedSchedule.contains('Chiều') ? const Color(0xFF1976D2) : const Color(0xFFE2E8F0)),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.nightlight_round, size: 18, color: _selectedSchedule.contains('Chiều') ? Colors.white : const Color(0xFF64748B)),
-                                    const SizedBox(width: 8),
-                                    Text('Chiều', style: TextStyle(fontWeight: FontWeight.w600, color: _selectedSchedule.contains('Chiều') ? Colors.white : const Color(0xFF64748B))),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Có thể chọn cả 2 ca', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-                    ],
-                  ),
                   const SizedBox(height: 30),
                   // Submit button
                   SizedBox(
@@ -1160,8 +962,6 @@ class _AddClassSheetState extends State<_AddClassSheet> {
                         widget.onSave({
                           'name': _nameController.text.trim(),
                           'grade': _selectedGrade,
-                          'schedule': _selectedSchedule.toList(),
-                          'room': _roomController.text.trim(),
                         });
                       },
 

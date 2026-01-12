@@ -179,8 +179,6 @@ class ApiService {
     required String name,
     required int grade,
     String? homeroomTeacher,
-    List<String>? schedule,
-    String? room,
   }) async {
     try {
       final response = await http.post(
@@ -190,8 +188,6 @@ class ApiService {
           'name': name,
           'grade': grade,
           if (homeroomTeacher != null) 'homeroomTeacher': homeroomTeacher,
-          if (schedule != null) 'schedule': schedule,
-          if (room != null) 'room': room,
         }),
       );
       return jsonDecode(response.body);

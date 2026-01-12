@@ -1,7 +1,5 @@
 
 import 'package:apptienganh10/models/teacher_models.dart';
-import 'package:mongo_dart/mongo_dart.dart';
-import 'package:apptienganh10/services/auth_service.dart';
 import 'package:apptienganh10/services/api_service.dart';
 
 class TeacherService {

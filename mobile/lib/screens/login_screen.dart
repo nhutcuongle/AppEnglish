@@ -3,6 +3,7 @@ import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/school/school_home_screen.dart';
 import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
 import 'package:apptienganh10/home_screen.dart';
+import 'package:apptienganh10/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['error'] != null) {
       setState(() => _errorMessage = result['error']);
       return;
+    }
+
+    if (result['token'] != null && result['user'] != null) {
+      await AuthService.saveLoginData(result['token'], result['user']);
     }
 
     if (result['token'] == null) {

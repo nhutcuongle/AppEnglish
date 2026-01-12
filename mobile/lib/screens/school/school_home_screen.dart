@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/school/teacher_management_screen.dart';
 import 'package:apptienganh10/screens/school/class_management_screen.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
-import 'package:apptienganh10/screens/school/timetable_screen.dart';
+
 import 'package:apptienganh10/screens/school/lesson_screen.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/school/school_info_screen.dart';
@@ -123,10 +123,13 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
       final classes = await ApiService.getClasses();
       final profile = await ApiService.getProfile();
       
+      // Filter only active classes
+      final activeClasses = classes.where((c) => c['isActive'] == true).toList();
+
       setState(() {
         _teacherCount = teachers.length;
         _studentCount = students.length;
-        _classCount = classes.length;
+        _classCount = activeClasses.length;
         if (!profile.containsKey('error')) {
           if (profile['fullName'] != null && profile['fullName'].toString().isNotEmpty) {
             _schoolName = profile['fullName'];
@@ -247,7 +250,10 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
             Icons.people_rounded,
             const Color(0xFF2196F3),
             'Tiếng Anh',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherManagementScreen())),
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherManagementScreen()));
+              _loadStats();
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -258,7 +264,10 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
             Icons.school_rounded,
             const Color(0xFF1976D2),
             'Tất cả',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentManagementScreen())),
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentManagementScreen()));
+              _loadStats();
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -269,7 +278,10 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
             Icons.class_rounded,
             const Color(0xFF0D47A1),
             'Tất cả',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassManagementScreen())),
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassManagementScreen()));
+              _loadStats();
+            },
           ),
         ),
       ],
@@ -365,10 +377,13 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
                 'Thêm giáo viên',
                 Icons.person_add_rounded,
                 const Color(0xFF2196F3),
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TeacherManagementScreen()),
-                ),
+                () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TeacherManagementScreen()),
+                  );
+                  _loadStats();
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -378,7 +393,10 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
                 'Lớp học',
                 Icons.class_rounded,
                 const Color(0xFF1976D2),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassManagementScreen())),
+                () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassManagementScreen()));
+                  _loadStats();
+                },
               ),
             ),
           ],
@@ -386,16 +404,6 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _buildActionCard(
-                context,
-                'Thời khóa biểu',
-                Icons.calendar_month_rounded,
-                const Color(0xFF0D47A1),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TimetableScreen())),
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: _buildActionCard(
                 context,
