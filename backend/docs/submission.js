@@ -102,6 +102,19 @@
  *                   example: "Thiếu dữ liệu submit"
  *       401:
  *         description: Chưa xác thực hoặc không có quyền truy cập
+ *       403:
+ *         description: Đã hết hạn nộp bài
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Đã hết hạn nộp bài cho bài tập này"
+ *                 deadline:
+ *                   type: string
+ *                   format: date-time
  *       500:
  *         description: Lỗi server
  *         content:

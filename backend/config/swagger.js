@@ -54,6 +54,10 @@ const swaggerOptions = {
         name: "Questions",
         description: " Bài tập / câu hỏi cho tất cả kỹ năng (Teacher CRUD, Student xem)",
       },
+       {
+        name: "Assignments",
+        description: "Thiết lập bài tập (Hạn nộp, công khai...) cho từng lớp/bài học",
+      },
       {
         name: "Submissions",
         description: "Học sinh làm bài & nộp bài (Student only)",

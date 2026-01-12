@@ -21,6 +21,68 @@
  *     requestBody:
  *       required: true
  *       content:
+ *         application/json:
+ *           schema:
+ *             oneOf:
+ *               - type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - lesson
+ *                     - skill
+ *                     - type
+ *                     - content
+ *                   properties:
+ *                     lesson:
+ *                       type: string
+ *                     skill:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     content:
+ *                       type: string
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     correctAnswer:
+ *                       type: string
+ *                     explanation:
+ *                       type: string
+ *                     isPublished:
+ *                       type: boolean
+ *               - type: object
+ *                 properties:
+ *                   lesson:
+ *                     type: string
+ *                   deadline:
+ *                     type: string
+ *                     format: date-time
+ *                   questions:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       required:
+ *                         - skill
+ *                         - type
+ *                         - content
+ *                       properties:
+ *                         skill:
+ *                           type: string
+ *                         type:
+ *                           type: string
+ *                         content:
+ *                           type: string
+ *                         options:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         correctAnswer:
+ *                           type: string
+ *                         explanation:
+ *                           type: string
+ *                         isPublished:
+ *                           type: boolean
  *         multipart/form-data:
  *           schema:
  *             type: object
@@ -199,7 +261,26 @@
  *           type: string
  *     responses:
  *       200:
- *         description: Danh sách question
+ *         description: Danh sách question kèm thông tin assignment (hạn nộp)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 assignment:
+ *                   type: object
+ *                   properties:
+ *                     deadline:
+ *                       type: string
+ *                       format: date-time
+ *                     isPublished:
+ *                       type: boolean
  *       403:
  *         description: Học sinh chưa được xếp lớp hoặc giáo viên chưa có lớp chủ nhiệm
  */

@@ -1,6 +1,7 @@
 import Submission from "../models/Submission.js";
 import Question from "../models/Question.js";
 import Class from "../models/Class.js";
+import Assignment from "../models/Assignment.js";
 
 /* ================= SUBMIT LESSON ================= */
 export const submitLesson = async (req, res) => {
@@ -10,6 +11,21 @@ export const submitLesson = async (req, res) => {
 
     if (!lesson || !Array.isArray(answers)) {
       return res.status(400).json({ message: "Thiếu dữ liệu submit" });
+    }
+
+    /* ===== CHECK DEADLINE ===== */
+    if (req.user.role === "student") {
+      const assignment = await Assignment.findOne({
+        lesson,
+        class: req.user.class,
+      }).lean();
+
+      if (assignment && assignment.deadline && new Date() > new Date(assignment.deadline)) {
+        return res.status(403).json({
+          message: "Đã hết hạn nộp bài cho bài tập này",
+          deadline: assignment.deadline
+        });
+      }
     }
 
     const scores = {
