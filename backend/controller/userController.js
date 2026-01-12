@@ -22,36 +22,110 @@ export const getAllStudents = async (req, res) => {
 /* ===========================
    CREATE STUDENT + ASSIGN CLASS
 =========================== */
+
 export const createStudent = async (req, res) => {
   try {
-    console.log("Create Student Body:", req.body);
-    const { username, password, fullName, phone, classes, gender, dateOfBirth } = req.body;
+    const {
+      username,
+      email,
+      password,
+      fullName,
+      phone,
+      gender,
+      dateOfBirth,
+      classId,
+    } = req.body;
 
+    // ===== 1. Validate bắt buộc =====
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        message: "Thiếu username, email hoặc password",
+      });
+    }
+
+    // ===== 2. Check email trùng =====
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email đã tồn tại",
+      });
+    }
+
+    // ===== 3. Chuẩn hóa gender =====
+    let normalizedGender = "";
+    if (gender) {
+      const g = gender.toString().toLowerCase().trim();
+      if (g === "nam" || g === "male") normalizedGender = "male";
+      else if (g === "nữ" || g === "nu" || g === "female")
+        normalizedGender = "female";
+    }
+
+    // ===== 4. Validate class (nếu có) =====
+    let classData = null;
+    if (classId) {
+      classData = await Class.findOne({
+        _id: classId,
+        school: req.user.id, // school đang đăng nhập
+      });
+
+      if (!classData) {
+        return res.status(400).json({
+          message: "Lớp không hợp lệ",
+        });
+      }
+    }
+
+    // ===== 5. Hash password =====
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ===== 6. Create student =====
     const student = await User.create({
-      username,
-      email: null, // Students don't need email
+      username: username.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
-      fullName: fullName || "",
-      phone: phone || "",
-      gender: gender || "",
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-      classes: classes || [],
       role: "student",
+
+      // Profile
+      fullName: fullName ? fullName.trim() : "",
+      phone: phone ? phone.trim() : "",
+      gender: normalizedGender,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+
+      // Class relation
+      class: classData ? classData._id : null,
     });
 
+    // ===== 7. Đồng bộ Class → students[] =====
+    if (classData) {
+      await Class.findByIdAndUpdate(classData._id, {
+        $addToSet: { students: student._id },
+      });
+    }
+
+    // ===== 8. Ẩn password khi trả về =====
+    student.password = undefined;
+
+    // ===== 9. Response =====
     res.status(201).json({
       message: "Tạo học sinh thành công",
       student,
     });
   } catch (err) {
-    console.error("Create Student Error:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+
+    // Validation error → 400
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        message: err.message,
+      });
+    }
+
+    res.status(500).json({
+      message: "Lỗi server",
+      error: err.message,
+    });
   }
 };
-
-
 
 /* ===========================
    UPDATE STUDENT (KHÔNG ĐỔI LỚP)
@@ -149,20 +223,3 @@ export const deleteStudent = async (req, res) => {
   }
 };
 
-/* ===========================
-   TEACHER: GET ACTIVE STUDENTS
-=========================== */
-export const getAssignableStudents = async (req, res) => {
-  try {
-    const students = await User.find({
-      role: "student",
-      isDisabled: false,
-    })
-      .select("_id username email")
-      .populate("class", "name");
-
-    res.json(students);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};

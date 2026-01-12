@@ -1,5 +1,6 @@
 import Submission from "../models/Submission.js";
 import Question from "../models/Question.js";
+import Class from "../models/Class.js";
 
 /* ================= SUBMIT LESSON ================= */
 export const submitLesson = async (req, res) => {
@@ -122,7 +123,23 @@ export const getScoresByLesson = async (req, res) => {
   try {
     const { lessonId } = req.params;
 
-    const submissions = await Submission.find({ lesson: lessonId })
+    // 1. Tìm lớp chủ nhiệm của giáo viên
+    const teacherClass = await Class.findOne({
+      homeroomTeacher: req.user._id,
+      isActive: true,
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({
+        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+      });
+    }
+
+    // 2. Chỉ lấy bài nộp của học sinh trong lớp này
+    const submissions = await Submission.find({
+      lesson: lessonId,
+      user: { $in: teacherClass.students }, // ⭐ CHỈ LẤY CỦA HỌC SINH LỚP MÌNH
+    })
       .populate("user", "username email")
       .sort({ createdAt: -1 })
       .lean();
@@ -140,6 +157,7 @@ export const getScoresByLesson = async (req, res) => {
     }));
 
     res.json({
+      className: teacherClass.name, // Trả thêm tên lớp cho FE dễ hiển thị
       totalStudents: result.length,
       data: result,
     });
@@ -151,6 +169,7 @@ export const getScoresByLesson = async (req, res) => {
 /* ================= TEACHER: VIEW SUBMISSION DETAIL (ESSAY) ================= */
 export const getSubmissionDetailForTeacher = async (req, res) => {
   try {
+    // 1. Tìm bài làm
     const submission = await Submission.findById(req.params.id)
       .populate("user", "username email")
       .populate("lesson", "title lessonType")
@@ -159,6 +178,19 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
 
     if (!submission) {
       return res.status(404).json({ message: "Không tìm thấy bài làm" });
+    }
+
+    // 2. Kiểm tra quyền của giáo viên (phải là GVCN của học sinh này)
+    const teacherClass = await Class.findOne({
+      homeroomTeacher: req.user._id,
+      students: submission.user._id, // Kiểm tra xem học sinh có trong list students không
+      isActive: true,
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({
+        message: "Học sinh này không thuộc lớp chủ nhiệm của bạn",
+      });
     }
 
     res.json({

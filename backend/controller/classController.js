@@ -3,13 +3,34 @@ import Class from "../models/Class.js";
 /* SCHOOL: CREATE CLASS */
 export const createClass = async (req, res) => {
   try {
-    const { name, grade, homeroomTeacher } = req.body;
+    const { name, grade } = req.body;
 
+    // 1. Validate dữ liệu cơ bản
+    if (!name || !grade) {
+      return res.status(400).json({
+        message: "Tên lớp và khối là bắt buộc",
+      });
+    }
+
+    // 2. Kiểm tra trùng lớp trong cùng school
+    const existedClass = await Class.findOne({
+      name,
+      grade,
+      school: req.user.id,
+    });
+
+    if (existedClass) {
+      return res.status(400).json({
+        message: "Lớp đã tồn tại trong hệ thống",
+      });
+    }
+
+    // 3. Tạo lớp (KHÔNG gán homeroomTeacher)
     const newClass = await Class.create({
       name,
       grade,
       school: req.user.id,
-      homeroomTeacher: homeroomTeacher || null,
+      // homeroomTeacher sẽ tự = null theo schema
     });
 
     res.status(201).json({
@@ -17,9 +38,13 @@ export const createClass = async (req, res) => {
       newClass,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      message: "Lỗi server",
+      error: err.message,
+    });
   }
 };
+
 
 /* SCHOOL: ASSIGN TEACHER */
 export const assignTeacherToClass = async (req, res) => {

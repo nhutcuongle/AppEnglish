@@ -1,45 +1,102 @@
+// import mongoose from "mongoose";
+// const userSchema = new mongoose.Schema(
+//   {
+//     username: { type: String, required: true },
+
+//     email: { type: String, required: true, unique: true },
+
+//     password: { type: String, required: true },
+
+//     role: {
+//       type: String,
+//       enum: ["admin", "school", "teacher", "student"],
+//       default: "student",
+//     },
+
+//     isDisabled: { type: Boolean, default: false },
+    
+//     class: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "Class",
+//       default: null,
+//     },
+//   },
+//   { timestamps: true }
+// );
+
+// export default mongoose.model("User", userSchema);
+
+
 import mongoose from "mongoose";
+
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true },
+    // Auth
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    // Email is optional and sparse (only unique when provided)
-    email: { type: String, sparse: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
 
-    password: { type: String, required: true },
+    password: {
+      type: String,
+      required: true,
+    },
 
+    // Role
     role: {
       type: String,
       enum: ["admin", "school", "teacher", "student"],
       default: "student",
     },
 
-    isDisabled: { type: Boolean, default: false },
+    isDisabled: {
+      type: Boolean,
+      default: false,
+    },
 
-    // Full name for display
-    fullName: { type: String, default: "" },
+    // Profile
+    fullName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
-    // Phone number
-    phone: { type: String, default: "" },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
-    // Gender: male, female
-    gender: { type: String, enum: ["male", "female", ""], default: "" },
+    gender: {
+      type: String,
+      enum: ["male", "female", ""],
+      default: "",
+    },
 
-    // Date of birth
-    dateOfBirth: { type: Date, default: null },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
 
-    // Classes array (for teachers - multiple classes, for students - their class names)
-    classes: [{ type: String }],
-
-    // Legacy: Single class reference (keeping for backward compatibility)
+    // Class relation (chuẩn vì bạn đã có bảng Class)
     class: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Class",
       default: null,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("User", userSchema);
-
