@@ -16,7 +16,7 @@ import {
 const router = express.Router();
 
 // SCHOOL
-router.post("/", createTeacher);
+router.post("/",authenticate,isSchool, createTeacher);
 router.get("/", authenticate, isSchool, getTeachers);
 router.put("/:id", authenticate, isSchool, updateTeacher);
 router.delete("/:id", authenticate, isSchool, deleteTeacher);

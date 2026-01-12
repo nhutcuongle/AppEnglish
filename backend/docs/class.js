@@ -13,7 +13,7 @@
  * @swagger
  * /api/classes:
  *   post:
- *     summary: Tạo lớp học mới
+ *     summary: Tạo lớp học mới (Nhà trường)
  *     description: |
  *       School tạo lớp học.
  *       - Không được trùng **tên + khối** trong cùng school
@@ -56,7 +56,7 @@
  * @swagger
  * /api/classes:
  *   get:
- *     summary: Lấy danh sách lớp học
+ *     summary: Lấy danh sách lớp học (Nhà trường)
  *     tags: [Classes]
  *     security:
  *       - bearerAuth: []
@@ -75,7 +75,7 @@
  * @swagger
  * /api/classes/{id}:
  *   get:
- *     summary: Lấy chi tiết lớp học (kèm học sinh)
+ *     summary: Lấy chi tiết lớp học (kèm học sinh) (Nhà trường)
  *     tags: [Classes]
  *     security:
  *       - bearerAuth: []
@@ -101,7 +101,7 @@
  * @swagger
  * /api/classes/{id}:
  *   put:
- *     summary: Cập nhật lớp học
+ *     summary: Cập nhật lớp học (Nhà trường)
  *     description: |
  *       - Không được trùng **tên + khối**
  *       - Có thể đổi giáo viên chủ nhiệm
@@ -147,7 +147,7 @@
  * @swagger
  * /api/classes/{id}:
  *   delete:
- *     summary: Xóa lớp học
+ *     summary: Xóa lớp học (Nhà trường)
  *     description: |
  *       - Không xóa học sinh
  *       - Học sinh thuộc lớp sẽ được gán `class = null`
@@ -175,7 +175,7 @@
  * @swagger
  * /api/classes/assign-teacher:
  *   post:
- *     summary: Gán hoặc đổi giáo viên chủ nhiệm cho lớp
+ *     summary: Gán hoặc đổi giáo viên chủ nhiệm cho lớp (Nhà trường)
  *     tags: [Classes]
  *     security:
  *       - bearerAuth: []

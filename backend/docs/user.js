@@ -13,7 +13,7 @@
  * @swagger
  * /api/users/students:
  *   post:
- *     summary: Tạo học sinh mới (có thể gán lớp)
+ *     summary: Tạo học sinh mới (có thể gán lớp) (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -68,7 +68,7 @@
  * @swagger
  * /api/users/students:
  *   get:
- *     summary: Lấy danh sách học sinh
+ *     summary: Lấy danh sách học sinh (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -83,7 +83,7 @@
  * @swagger
  * /api/users/students/{id}:
  *   put:
- *     summary: Cập nhật thông tin học sinh (không đổi lớp)
+ *     summary: Cập nhật thông tin học sinh (không đổi lớp) (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -126,7 +126,7 @@
  * @swagger
  * /api/users/students/{id}:
  *   delete:
- *     summary: Xóa học sinh
+ *     summary: Xóa học sinh (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -147,7 +147,7 @@
  * @swagger
  * /api/users/students/{id}/disable:
  *   put:
- *     summary: Khóa tài khoản học sinh
+ *     summary: Khóa tài khoản học sinh (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []
@@ -166,7 +166,7 @@
  * @swagger
  * /api/users/students/{id}/enable:
  *   put:
- *     summary: Mở khóa tài khoản học sinh
+ *     summary: Mở khóa tài khoản học sinh (Nhà trường)
  *     tags: [Students]
  *     security:
  *       - bearerAuth: []

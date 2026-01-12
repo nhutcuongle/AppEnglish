@@ -11,7 +11,7 @@
  * @swagger
  * /api/units:
  *   post:
- *     summary: Nhà trường tạo unit mới
+ *     summary: Nhà trường tạo unit mới (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -48,7 +48,7 @@
  * @swagger
  * /api/units:
  *   get:
- *     summary: Nhà trường lấy danh sách tất cả unit
+ *     summary: Nhà trường lấy danh sách tất cả unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -61,7 +61,7 @@
  * @swagger
  * /api/units/{id}:
  *   get:
- *     summary: Nhà trường xem chi tiết từng unit
+ *     summary: Nhà trường xem chi tiết từng unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -80,7 +80,7 @@
  * @swagger
  * /api/units/{id}:
  *   put:
- *     summary: Nhà trường cập nhật unit (có thể đổi ảnh)
+ *     summary: Nhà trường cập nhật unit (có thể đổi ảnh) (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -116,7 +116,7 @@
  * @swagger
  * /api/units/{id}:
  *   delete:
- *     summary: Nhà trường xóa unit
+ *     summary: Nhà trường xóa unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -137,7 +137,7 @@
  * @swagger
  * /api/units/teacher/all:
  *   get:
- *     summary: Giảng viên xem danh sách unit
+ *     summary: Giảng viên xem danh sách unit (Giảng viên)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +150,7 @@
  * @swagger
  * /api/units/teacher/{id}:
  *   get:
- *     summary: Giảng viên xem chi tiết từng unit
+ *     summary: Giảng viên xem chi tiết từng unit (Giảng viên)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -171,7 +171,7 @@
  * @swagger
  * /api/units/public:
  *   get:
- *     summary: Học sinh xem danh sách unit đã publish
+ *     summary: Học sinh xem danh sách unit đã publish (Học sinh)
  *     tags: [Units]
  *     responses:
  *       200:
@@ -182,7 +182,7 @@
  * @swagger
  * /api/units/public/{id}:
  *   get:
- *     summary: Học sinh xem chi tiết unit đã publish
+ *     summary: Học sinh xem chi tiết unit đã publish (Học sinh)
  *     tags: [Units]
  *     parameters:
  *       - name: id

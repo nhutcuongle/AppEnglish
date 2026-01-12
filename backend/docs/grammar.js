@@ -11,7 +11,7 @@
  * @swagger
  * /api/grammar:
  *   post:
- *     summary: Nhà trường tạo nội dung ngữ pháp cho lesson
+ *     summary: Nhà trường tạo nội dung ngữ pháp cho lesson (Nhà trường)
  *     tags: [Grammar]
  *     security:
  *       - bearerAuth: []
@@ -80,7 +80,7 @@
  * @swagger
  * /api/grammar/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật nội dung grammar
+ *     summary: Nhà trường cập nhật nội dung grammar (Nhà trường)
  *     tags: [Grammar]
  *     security:
  *       - bearerAuth: []
@@ -156,7 +156,7 @@
  * @swagger
  * /api/grammar/{id}:
  *   delete:
- *     summary: Nhà trường xóa grammar
+ *     summary: Nhà trường xóa grammar (Nhà trường)
  *     tags: [Grammar]
  *     security:
  *       - bearerAuth: []
@@ -180,7 +180,7 @@
  * @swagger
  * /api/grammar/lesson/{lessonId}:
  *   get:
- *     summary: Giáo viên & học sinh xem grammar theo lesson
+ *     summary: Giáo viên & học sinh xem grammar theo lesson (Giảng viên, Học sinh)
  *     tags: [Grammar]
  *     security:
  *       - bearerAuth: []

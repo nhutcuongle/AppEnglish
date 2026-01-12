@@ -11,7 +11,7 @@
  * @swagger
  * /api/vocabularies:
  *   post:
- *     summary: Nhà trường tạo từ vựng mới
+ *     summary: Nhà trường tạo từ vựng mới (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -92,7 +92,7 @@
  * @swagger
  * /api/vocabularies/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật từ vựng
+ *     summary: Nhà trường cập nhật từ vựng (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -165,7 +165,7 @@
  * @swagger
  * /api/vocabularies/{id}:
  *   delete:
- *     summary: Nhà trường xóa từ vựng
+ *     summary: Nhà trường xóa từ vựng (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -188,7 +188,7 @@
  * @swagger
  * /api/vocabularies/lesson/{lessonId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách từ vựng theo lesson
+ *     summary: Giáo viên & học sinh xem danh sách từ vựng theo lesson (Giảng viên, Học sinh)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []

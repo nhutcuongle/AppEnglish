@@ -9,7 +9,7 @@
  * @swagger
  * /api/submissions/submit:
  *   post:
- *     summary: Nộp bài học
+ *     summary: Nộp bài học (Học sinh)
  *     description: Học sinh nộp câu trả lời cho các câu hỏi trong bài học và nhận điểm theo từng kỹ năng
  *     tags: [Submissions]
  *     security:
@@ -118,7 +118,7 @@
  * @swagger
  * /api/submissions/my:
  *   get:
- *     summary: Xem danh sách bài làm của tôi
+ *     summary: Xem danh sách bài làm của tôi (Học sinh)
  *     description: Học sinh xem tất cả bài làm đã nộp của mình với điểm theo từng kỹ năng
  *     tags: [Submissions]
  *     security:
@@ -182,7 +182,7 @@
  * @swagger
  * /api/submissions/{id}:
  *   get:
- *     summary: Xem chi tiết bài làm của tôi
+ *     summary: Xem chi tiết bài làm của tôi (Học sinh)
  *     description: Học sinh xem chi tiết bài làm của mình (chỉ chủ bài mới xem được)
  *     tags: [Submissions]
  *     security:
@@ -244,7 +244,7 @@
  * @swagger
  * /api/submissions/lesson/{lessonId}/scores:
  *   get:
- *     summary: Xem điểm của học sinh theo bài học
+ *     summary: Xem điểm của học sinh theo bài học (Giảng viên)
  *     description: >
  *       Giảng viên xem danh sách điểm của học sinh trong lớp chủ nhiệm đã làm bài học cụ thể.
  *       (Chỉ trả về bài nộp của học sinh thuộc lớp GV đang chủ nhiệm)
@@ -322,7 +322,7 @@
  * @swagger
  * /api/submissions/teacher/{id}:
  *   get:
- *     summary: Xem chi tiết bài làm của học sinh (dành cho giảng viên)
+ *     summary: Xem chi tiết bài làm của học sinh (dành cho giảng viên) (Giảng viên)
  *     description: >
  *       Giảng viên xem chi tiết bài làm của học sinh lớp mình chủ nhiệm.
  *     tags: [Submissions]

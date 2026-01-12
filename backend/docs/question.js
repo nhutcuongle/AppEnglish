@@ -11,7 +11,7 @@
  * @swagger
  * /api/questions:
  *   post:
- *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm)
+ *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm) (Giảng viên)
  *     description: >
  *       Chỉ giáo viên chủ nhiệm mới được tạo câu hỏi.
  *       Câu hỏi sẽ tự động được gán ID của lớp mà giáo viên đó đang chủ nhiệm.
@@ -116,7 +116,7 @@
  * @swagger
  * /api/questions/{id}:
  *   patch:
- *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó)
+ *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó) (Giảng viên)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -161,7 +161,7 @@
  * @swagger
  * /api/questions/{id}:
  *   delete:
- *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó)
+ *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó) (Giảng viên)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -184,7 +184,7 @@
  * @swagger
  * /api/questions/lesson/{lessonId}:
  *   get:
- *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp)
+ *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp) (Giảng viên, Học sinh)
  *     description: >
  *       - Giáo viên: Chỉ thấy question của lớp mình chủ nhiệm.
  *       - Học sinh: Chỉ thấy question của lớp mình đang theo học.
