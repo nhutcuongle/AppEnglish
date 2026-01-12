@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/services/auth_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/widgets/loading_widgets.dart';
 import 'package:intl/intl.dart';
@@ -123,7 +124,7 @@ class _LessonPlanListScreenState extends State<LessonPlanListScreen> {
         ),
       ),
       body: FutureBuilder<List<LessonPlan>>(
-        future: MongoDatabase.getLessonPlans(),
+        future: ApiService.getLessonPlans(teacherId: AuthService.currentTeacherId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return ShimmerWidgets.listShimmer();

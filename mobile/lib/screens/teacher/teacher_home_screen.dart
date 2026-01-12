@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/student_list_screen.dart';
@@ -10,6 +10,7 @@ import 'package:apptienganh10/screens/teacher/lesson_plan_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/gradebook_screen.dart';
 import 'package:apptienganh10/screens/teacher/teacher_calendar_screen.dart';
 import 'package:apptienganh10/services/auth_service.dart';
+import 'package:apptienganh10/screens/teacher/teacher_profile_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -25,7 +26,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     const TeacherDashboardTab(),
     const LessonPlanListScreen(),
     const AnnouncementListScreen(),
-    const Center(child: Text('Cá nhân - Sẽ cập nhật', style: TextStyle(fontSize: 18))),
+    const TeacherProfileScreen(),
   ];
 
   @override
@@ -117,7 +118,7 @@ class TeacherDashboardTab extends StatelessWidget {
 
   Widget _buildClassOverview() {
     return FutureBuilder<List<Student>>(
-      future: MongoDatabase.getStudents(),
+      future: ApiService.getStudents().then((raw) => raw.map((e) => Student.fromJson(e)).toList()),
       builder: (context, snapshot) {
         final stats = TeacherService.calculateClassOverview(snapshot.data ?? []);
         return Container(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 
 class GradeSubmissionScreen extends StatefulWidget {
@@ -41,10 +41,10 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     _showLoading();
 
     try {
-      await MongoDatabase.gradeSubmission(
+      await ApiService.gradeSubmission(
         widget.submission.id,
         score,
-        _commentController.text,
+        comment: _commentController.text,
       );
       if (!mounted) return;
       Navigator.pop(context); // Close loading

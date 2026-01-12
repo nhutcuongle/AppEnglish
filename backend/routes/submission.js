@@ -1,19 +1,14 @@
 import express from "express";
 import {
-  submitLesson,
-  getSubmissionById,
-  getMySubmissions,
-  getScoresByLesson,
-  getSubmissionDetailForTeacher,
+  getSubmissions,
+  createSubmission,
+  gradeSubmission,
 } from "../controller/submissionController.js";
-import {
-  authenticate,
-  isStudent,
-  isTeacher,
-} from "../middlewares/authMiddleware.js";
+import { authenticate, isTeacher } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
+<<<<<<< HEAD
 router.post("/submit", authenticate, isStudent, submitLesson);
 
 router.get("/my", authenticate, isStudent, getMySubmissions);
@@ -33,5 +28,10 @@ router.get(
   isTeacher,
   getSubmissionDetailForTeacher
 );
+=======
+router.get("/", authenticate, getSubmissions);
+router.post("/", authenticate, createSubmission); // Student submits
+router.put("/:id/grade", authenticate, isTeacher, gradeSubmission); // Teacher grades
+>>>>>>> origin/New-frontend-teacher
 
 export default router;

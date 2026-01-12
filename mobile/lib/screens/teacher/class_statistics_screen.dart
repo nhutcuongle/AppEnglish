@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 
@@ -22,7 +22,7 @@ class _ClassStatisticsScreenState extends State<ClassStatisticsScreen> {
         elevation: 0,
       ),
       body: FutureBuilder<List<Student>>(
-        future: MongoDatabase.getStudents(),
+        future: ApiService.getStudents().then((raw) => raw.map((e) => Student.fromJson(e)).toList()),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

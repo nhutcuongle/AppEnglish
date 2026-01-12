@@ -2,6 +2,7 @@ import express from "express";
 import {
   createQuestion,
   getQuestionsByLesson,
+  getQuestionsByAssignment,
   updateQuestion,
   deleteQuestion,
 } from "../controller/questionController.js";
@@ -42,6 +43,12 @@ router.get(
   "/lesson/:lessonId",
   authenticate,
   getQuestionsByLesson
+);
+
+router.get(
+  "/assignment/:assignmentId",
+  authenticate,
+  getQuestionsByAssignment
 );
 
 export default router;

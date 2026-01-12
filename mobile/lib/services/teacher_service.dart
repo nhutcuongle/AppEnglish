@@ -1,4 +1,4 @@
-import 'package:apptienganh10/db/mongodb.dart';
+
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:apptienganh10/services/auth_service.dart';
@@ -17,16 +17,31 @@ class TeacherService {
   }
 
   static Future<List<Student>> getTopPerformer() async {
-    // Lấy top 5 học sinh có điểm cao nhất
-    return await MongoDatabase.getTopStudents(5);
+    // Lấy top 5 học sinh có điểm cao nhất từ API
+    final studentsRaw = await ApiService.getStudents();
+    final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
+    students.sort((a, b) => b.score.compareTo(a.score));
+    return students.take(5).toList();
   }
 
   // --- Quản lý Bài tập ---
 
   static Future<List<Assignment>> getFilteredAssignments(String? type, {String query = ''}) async {
-    final all = await MongoDatabase.getAssignments(type: type);
-    if (query.isEmpty) return all;
-    return all.where((a) => a.title.toLowerCase().contains(query.toLowerCase())).toList();
+    // Gọi API để lấy danh sách bài tập
+    final data = await ApiService.getAssignments();
+    final all = data.map((e) => Assignment.fromJson(e)).toList();
+
+    // Lọc theo loại (nếu có)
+    List<Assignment> filtered = type != null 
+        ? all.where((a) => a.type == type).toList() 
+        : all;
+
+    // Lọc theo từ khóa tìm kiếm
+    if (query.isNotEmpty) {
+      filtered = filtered.where((a) => a.title.toLowerCase().contains(query.toLowerCase())).toList();
+    }
+    
+    return filtered;
   }
 
   // --- Thống kê ---
@@ -49,7 +64,9 @@ class TeacherService {
   }
 
   static Future<Map<String, double>> getScoreDistribution() async {
-    final students = await MongoDatabase.getStudents();
+    final studentsRaw = await ApiService.getStudents();
+    final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
+
     if (students.isEmpty) return {'0-4': 0, '4-6': 0, '6-8': 0, '8-10': 0};
 
     int c1 = 0, c2 = 0, c3 = 0, c4 = 0;
@@ -70,9 +87,8 @@ class TeacherService {
   }
 
   static Future<List<Map<String, dynamic>>> getUnitCompletionStats() async {
-    final assignments = await MongoDatabase.getAssignments();
-    // Giả định một logic đơn giản: mỗi Unit có tỉ lệ hoàn thành dựa trên số bài tập trong unit đó
-    // Trong thực tế sẽ cần join với submissions, ở đây em sẽ làm logic giả lập dựa trên unit có sẵn
+    final data = await ApiService.getAssignments();
+    final assignments = data.map((e) => Assignment.fromJson(e)).toList();
     
     Map<String, List<Assignment>> unitGroups = {};
     for (var a in assignments) {
@@ -83,11 +99,9 @@ class TeacherService {
 
     List<Map<String, dynamic>> stats = [];
     unitGroups.forEach((unit, list) {
-      // Giả lập tiến độ ngẫu nhiên hoặc tính toán nếu có data submission
-      // Ở đây em tạm trả về danh sách các Unit hiện có trong DB
       stats.add({
         'title': 'Unit $unit',
-        'progress': (list.length * 0.15).clamp(0.1, 1.0), // Logic tạm thời
+        'progress': (list.length * 0.15).clamp(0.1, 1.0), 
       });
     });
 
@@ -104,12 +118,10 @@ class TeacherService {
   // --- Thông báo ---
   
   static Future<void> postNewAnnouncement(String title, String content) async {
-    final doc = {
+    await ApiService.createAnnouncement({
       'title': title,
       'content': content,
       'createdAt': DateTime.now().toIso8601String(),
-      'teacherId': AuthService.currentTeacherId, 
-    };
-    await MongoDatabase.insertAnnouncement(doc);
+    });
   }
 }

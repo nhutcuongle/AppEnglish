@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/db/mongodb.dart';
+import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/widgets/loading_widgets.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
 
 class GradebookScreen extends StatefulWidget {
   const GradebookScreen({super.key});
@@ -26,36 +25,32 @@ class _GradebookScreenState extends State<GradebookScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final studentsData = await MongoDatabase.getStudents();
-      final assignmentsData = await MongoDatabase.getAssignments();
-      final submissionsData = await MongoDatabase.getSubmissions();
+      final studentsData = await ApiService.getStudents();
+      final assignmentsData = await ApiService.getAssignments();
+      final submissionsData = await ApiService.getSubmissions();
 
-      final List<Submission> submissions = submissionsData
-          .map((s) => Submission.fromJson(s))
-          .toList();
+      final List<Student> students = studentsData.map((e) => Student.fromJson(e)).toList();
+      final List<Assignment> assignments = assignmentsData.map((e) => Assignment.fromJson(e)).toList();
+      final List<Submission> submissions = submissionsData.map((e) => Submission.fromJson(e)).toList();
 
       Map<String, Map<String, double?>> matrix = {};
-      for (var student in studentsData) {
-        matrix[student.id.oid] = {};
-        for (var assignment in assignmentsData) {
-          // Tìm bài nộp của học sinh này cho bài tập này
-          final sub = submissions.firstWhere(
-            (s) => s.studentId.oid == student.id.oid && s.assignmentId.oid == assignment.id.oid,
-            orElse: () => Submission(
-              id: mongo.ObjectId(),
-              assignmentId: assignment.id,
-              studentId: student.id,
-              content: '',
-              submittedAt: DateTime.now(),
-            ),
-          );
-          matrix[student.id.oid]![assignment.id.oid] = sub.score;
+      for (var student in students) {
+        matrix[student.id] = {};
+        for (var assignment in assignments) {
+          try {
+            final sub = submissions.firstWhere(
+              (s) => s.studentId == student.id && s.assignmentId == assignment.id,
+            );
+            matrix[student.id]![assignment.id] = sub.score;
+          } catch (e) {
+             matrix[student.id]![assignment.id] = null;
+          }
         }
       }
 
       setState(() {
-        _students = studentsData;
-        _assignments = assignmentsData;
+        _students = students;
+        _assignments = assignments;
         _gradeMatrix = matrix;
         _isLoading = false;
       });
@@ -115,7 +110,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
                 onTap: () => _viewStudentDetails(student),
               ),
               ..._assignments.map((assignment) {
-                final score = _gradeMatrix[student.id.oid]?[assignment.id.oid];
+                final score = _gradeMatrix[student.id]?[assignment.id];
                 return DataCell(
                   Center(
                     child: Text(
@@ -142,8 +137,55 @@ class _GradebookScreenState extends State<GradebookScreen> {
   }
 
   void _quickGrade(Student student, Assignment assignment) {
-    // Trong thực tế sẽ mở GradeSubmissionScreen
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Chấm điểm ${assignment.title} cho ${student.name}')));
+    final scoreController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Chấm điểm: ${student.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(assignment.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: scoreController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Điểm số (0-10)', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () async {
+              final score = double.tryParse(scoreController.text);
+              if (score != null && score >= 0 && score <= 10) {
+                // Find submission ID if exists, OR create new submission (backend implementation dependant)
+                // For now, assume teacher grades an existing submission or backend creates one.
+                // Since ApiService.gradeSubmission requires ID, we must find the submission First.
+                // Simplified flow: We need submission ID.
+                try {
+                  // Fetch specific submission to get ID
+                  final subs = await ApiService.getSubmissions(assignmentId: assignment.id, studentId: student.id);
+                  if (subs.isNotEmpty) {
+                    final subId = subs.first['_id'];
+                    await ApiService.gradeSubmission(subId, score);
+                    Navigator.pop(context);
+                    _loadData(); // Reload
+                  } else {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học sinh chưa nộp bài này!')));
+                     Navigator.pop(context);
+                  }
+                } catch (e) {
+                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+                }
+              }
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState() {

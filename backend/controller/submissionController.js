@@ -1,75 +1,55 @@
 import Submission from "../models/Submission.js";
+<<<<<<< HEAD
 import Question from "../models/Question.js";
 import Class from "../models/Class.js";
+=======
+>>>>>>> origin/New-frontend-teacher
 
-/* ================= SUBMIT LESSON ================= */
-export const submitLesson = async (req, res) => {
+export const getSubmissions = async (req, res) => {
   try {
-    const { lesson, answers } = req.body;
-    const userId = req.user.id;
+    const { assignmentId, studentId } = req.query;
+    const query = {};
+    if (assignmentId) query.assignmentId = assignmentId;
+    if (studentId) query.studentId = studentId;
 
-    if (!lesson || !Array.isArray(answers)) {
-      return res.status(400).json({ message: "Thiếu dữ liệu submit" });
-    }
+    const submissions = await Submission.find(query)
+      .populate("studentId", "username fullName email")
+      .populate("assignmentId", "title");
 
-    const scores = {
-      vocabulary: 0,
-      grammar: 0,
-      reading: 0,
-      listening: 0,
-      speaking: 0,
-      writing: 0,
-    };
-
-    let totalScore = 0;
-    const checkedAnswers = [];
-
-    for (const ans of answers) {
-      const question = await Question.findById(ans.question).lean();
-      if (!question) continue;
-
-      let isCorrect = null;
-
-      if (question.type !== "essay") {
-        isCorrect =
-          JSON.stringify(ans.userAnswer) ===
-          JSON.stringify(question.correctAnswer);
-
-        if (isCorrect) {
-          scores[question.skill] += 1;
-          totalScore += 1;
-        }
-      }
-
-      checkedAnswers.push({
-        question: ans.question,
-        userAnswer: ans.userAnswer,
-        isCorrect,
-      });
-    }
-
-    const submission = await Submission.create({
-      user: userId,
-      lesson,
-      answers: checkedAnswers,
-      scores,
-      totalScore,
-    });
-
-    res.status(201).json({
-      message: "Nộp bài thành công",
-      submissionId: submission._id,
-      scores,
-      totalScore,
-    });
+    res.status(200).json(submissions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= STUDENT: VIEW OWN SUBMISSION ================= */
-export const getSubmissionById = async (req, res) => {
+export const createSubmission = async (req, res) => {
   try {
+    const { assignmentId, content } = req.body;
+    const studentId = req.user.id; // From authMiddleware
+
+    // Check if exists
+    let submission = await Submission.findOne({ assignmentId, studentId });
+    if (submission) {
+      submission.content = content || submission.content;
+      submission.submittedAt = Date.now();
+      await submission.save();
+    } else {
+      submission = await Submission.create({
+        assignmentId,
+        studentId,
+        content,
+      });
+    }
+
+    res.status(201).json(submission);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const gradeSubmission = async (req, res) => {
+  try {
+<<<<<<< HEAD
     const submission = await Submission.findById(req.params.id)
       .populate("lesson", "title lessonType")
       .lean();
@@ -207,6 +187,15 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
       })),
       submittedAt: submission.createdAt,
     });
+=======
+    const { score, comment } = req.body;
+    const submission = await Submission.findByIdAndUpdate(
+      req.params.id,
+      { score, comment, gradedAt: Date.now() },
+      { new: true }
+    );
+    res.status(200).json(submission);
+>>>>>>> origin/New-frontend-teacher
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

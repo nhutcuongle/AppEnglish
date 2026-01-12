@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
   // Thay đổi URL này theo server backend của bạn
@@ -26,7 +27,7 @@ class ApiService {
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
-      );
+      ).timeout(const Duration(seconds: 10));
       
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['token'] != null) {
@@ -34,7 +35,7 @@ class ApiService {
       }
       return data;
     } catch (e) {
-      return {'error': 'Lỗi kết nối: $e'};
+      return {'error': 'Lỗi kết nối: Server không phản hồi (Time out) hoặc chưa chạy.'};
     }
   }
 
@@ -276,6 +277,44 @@ class ApiService {
     }
   }
 
+  // ==================== SUBMISSIONS ====================
+
+  static Future<List<dynamic>> getSubmissions({String? assignmentId, String? studentId}) async {
+    try {
+      String query = '';
+      if (assignmentId != null) query = '?assignmentId=$assignmentId';
+      if (studentId != null) query += query.isEmpty ? '?studentId=$studentId' : '&studentId=$studentId';
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/submissions$query'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching submissions: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> gradeSubmission(String id, double score, {String? comment}) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/submissions/$id/grade'),
+        headers: _headers,
+        body: jsonEncode({
+          'score': score,
+          'comment': comment
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
   // ==================== ANNOUNCEMENTS ====================
 
   static Future<List<dynamic>> getAnnouncements() async {
@@ -325,6 +364,129 @@ class ApiService {
       final response = await http.delete(
         Uri.parse('$baseUrl/announcements/$id'),
         headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== LESSON PLANS ====================
+
+  static Future<List<LessonPlan>> getLessonPlans({String? teacherId}) async {
+    try {
+      final query = teacherId != null ? '?teacherId=$teacherId' : '';
+      final response = await http.get(
+        Uri.parse('$baseUrl/lesson-plans$query'),
+        headers: _headers,
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((e) => LessonPlan.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching lesson plans: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createLessonPlan(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/lesson-plans'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateLessonPlan(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/lesson-plans/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteLessonPlan(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/lesson-plans/$id'),
+        headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+
+  // ==================== QUESTIONS ====================
+
+  static Future<List<dynamic>> getQuestions({String? lessonId, String? assignmentId}) async {
+    try {
+      String url = '';
+      if (lessonId != null) {
+        url = '$baseUrl/questions/lesson/$lessonId';
+      } else if (assignmentId != null) {
+        url = '$baseUrl/questions/assignment/$assignmentId';
+      } else {
+        return [];
+      }
+      
+      final response = await http.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching questions: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createQuestion(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/questions'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteQuestion(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/questions/$id'),
+        headers: _headers,
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateQuestion(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/questions/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
       );
       return jsonDecode(response.body);
     } catch (e) {
