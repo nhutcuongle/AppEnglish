@@ -5,13 +5,11 @@
  *   description: Quản lý Unit (School / Teacher / Student)
  */
 
-/* ================= SCHOOL / ADMIN ================= */
-
 /**
  * @swagger
  * /api/units:
  *   post:
- *     summary: Nhà trường tạo unit mới
+ *     summary: Nhà trường tạo unit mới (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -29,13 +27,10 @@
  *                 example: Unit 1 - Greetings
  *               description:
  *                 type: string
- *                 example: Các mẫu câu chào hỏi cơ bản
  *               isPublished:
  *                 type: boolean
- *                 example: true
  *               order:
  *                 type: number
- *                 example: 1
  *               image:
  *                 type: string
  *                 format: binary
@@ -48,7 +43,7 @@
  * @swagger
  * /api/units:
  *   get:
- *     summary: Nhà trường lấy danh sách tất cả unit
+ *     summary: Nhà trường lấy danh sách tất cả unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -61,7 +56,7 @@
  * @swagger
  * /api/units/{id}:
  *   get:
- *     summary: Nhà trường xem chi tiết từng unit
+ *     summary: Nhà trường xem chi tiết từng unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -80,7 +75,7 @@
  * @swagger
  * /api/units/{id}:
  *   put:
- *     summary: Nhà trường cập nhật unit (có thể đổi ảnh)
+ *     summary: Nhà trường cập nhật unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -90,23 +85,6 @@
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               isPublished:
- *                 type: boolean
- *               order:
- *                 type: number
- *               image:
- *                 type: string
- *                 format: binary
  *     responses:
  *       200:
  *         description: Cập nhật unit thành công
@@ -116,7 +94,7 @@
  * @swagger
  * /api/units/{id}:
  *   delete:
- *     summary: Nhà trường xóa unit
+ *     summary: Nhà trường xóa unit (Nhà trường)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -131,13 +109,11 @@
  *         description: Xóa unit thành công
  */
 
-/* ================= TEACHER ================= */
-
 /**
  * @swagger
  * /api/units/teacher/all:
  *   get:
- *     summary: Giảng viên xem danh sách unit
+ *     summary: Giảng viên xem danh sách unit (Giảng viên)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +126,7 @@
  * @swagger
  * /api/units/teacher/{id}:
  *   get:
- *     summary: Giảng viên xem chi tiết từng unit
+ *     summary: Giảng viên xem chi tiết từng unit (Giảng viên)
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -165,13 +141,11 @@
  *         description: Chi tiết unit
  */
 
-/* ================= STUDENT ================= */
-
 /**
  * @swagger
  * /api/units/public:
  *   get:
- *     summary: Học sinh xem danh sách unit đã publish
+ *     summary: Học sinh xem danh sách unit đã publish (Học sinh)
  *     tags: [Units]
  *     responses:
  *       200:
@@ -182,7 +156,7 @@
  * @swagger
  * /api/units/public/{id}:
  *   get:
- *     summary: Học sinh xem chi tiết unit đã publish
+ *     summary: Học sinh xem chi tiết unit đã publish (Học sinh)
  *     tags: [Units]
  *     parameters:
  *       - name: id

@@ -11,7 +11,7 @@
  * @swagger
  * /api/questions:
  *   post:
- *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm)
+ *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm) (Giảng viên)
  *     description: >
  *       Chỉ giáo viên chủ nhiệm mới được tạo câu hỏi.
  *       Câu hỏi sẽ tự động được gán ID của lớp mà giáo viên đó đang chủ nhiệm.
@@ -21,6 +21,68 @@
  *     requestBody:
  *       required: true
  *       content:
+ *         application/json:
+ *           schema:
+ *             oneOf:
+ *               - type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - lesson
+ *                     - skill
+ *                     - type
+ *                     - content
+ *                   properties:
+ *                     lesson:
+ *                       type: string
+ *                     skill:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     content:
+ *                       type: string
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     correctAnswer:
+ *                       type: string
+ *                     explanation:
+ *                       type: string
+ *                     isPublished:
+ *                       type: boolean
+ *               - type: object
+ *                 properties:
+ *                   lesson:
+ *                     type: string
+ *                   deadline:
+ *                     type: string
+ *                     format: date-time
+ *                   questions:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       required:
+ *                         - skill
+ *                         - type
+ *                         - content
+ *                       properties:
+ *                         skill:
+ *                           type: string
+ *                         type:
+ *                           type: string
+ *                         content:
+ *                           type: string
+ *                         options:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         correctAnswer:
+ *                           type: string
+ *                         explanation:
+ *                           type: string
+ *                         isPublished:
+ *                           type: boolean
  *         multipart/form-data:
  *           schema:
  *             type: object
@@ -116,7 +178,7 @@
  * @swagger
  * /api/questions/{id}:
  *   patch:
- *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó)
+ *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó) (Giảng viên)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -161,7 +223,7 @@
  * @swagger
  * /api/questions/{id}:
  *   delete:
- *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó)
+ *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó) (Giảng viên)
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -184,7 +246,7 @@
  * @swagger
  * /api/questions/lesson/{lessonId}:
  *   get:
- *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp)
+ *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp) (Giảng viên, Học sinh)
  *     description: >
  *       - Giáo viên: Chỉ thấy question của lớp mình chủ nhiệm.
  *       - Học sinh: Chỉ thấy question của lớp mình đang theo học.
@@ -199,7 +261,26 @@
  *           type: string
  *     responses:
  *       200:
- *         description: Danh sách question
+ *         description: Danh sách question kèm thông tin assignment (hạn nộp)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 assignment:
+ *                   type: object
+ *                   properties:
+ *                     deadline:
+ *                       type: string
+ *                       format: date-time
+ *                     isPublished:
+ *                       type: boolean
  *       403:
  *         description: Học sinh chưa được xếp lớp hoặc giáo viên chưa có lớp chủ nhiệm
  */

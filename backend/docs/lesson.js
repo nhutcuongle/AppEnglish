@@ -11,7 +11,7 @@
  * @swagger
  * /api/lessons:
  *   post:
- *     summary: Nhà trường tạo lesson mới (mỗi lesson = 1 skill)
+ *     summary: Nhà trường tạo lesson mới (mỗi lesson = 1 skill) (Nhà trường)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []
@@ -95,7 +95,7 @@
  * @swagger
  * /api/lessons/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật lesson (không đổi lessonType)
+ *     summary: Nhà trường cập nhật lesson (không đổi lessonType) (Nhà trường)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []
@@ -164,7 +164,7 @@
  * @swagger
  * /api/lessons/{id}:
  *   delete:
- *     summary: Nhà trường xóa lesson
+ *     summary: Nhà trường xóa lesson (Nhà trường)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []
@@ -187,7 +187,7 @@
  * @swagger
  * /api/lessons/unit/{unitId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách lesson theo unit
+ *     summary: Giáo viên & học sinh xem danh sách lesson theo unit (Giảng viên, Học sinh)
  *     tags: [Lessons]
  *     security:
  *       - bearerAuth: []

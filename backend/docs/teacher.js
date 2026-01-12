@@ -9,7 +9,7 @@
  * @swagger
  * /api/teachers:
  *   post:
- *     summary: Tạo giảng viên mới
+ *     summary: Tạo giảng viên mới (Nhà trường)
  *     tags: [Teachers]
  *     security:
  *       - bearerAuth: []
@@ -55,7 +55,7 @@
  * @swagger
  * /api/teachers:
  *   get:
- *     summary: Lấy danh sách giảng viên
+ *     summary: Lấy danh sách giảng viên (Nhà trường)
  *     tags: [Teachers]
  *     security:
  *       - bearerAuth: []
@@ -68,7 +68,7 @@
  * @swagger
  * /api/teachers/{id}:
  *   put:
- *     summary: Cập nhật giảng viên
+ *     summary: Cập nhật giảng viên (Nhà trường)
  *     tags: [Teachers]
  *     security:
  *       - bearerAuth: []
@@ -87,7 +87,7 @@
  * @swagger
  * /api/teachers/{id}:
  *   delete:
- *     summary: Xóa giảng viên
+ *     summary: Xóa giảng viên (Nhà trường)
  *     tags: [Teachers]
  *     security:
  *       - bearerAuth: []
@@ -104,7 +104,7 @@
  * @swagger
  * /api/teachers/my-class/students:
  *   get:
- *     summary: Lấy học sinh lớp chủ nhiệm
+ *     summary: Lấy học sinh lớp chủ nhiệm (Giảng viên)
  *     tags: [Teachers]
  *     security:
  *       - bearerAuth: []

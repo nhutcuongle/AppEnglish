@@ -5,13 +5,11 @@
  *   description: Quản lý từ vựng theo lesson (School CRUD, Teacher / Student xem)
  */
 
-/* ================= SCHOOL / ADMIN ================= */
-
 /**
  * @swagger
  * /api/vocabularies:
  *   post:
- *     summary: Nhà trường tạo từ vựng mới
+ *     summary: Nhà trường tạo từ vựng mới (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -28,59 +26,31 @@
  *             properties:
  *               lesson:
  *                 type: string
- *                 example: 695f79f2927eb2fb1a5d9ed3
- *
  *               word:
  *                 type: string
- *                 example: family
- *
  *               phonetic:
  *                 type: string
- *                 example: /ˈfæm.əl.i/
- *
  *               meaning:
  *                 type: string
- *                 example: gia đình
- *
  *               example:
  *                 type: string
- *                 example: My family is very close.
- *
  *               isPublished:
  *                 type: boolean
- *
  *               images:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *
- *               imageCaptions:
- *                 type: array
- *                 items:
- *                   type: string
- *
  *               audios:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *
- *               audioCaptions:
- *                 type: array
- *                 items:
- *                   type: string
- *
  *               videos:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *
- *               videoCaptions:
- *                 type: array
- *                 items:
- *                   type: string
  *     responses:
  *       201:
  *         description: Tạo từ vựng thành công
@@ -92,7 +62,7 @@
  * @swagger
  * /api/vocabularies/{id}:
  *   patch:
- *     summary: Nhà trường cập nhật từ vựng
+ *     summary: Nhà trường cập nhật từ vựng (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -102,58 +72,6 @@
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               word:
- *                 type: string
- *               phonetic:
- *                 type: string
- *               meaning:
- *                 type: string
- *               example:
- *                 type: string
- *               isPublished:
- *                 type: boolean
- *
- *               images:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *
- *               audios:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *
- *               videos:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
  *     responses:
  *       200:
  *         description: Cập nhật từ vựng thành công
@@ -165,7 +83,7 @@
  * @swagger
  * /api/vocabularies/{id}:
  *   delete:
- *     summary: Nhà trường xóa từ vựng
+ *     summary: Nhà trường xóa từ vựng (Nhà trường)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []
@@ -182,13 +100,11 @@
  *         description: Không tìm thấy từ vựng
  */
 
-/* ================= TEACHER / STUDENT ================= */
-
 /**
  * @swagger
  * /api/vocabularies/lesson/{lessonId}:
  *   get:
- *     summary: Giáo viên & học sinh xem danh sách từ vựng theo lesson
+ *     summary: Giáo viên & học sinh xem danh sách từ vựng theo lesson (Giảng viên, Học sinh)
  *     tags: [Vocabulary]
  *     security:
  *       - bearerAuth: []

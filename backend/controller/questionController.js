@@ -1,10 +1,90 @@
 import Question from "../models/Question.js";
 import Lesson from "../models/Lesson.js";
 import Class from "../models/Class.js";
+import Assignment from "../models/Assignment.js";
 
 /* ================= CREATE QUESTION ================= */
 export const createQuestion = async (req, res) => {
   try {
+    /* ===== BULK CREATE ===== */
+    let questionsData = null;
+    let commonDeadline = null;
+    let targetLesson = null;
+
+    if (Array.isArray(req.body)) {
+      questionsData = req.body;
+    } else if (req.body.questions && Array.isArray(req.body.questions)) {
+      questionsData = req.body.questions;
+      commonDeadline = req.body.deadline;
+      targetLesson = req.body.lesson;
+    }
+
+    if (questionsData) {
+      if (questionsData.length === 0) {
+        return res.status(400).json({ message: "Danh sách câu hỏi trống" });
+      }
+
+      /* Check Teacher Class */
+      const teacherClass = await Class.findOne({
+        homeroomTeacher: req.user._id,
+        isActive: true,
+      });
+
+      if (!teacherClass) {
+        return res.status(403).json({
+          message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+        });
+      }
+
+      /* Sync Assignment Deadline if provided */
+      if (commonDeadline && targetLesson) {
+        await Assignment.findOneAndUpdate(
+          { class: teacherClass._id, lesson: targetLesson },
+          { deadline: commonDeadline },
+          { upsert: true, new: true }
+        );
+      }
+
+      const createdQuestions = [];
+
+      for (const qData of questionsData) {
+        const {
+          lesson, skill, type, content, options, correctAnswer, explanation, isPublished
+        } = qData;
+
+        const finalLesson = lesson || targetLesson;
+
+        if (!finalLesson || !skill || !type || !content) {
+          continue;
+        }
+
+        const lessonExists = await Lesson.exists({ _id: finalLesson });
+        if (!lessonExists) continue;
+
+        /* Auto Order */
+        const lastQuestion = await Question.findOne({
+          lesson: finalLesson,
+          class: teacherClass._id,
+        }).sort({ order: -1 }).select("order");
+        const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
+
+        const newQuestion = await Question.create({
+          lesson: finalLesson, skill, type, content, options, correctAnswer, explanation, isPublished,
+          class: teacherClass._id,
+          order: nextOrder,
+          images: [], audios: [], videos: []
+        });
+        createdQuestions.push(newQuestion);
+      }
+
+      return res.status(201).json({
+        message: `Đã tạo ${createdQuestions.length} câu hỏi`,
+        data: createdQuestions,
+        deadline: commonDeadline || null
+      });
+    }
+
+    /* ===== SINGLE CREATE (Existing Logic) ===== */
     const {
       lesson,
       skill,
@@ -110,7 +190,7 @@ export const createQuestion = async (req, res) => {
       images,
       audios,
       videos,
-      class: teacherClass._id, // ⭐ GẮN LỚP
+      class: teacherClass._id,
     });
 
     res.status(201).json({
@@ -161,15 +241,22 @@ export const getQuestionsByLesson = async (req, res) => {
 
     const questions = await Question.find({
       lesson: req.params.lessonId,
-      class: classId, // ⭐ FILTER THEO LỚP ĐÃ XÁC ĐỊNH
+      class: classId,
       isPublished: true,
     })
       .sort({ order: 1, createdAt: 1 })
       .lean();
 
+    /* ===== FETCH ASSIGNMENT SETTINGS (DEADLINE) ===== */
+    const assignment = await Assignment.findOne({
+      lesson: req.params.lessonId,
+      class: classId
+    }).select("deadline isPublished").lean();
+
     res.json({
       total: questions.length,
       data: questions,
+      assignment: assignment || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -199,7 +286,7 @@ export const updateQuestion = async (req, res) => {
     /* ===== CHECK QUESTION BELONGS TO TEACHER'S CLASS ===== */
     const question = await Question.findOne({
       _id: req.params.id,
-      class: teacherClass._id, // Question phải thuộc lớp của GV
+      class: teacherClass._id,
     });
 
     if (!question) {
@@ -259,7 +346,7 @@ export const deleteQuestion = async (req, res) => {
 
     const question = await Question.findOneAndDelete({
       _id: req.params.id,
-      class: teacherClass._id, // Chỉ xóa nếu thuộc lớp GV chủ nhiệm
+      class: teacherClass._id,
     });
 
     if (!question) {

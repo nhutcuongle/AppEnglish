@@ -16,7 +16,7 @@ const questionSchema = new mongoose.Schema(
     lesson: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
-      required: false, // Changed to false to allow Assignment-based questions
+      required: false,
       index: true,
     },
     assignment: {
@@ -25,13 +25,12 @@ const questionSchema = new mongoose.Schema(
       required: false,
       index: true,
     },
-    
-class: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Class",
-  required: true,
-  index: true,
-},
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      required: true,
+      index: true,
+    },
 
     /* Skill của câu hỏi (đồng bộ lessonType) */
     skill: {

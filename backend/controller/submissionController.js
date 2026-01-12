@@ -1,9 +1,7 @@
 import Submission from "../models/Submission.js";
-<<<<<<< HEAD
 import Question from "../models/Question.js";
 import Class from "../models/Class.js";
-=======
->>>>>>> origin/New-frontend-teacher
+import Assignment from "../models/Assignment.js";
 
 export const getSubmissions = async (req, res) => {
   try {
@@ -47,9 +45,100 @@ export const createSubmission = async (req, res) => {
   }
 };
 
+/* ================= SUBMIT LESSON (STUDENT) ================= */
+export const submitLesson = async (req, res) => {
+  try {
+    const { lesson, answers } = req.body;
+    const userId = req.user.id;
+
+    /* ===== CHECK DEADLINE ===== */
+    if (req.user.role === "student") {
+      const assignment = await Assignment.findOne({
+        lesson,
+        class: req.user.class,
+      }).lean();
+
+      if (assignment && assignment.deadline && new Date() > new Date(assignment.deadline)) {
+        return res.status(403).json({
+          message: "Đã hết hạn nộp bài cho bài tập này",
+          deadline: assignment.deadline
+        });
+      }
+    }
+
+    const scores = {
+      vocabulary: 0,
+      grammar: 0,
+      reading: 0,
+      listening: 0,
+      speaking: 0,
+      writing: 0,
+    };
+
+    let totalScore = 0;
+    const checkedAnswers = [];
+
+    for (const ans of answers) {
+      const question = await Question.findById(ans.question).lean();
+      if (!question) continue;
+
+      let isCorrect = null;
+
+      if (question.type !== "essay") {
+        isCorrect =
+          JSON.stringify(ans.userAnswer) ===
+          JSON.stringify(question.correctAnswer);
+
+        if (isCorrect) {
+          scores[question.skill] += 1;
+          totalScore += 1;
+        }
+      }
+
+      checkedAnswers.push({
+        question: ans.question,
+        userAnswer: ans.userAnswer,
+        isCorrect,
+      });
+    }
+
+    const submission = await Submission.create({
+      user: userId,
+      lesson,
+      answers: checkedAnswers,
+      scores,
+      totalScore,
+    });
+
+    res.status(201).json({
+      message: "Nộp bài thành công",
+      submissionId: submission._id,
+      scores,
+      totalScore,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ================= GRADE SUBMISSION (TEACHER) ================= */
 export const gradeSubmission = async (req, res) => {
   try {
-<<<<<<< HEAD
+    const { score, comment } = req.body;
+    const submission = await Submission.findByIdAndUpdate(
+      req.params.id,
+      { score, comment, gradedAt: Date.now() },
+      { new: true }
+    );
+    res.status(200).json(submission);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ================= GET SUBMISSION BY ID (STUDENT) ================= */
+export const getSubmissionById = async (req, res) => {
+  try {
     const submission = await Submission.findById(req.params.id)
       .populate("lesson", "title lessonType")
       .lean();
@@ -118,7 +207,7 @@ export const getScoresByLesson = async (req, res) => {
     // 2. Chỉ lấy bài nộp của học sinh trong lớp này
     const submissions = await Submission.find({
       lesson: lessonId,
-      user: { $in: teacherClass.students }, // ⭐ CHỈ LẤY CỦA HỌC SINH LỚP MÌNH
+      user: { $in: teacherClass.students },
     })
       .populate("user", "username email")
       .sort({ createdAt: -1 })
@@ -137,7 +226,7 @@ export const getScoresByLesson = async (req, res) => {
     }));
 
     res.json({
-      className: teacherClass.name, // Trả thêm tên lớp cho FE dễ hiển thị
+      className: teacherClass.name,
       totalStudents: result.length,
       data: result,
     });
@@ -163,7 +252,7 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
     // 2. Kiểm tra quyền của giáo viên (phải là GVCN của học sinh này)
     const teacherClass = await Class.findOne({
       homeroomTeacher: req.user._id,
-      students: submission.user._id, // Kiểm tra xem học sinh có trong list students không
+      students: submission.user._id,
       isActive: true,
     });
 
@@ -187,15 +276,6 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
       })),
       submittedAt: submission.createdAt,
     });
-=======
-    const { score, comment } = req.body;
-    const submission = await Submission.findByIdAndUpdate(
-      req.params.id,
-      { score, comment, gradedAt: Date.now() },
-      { new: true }
-    );
-    res.status(200).json(submission);
->>>>>>> origin/New-frontend-teacher
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
