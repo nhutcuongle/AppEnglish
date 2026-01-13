@@ -36,9 +36,6 @@ class _VocabularyManagementScreenState extends State<VocabularyManagementScreen>
           'meaning': v['meaning'] ?? '',
           'example': v['example'] ?? '',
           'isPublished': v['isPublished'] ?? true,
-          'images': List<Map<String, dynamic>>.from(v['images'] ?? []),
-          'audios': List<Map<String, dynamic>>.from(v['audios'] ?? []),
-          'videos': List<Map<String, dynamic>>.from(v['videos'] ?? []),
         }).toList();
         _isLoading = false;
       });
@@ -48,21 +45,13 @@ class _VocabularyManagementScreenState extends State<VocabularyManagementScreen>
     }
   }
 
-  List<Map<String, dynamic>> get _filteredList {
+  List<Map<String, dynamic>> get _filteredVocab {
     if (_searchQuery.isEmpty) return _vocabList;
-    return _vocabList.where((v) =>
-      v['word'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-      v['meaning'].toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    return _vocabList.where((v) => v['word'].toLowerCase().contains(_searchQuery.toLowerCase()) || v['meaning'].toLowerCase().contains(_searchQuery.toLowerCase())).toList();
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
-  }
-
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
-  }
+  void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+  void _showSuccess(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
 
   Future<void> _showAddEditDialog({Map<String, dynamic>? vocab}) async {
     final wordController = TextEditingController(text: vocab?['word'] ?? '');
@@ -71,270 +60,79 @@ class _VocabularyManagementScreenState extends State<VocabularyManagementScreen>
     final exampleController = TextEditingController(text: vocab?['example'] ?? '');
     bool isPublished = vocab?['isPublished'] ?? true;
     
-    // Media - support both local files and URLs
-    List<String> imagePaths = [];
-    List<String> audioPaths = [];
-    List<String> videoPaths = [];
-    List<String> imageUrls = [];
-    List<String> audioUrls = [];
-    List<String> videoUrls = [];
+    List<String> imagePaths = [], audioPaths = [], videoPaths = [];
+    List<String> imageUrls = [], audioUrls = [], videoUrls = [];
+    
+    // Load existing media
+    if (vocab != null) {
+      if (vocab['images'] != null) imageUrls = List<String>.from(vocab['images']);
+      if (vocab['audios'] != null) audioUrls = List<String>.from(vocab['audios']);
+      if (vocab['videos'] != null) videoUrls = List<String>.from(vocab['videos']);
+    }
 
-    await showModalBottomSheet(
+    final parentContext = context;
+
+    final shouldSubmit = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.9,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        builder: (modalContext, setModalState) => Container(
+          height: MediaQuery.of(modalContext).size.height * 0.95,
+          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(modalContext).viewInsets.bottom + 24),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.abc, color: Color(0xFF4CAF50)),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        vocab == null ? 'Thêm Từ vựng' : 'Sửa Từ vựng',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-                    ],
-                  ),
+                   Row(children: [
+                    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF4CAF50).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.abc, color: Color(0xFF4CAF50))),
+                    const SizedBox(width: 12),
+                    Text(vocab == null ? 'Thêm Từ vựng' : 'Sửa Từ vựng', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(onPressed: () => Navigator.pop(ctx, false), icon: const Icon(Icons.close)),
+                  ]),
                   const SizedBox(height: 20),
-                  TextField(
-                    controller: wordController,
-                    decoration: InputDecoration(
-                      labelText: 'Từ vựng *',
-                      hintText: 'VD: beautiful',
-                      prefixIcon: const Icon(Icons.text_fields),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                    ),
-                  ),
+                  TextField(controller: wordController, decoration: InputDecoration(labelText: 'Từ vựng *', hintText: 'VD: family', prefixIcon: const Icon(Icons.abc), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: const Color(0xFFF8FAFC))),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneticController,
-                    decoration: InputDecoration(
-                      labelText: 'Phiên âm',
-                      hintText: 'VD: /ˈbjuːtɪfl/',
-                      prefixIcon: const Icon(Icons.record_voice_over),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                    ),
-                  ),
+                  TextField(controller: phoneticController, decoration: InputDecoration(labelText: 'Phiên âm', hintText: '/ˈfæm.ə.li/', prefixIcon: const Icon(Icons.record_voice_over), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: const Color(0xFFF8FAFC))),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: meaningController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      labelText: 'Nghĩa *',
-                      hintText: 'VD: đẹp, xinh đẹp',
-                      prefixIcon: const Icon(Icons.translate),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                    ),
-                  ),
+                  TextField(controller: meaningController, decoration: InputDecoration(labelText: 'Nghĩa *', hintText: 'Gia đình', prefixIcon: const Icon(Icons.translate), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: const Color(0xFFF8FAFC))),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: exampleController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      labelText: 'Ví dụ',
-                      hintText: 'VD: She is a beautiful girl.',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                    ),
-                  ),
+                  TextField(controller: exampleController, maxLines: 2, decoration: InputDecoration(labelText: 'Ví dụ', hintText: 'My family is very happy.', alignLabelWithHint: true, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: const Color(0xFFF8FAFC))),
                   const SizedBox(height: 20),
-                  
-                  // Media Section
                   const Text('📎 Đính kèm Media', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const Text('Chọn file từ thiết bị hoặc nhập URL trực tiếp', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const Text('Chọn file (URL chưa hỗ trợ lưu)', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 12),
-                  
-                  // Image section
-                  _buildMediaSection(
-                    title: 'Hình ảnh',
-                    icon: Icons.image,
-                    color: Colors.blue,
-                    localPaths: imagePaths,
-                    urls: imageUrls,
-                    onPickFile: () async {
-                      try {
-                        final picker = ImagePicker();
-                        final images = await picker.pickMultiImage();
-                        if (images.isNotEmpty) {
-                          setModalState(() {
-                            imagePaths.addAll(images.map((e) => e.path));
-                          });
-                        }
-                      } catch (e) {
-                        _showError('Không thể mở Gallery: $e');
-                      }
-                    },
-                    onAddUrl: () => _showUrlInputDialog(
-                      title: 'Thêm URL hình ảnh',
-                      hint: 'https://example.com/image.jpg',
-                      onAdd: (url) => setModalState(() => imageUrls.add(url)),
-                    ),
-                    onRemoveLocal: (i) => setModalState(() => imagePaths.removeAt(i)),
-                    onRemoveUrl: (i) => setModalState(() => imageUrls.removeAt(i)),
+                  _buildMediaSection(title: 'Hình ảnh', icon: Icons.image, color: Colors.blue, localPaths: imagePaths, urls: imageUrls,
+                    onPickFile: () async { try { final images = await ImagePicker().pickMultiImage(); if (images.isNotEmpty) setModalState(() => imagePaths.addAll(images.map((e) => e.path))); } catch (e) { _showError('Lỗi: $e'); } },
+                    onAddUrl: () => _showUrlInputDialog(title: 'URL hình ảnh', hint: 'https://...', onAdd: (u) => setModalState(() => imageUrls.add(u))),
+                    onRemoveLocal: (i) => setModalState(() => imagePaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => imageUrls.removeAt(i)),
                   ),
-                  
                   const SizedBox(height: 12),
-                  
-                  // Audio section
-                  _buildMediaSection(
-                    title: 'Audio',
-                    icon: Icons.audiotrack,
-                    color: Colors.orange,
-                    localPaths: audioPaths,
-                    urls: audioUrls,
-                    onPickFile: () async {
-                      try {
-                        final result = await FilePicker.platform.pickFiles(type: FileType.audio, allowMultiple: true);
-                        if (result != null) {
-                          setModalState(() {
-                            audioPaths.addAll(result.paths.whereType<String>());
-                          });
-                        }
-                      } catch (e) {
-                        _showError('Không thể mở file picker: $e');
-                      }
-                    },
-                    onAddUrl: () => _showUrlInputDialog(
-                      title: 'Thêm URL audio',
-                      hint: 'https://example.com/audio.mp3',
-                      onAdd: (url) => setModalState(() => audioUrls.add(url)),
-                    ),
-                    onRemoveLocal: (i) => setModalState(() => audioPaths.removeAt(i)),
-                    onRemoveUrl: (i) => setModalState(() => audioUrls.removeAt(i)),
+                  _buildMediaSection(title: 'Audio', icon: Icons.audiotrack, color: Colors.orange, localPaths: audioPaths, urls: audioUrls,
+                    onPickFile: () async { try { final r = await FilePicker.platform.pickFiles(type: FileType.audio, allowMultiple: true); if (r != null) setModalState(() => audioPaths.addAll(r.paths.whereType<String>())); } catch (e) { _showError('Lỗi: $e'); } },
+                    onAddUrl: () => _showUrlInputDialog(title: 'URL audio', hint: 'https://...', onAdd: (u) => setModalState(() => audioUrls.add(u))),
+                    onRemoveLocal: (i) => setModalState(() => audioPaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => audioUrls.removeAt(i)),
                   ),
-                  
                   const SizedBox(height: 12),
-                  
-                  // Video section
-                  _buildMediaSection(
-                    title: 'Video',
-                    icon: Icons.videocam,
-                    color: Colors.purple,
-                    localPaths: videoPaths,
-                    urls: videoUrls,
-                    onPickFile: () async {
-                      try {
-                        final result = await FilePicker.platform.pickFiles(type: FileType.video, allowMultiple: true);
-                        if (result != null) {
-                          setModalState(() {
-                            videoPaths.addAll(result.paths.whereType<String>());
-                          });
-                        }
-                      } catch (e) {
-                        _showError('Không thể mở file picker: $e');
-                      }
-                    },
-                    onAddUrl: () => _showUrlInputDialog(
-                      title: 'Thêm URL video',
-                      hint: 'https://example.com/video.mp4',
-                      onAdd: (url) => setModalState(() => videoUrls.add(url)),
-                    ),
-                    onRemoveLocal: (i) => setModalState(() => videoPaths.removeAt(i)),
-                    onRemoveUrl: (i) => setModalState(() => videoUrls.removeAt(i)),
+                  _buildMediaSection(title: 'Video', icon: Icons.videocam, color: Colors.purple, localPaths: videoPaths, urls: videoUrls,
+                    onPickFile: () async { try { final r = await FilePicker.platform.pickFiles(type: FileType.video, allowMultiple: true); if (r != null) setModalState(() => videoPaths.addAll(r.paths.whereType<String>())); } catch (e) { _showError('Lỗi: $e'); } },
+                    onAddUrl: () => _showUrlInputDialog(title: 'URL video', hint: 'https://...', onAdd: (u) => setModalState(() => videoUrls.add(u))),
+                    onRemoveLocal: (i) => setModalState(() => videoPaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => videoUrls.removeAt(i)),
                   ),
-                  
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Đã xuất bản'),
-                    value: isPublished,
-                    onChanged: (v) => setModalState(() => isPublished = v),
-                    activeColor: const Color(0xFF4CAF50),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  SwitchListTile(title: const Text('Đã xuất bản'), value: isPublished, onChanged: (v) => setModalState(() => isPublished = v), activeColor: const Color(0xFF4CAF50), contentPadding: EdgeInsets.zero),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (wordController.text.isEmpty || meaningController.text.isEmpty) {
-                          _showError('Vui lòng nhập từ vựng và nghĩa!');
-                          return;
-                        }
-                        Navigator.pop(ctx);
-
-                        showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-
-                        Map<String, dynamic> result;
-                        if (vocab == null) {
-                          // Check if using local files or URLs
-                          bool hasLocalFiles = imagePaths.isNotEmpty || audioPaths.isNotEmpty || videoPaths.isNotEmpty;
-                          
-                          if (hasLocalFiles) {
-                            // Upload local files
-                            result = await ApiService.createVocabularyWithMedia(
-                              lessonId: widget.lessonId,
-                              word: wordController.text.trim(),
-                              meaning: meaningController.text.trim(),
-                              phonetic: phoneticController.text.trim(),
-                              example: exampleController.text.trim(),
-                              isPublished: isPublished,
-                              imagePaths: imagePaths.isNotEmpty ? imagePaths : null,
-                              audioPaths: audioPaths.isNotEmpty ? audioPaths : null,
-                              videoPaths: videoPaths.isNotEmpty ? videoPaths : null,
-                            );
-                          } else {
-                            // Create without local files (URLs will be handled by backend later or manually)
-                            result = await ApiService.createVocabulary(
-                              lessonId: widget.lessonId,
-                              word: wordController.text.trim(),
-                              meaning: meaningController.text.trim(),
-                              phonetic: phoneticController.text.trim(),
-                              example: exampleController.text.trim(),
-                              isPublished: isPublished,
-                            );
-                          }
-                        } else {
-                          result = await ApiService.updateVocabulary(vocab['id'], {
-                            'word': wordController.text.trim(),
-                            'meaning': meaningController.text.trim(),
-                            'phonetic': phoneticController.text.trim(),
-                            'example': exampleController.text.trim(),
-                            'isPublished': isPublished,
-                          });
-                        }
-
-                        Navigator.pop(context);
-
-                        if (result['error'] != null) {
-                          _showError(result['error']);
-                        } else {
-                          _showSuccess(vocab == null ? 'Tạo thành công!' : 'Cập nhật thành công!');
-                          _loadVocabulary();
-                        }
+                      onPressed: () {
+                        if (wordController.text.isEmpty || meaningController.text.isEmpty) { _showError('Vui lòng nhập từ và nghĩa!'); return; }
+                        Navigator.pop(ctx, true);
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       child: Text(vocab == null ? 'Thêm Từ vựng' : 'Lưu thay đổi'),
                     ),
                   ),
@@ -346,364 +144,98 @@ class _VocabularyManagementScreenState extends State<VocabularyManagementScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildMediaSection({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required List<String> localPaths,
-    required List<String> urls,
-    required VoidCallback onPickFile,
-    required VoidCallback onAddUrl,
-    required Function(int) onRemoveLocal,
-    required Function(int) onRemoveUrl,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-              const Spacer(),
-              // Pick file button
-              TextButton.icon(
-                onPressed: onPickFile,
-                icon: Icon(Icons.folder_open, size: 16, color: color),
-                label: Text('File', style: TextStyle(color: color, fontSize: 12)),
-                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-              ),
-              // Add URL button
-              TextButton.icon(
-                onPressed: onAddUrl,
-                icon: Icon(Icons.link, size: 16, color: color),
-                label: Text('URL', style: TextStyle(color: color, fontSize: 12)),
-                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-              ),
-            ],
-          ),
-          // Show local files
-          if (localPaths.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: localPaths.asMap().entries.map((entry) {
-                final fileName = entry.value.split('/').last;
-                return _buildMediaChip(
-                  label: fileName.length > 12 ? '${fileName.substring(0, 12)}...' : fileName,
-                  icon: icon,
-                  color: color,
-                  isUrl: false,
-                  onRemove: () => onRemoveLocal(entry.key),
-                );
-              }).toList(),
-            ),
-          ],
-          // Show URLs
-          if (urls.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: urls.asMap().entries.map((entry) {
-                final url = entry.value;
-                final shortUrl = url.length > 20 ? '${url.substring(0, 20)}...' : url;
-                return _buildMediaChip(
-                  label: shortUrl,
-                  icon: Icons.link,
-                  color: color,
-                  isUrl: true,
-                  onRemove: () => onRemoveUrl(entry.key),
-                );
-              }).toList(),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+    if (shouldSubmit == true && mounted) {
+      showDialog(context: parentContext, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+      
+      try {
+        Map<String, dynamic> result;
+        if (vocab == null) {
+          if (imagePaths.isNotEmpty || audioPaths.isNotEmpty || videoPaths.isNotEmpty) {
+             result = await ApiService.createVocabularyWithMedia(lessonId: widget.lessonId, word: wordController.text.trim(), phonetic: phoneticController.text.trim(), meaning: meaningController.text.trim(), example: exampleController.text.trim(), isPublished: isPublished, imagePaths: imagePaths.isNotEmpty ? imagePaths : null, audioPaths: audioPaths.isNotEmpty ? audioPaths : null, videoPaths: videoPaths.isNotEmpty ? videoPaths : null);
+          } else {
+             result = await ApiService.createVocabulary(lessonId: widget.lessonId, word: wordController.text.trim(), phonetic: phoneticController.text.trim(), meaning: meaningController.text.trim(), example: exampleController.text.trim(), isPublished: isPublished);
+          }
+        } else {
+          result = await ApiService.updateVocabulary(vocab['id'], {'word': wordController.text.trim(), 'phonetic': phoneticController.text.trim(), 'meaning': meaningController.text.trim(), 'example': exampleController.text.trim(), 'isPublished': isPublished});
+        }
+        
+        if (mounted) Navigator.pop(parentContext); // Close loading
 
-  Widget _buildMediaChip({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required bool isUrl,
-    required VoidCallback onRemove,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isUrl ? color.withOpacity(0.2) : color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: isUrl ? Border.all(color: color, width: 1) : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: color)),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: onRemove,
-            child: Icon(Icons.close, size: 14, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showUrlInputDialog({
-    required String title,
-    required String hint,
-    required Function(String) onAdd,
-  }) async {
-    final controller = TextEditingController();
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: hint,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 8),
-            Text('Hỗ trợ: URL (https://...) hoặc đường dẫn (D:/...)', 
-                 style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () {
-              final path = controller.text.trim();
-              // Accept: URLs (http/https), local paths (D:/, /path, file://)
-              if (path.isNotEmpty) {
-                onAdd(path);
-                Navigator.pop(ctx);
-              } else {
-                _showError('Vui lòng nhập đường dẫn!');
-              }
-            },
-            child: const Text('Thêm'),
-          ),
-        ],
-      ),
-    );
+        if (result['error'] != null) {
+          _showError(result['error']);
+        } else {
+          _showSuccess(vocab == null ? 'Tạo thành công!' : 'Cập nhật thành công!');
+          await _loadVocabulary();
+        }
+      } catch (e) {
+        if (mounted) Navigator.pop(parentContext);
+        _showError('Lỗi kết nối: $e');
+      }
+    }
   }
 
   Future<void> _deleteVocabulary(Map<String, dynamic> vocab) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa từ "${vocab['word']}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Xác nhận xóa'), content: Text('Xóa từ "${vocab['word']}"?'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: Colors.red)))]));
     if (confirmed == true) {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
       final result = await ApiService.deleteVocabulary(vocab['id']);
       Navigator.pop(context);
-
-      if (result['error'] != null) {
-        _showError(result['error']);
-      } else {
-        _showSuccess('Đã xóa!');
-        _loadVocabulary();
-      }
+      if (result['error'] != null) _showError(result['error']); else { _showSuccess('Đã xóa!'); _loadVocabulary(); }
     }
+  }
+  
+  Widget _buildMediaSection({required String title, required IconData icon, required Color color, required List<String> localPaths, required List<String> urls, required VoidCallback onPickFile, required VoidCallback onAddUrl, required Function(int) onRemoveLocal, required Function(int) onRemoveUrl}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)), const Spacer(), TextButton.icon(onPressed: onPickFile, icon: Icon(Icons.folder_open, size: 16, color: color), label: Text('File', style: TextStyle(color: color, fontSize: 12)), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8))), TextButton.icon(onPressed: onAddUrl, icon: Icon(Icons.link, size: 16, color: color), label: Text('URL', style: TextStyle(color: color, fontSize: 12)), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)))]),
+        if (localPaths.isNotEmpty || urls.isNotEmpty) ...[const SizedBox(height: 8), Wrap(spacing: 8, runSpacing: 8, children: [...localPaths.asMap().entries.map((e) => _buildChip(e.value.split('/').last, icon, color, false, () => onRemoveLocal(e.key))), ...urls.asMap().entries.map((e) => _buildChip(e.value.length > 20 ? '${e.value.substring(0, 20)}...' : e.value, Icons.link, color, true, () => onRemoveUrl(e.key)))])],
+      ]),
+    );
+  }
+
+  Widget _buildChip(String label, IconData icon, Color color, bool isUrl, VoidCallback onRemove) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isUrl ? color.withOpacity(0.2) : color.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: isUrl ? Border.all(color: color) : null), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color), const SizedBox(width: 4), Text(label.length > 12 ? '${label.substring(0, 12)}...' : label, style: TextStyle(fontSize: 11, color: color)), const SizedBox(width: 4), GestureDetector(onTap: onRemove, child: Icon(Icons.close, size: 14, color: color))]));
+  
+  Future<void> _showUrlInputDialog({required String title, required String hint, required Function(String) onAdd}) async {
+    final c = TextEditingController();
+    await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(title), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: c, decoration: InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), keyboardType: TextInputType.url), const SizedBox(height: 8), Text('Hỗ trợ: URL hoặc đường dẫn local', style: TextStyle(fontSize: 11, color: Colors.grey[600]))]), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')), ElevatedButton(onPressed: () { final path = c.text.trim(); if (path.isNotEmpty) { onAdd(path); Navigator.pop(ctx); } else _showError('Vui lòng nhập đường dẫn!'); }, child: const Text('Thêm'))]));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Từ vựng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(widget.lessonTitle, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        elevation: 0,
-        actions: [IconButton(onPressed: _loadVocabulary, icon: const Icon(Icons.refresh))],
-      ),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF4CAF50),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                  child: TextField(
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                    decoration: const InputDecoration(
-                      hintText: 'Tìm kiếm từ vựng...',
-                      border: InputBorder.none,
-                      icon: Icon(Icons.search, color: Color(0xFF94A3B8)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.abc, color: Colors.white, size: 24),
-                      const SizedBox(width: 8),
-                      Text('${_vocabList.length} từ vựng', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredList.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.abc, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(_searchQuery.isNotEmpty ? 'Không tìm thấy' : 'Chưa có từ vựng nào', style: TextStyle(color: Colors.grey[600])),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadVocabulary,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredList.length,
-                          itemBuilder: (ctx, index) => _buildVocabCard(_filteredList[index], index + 1),
-                        ),
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditDialog(),
-        backgroundColor: const Color(0xFF4CAF50),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Thêm Từ vựng', style: TextStyle(color: Colors.white)),
-      ),
+      appBar: AppBar(backgroundColor: const Color(0xFF4CAF50), foregroundColor: Colors.white, title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Từ vựng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(widget.lessonTitle, style: const TextStyle(fontSize: 12))]), elevation: 0, actions: [IconButton(onPressed: _loadVocabulary, icon: const Icon(Icons.refresh))]),
+      body: Column(children: [
+        Container(padding: const EdgeInsets.all(16), color: Colors.white, child: TextField(onChanged: (v) => setState(() => _searchQuery = v), decoration: InputDecoration(hintText: 'Tìm kiếm từ vựng...', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), filled: true, fillColor: const Color(0xFFF1F5F9)))),
+        Container(margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4CAF50), Color(0xFF388E3C)]), borderRadius: BorderRadius.circular(16)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_buildStat('${_vocabList.length}', 'Tổng từ'), _buildStat('${_vocabList.where((v) => v['isPublished'] == true).length}', 'Đã xuất bản')])),
+        Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator()) : _filteredVocab.isEmpty ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.abc, size: 64, color: Colors.grey[400]), const SizedBox(height: 16), Text(_searchQuery.isEmpty ? 'Chưa có từ vựng nào' : 'Không tìm thấy từ', style: TextStyle(color: Colors.grey[600]))])) : RefreshIndicator(onRefresh: _loadVocabulary, child: ListView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: _filteredVocab.length, itemBuilder: (ctx, i) => _buildVocabCard(_filteredVocab[i])))),
+      ]),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => _showAddEditDialog(), backgroundColor: const Color(0xFF4CAF50), icon: const Icon(Icons.add, color: Colors.white), label: const Text('Thêm Từ vựng', style: TextStyle(color: Colors.white))),
     );
   }
 
-  Widget _buildVocabCard(Map<String, dynamic> vocab, int index) {
-    final hasMedia = (vocab['images'] as List).isNotEmpty || (vocab['audios'] as List).isNotEmpty || (vocab['videos'] as List).isNotEmpty;
-    
+  Widget _buildStat(String value, String label) => Column(children: [Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)), Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11))]);
+
+  Widget _buildVocabCard(Map<String, dynamic> vocab) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 45, height: 45,
-              decoration: BoxDecoration(color: const Color(0xFF4CAF50).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-              alignment: Alignment.center,
-              child: Text('$index', style: const TextStyle(color: Color(0xFF4CAF50), fontWeight: FontWeight.bold, fontSize: 18)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(vocab['word'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      if (vocab['phonetic']?.isNotEmpty == true) ...[
-                        const SizedBox(width: 8),
-                        Text(vocab['phonetic'], style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                      ],
-                      if (hasMedia) ...[const SizedBox(width: 8), Icon(Icons.attach_file, size: 14, color: Colors.grey[500])],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(vocab['meaning'], style: TextStyle(color: Colors.grey[700], fontSize: 14)),
-                  if (vocab['example']?.isNotEmpty == true) ...[
-                    const SizedBox(height: 4),
-                    Text(vocab['example'], style: TextStyle(color: Colors.grey[500], fontSize: 12, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                  if (hasMedia) ...[
-                    const SizedBox(height: 8),
-                    Row(children: [
-                      if ((vocab['images'] as List).isNotEmpty) _buildMediaBadge(Icons.image, Colors.blue, (vocab['images'] as List).length),
-                      if ((vocab['audios'] as List).isNotEmpty) _buildMediaBadge(Icons.audiotrack, Colors.orange, (vocab['audios'] as List).length),
-                      if ((vocab['videos'] as List).isNotEmpty) _buildMediaBadge(Icons.videocam, Colors.purple, (vocab['videos'] as List).length),
-                    ]),
-                  ],
-                ],
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') _showAddEditDialog(vocab: vocab);
-                if (value == 'delete') _deleteVocabulary(vocab);
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Sửa')])),
-                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: Colors.red), SizedBox(width: 8), Text('Xóa', style: TextStyle(color: Colors.red))])),
-              ],
-            ),
-          ],
-        ),
+        child: Row(children: [
+          Container(width: 50, height: 50, decoration: BoxDecoration(color: const Color(0xFF4CAF50).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(vocab['word'].substring(0, 1).toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50))))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [Text(vocab['word'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), if (vocab['phonetic'].isNotEmpty) Text(' ${vocab['phonetic']}', style: TextStyle(color: Colors.grey[600], fontSize: 12))]),
+            const SizedBox(height: 4),
+            Text(vocab['meaning'], style: TextStyle(color: Colors.grey[700])),
+            if (vocab['example'].isNotEmpty) Text(vocab['example'], style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[500], fontSize: 12)),
+          ])),
+          PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') _showAddEditDialog(vocab: vocab); if (v == 'delete') _deleteVocabulary(vocab); }, itemBuilder: (_) => [const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Sửa')])), const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: Colors.red), SizedBox(width: 8), Text('Xóa', style: TextStyle(color: Colors.red))]))]),
+        ]),
       ),
-    );
-  }
-
-  Widget _buildMediaBadge(IconData icon, Color color, int count) {
-    return Container(
-      margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: color),
-        const SizedBox(width: 2),
-        Text('$count', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
-      ]),
     );
   }
 }

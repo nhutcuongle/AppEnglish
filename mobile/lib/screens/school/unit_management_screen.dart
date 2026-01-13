@@ -64,8 +64,9 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
     final titleController = TextEditingController(text: unit?['title'] ?? '');
     final descController = TextEditingController(text: unit?['description'] ?? '');
     bool isPublished = unit?['isPublished'] ?? true;
+    final parentContext = context;
 
-    await showModalBottomSheet(
+    final shouldSubmit = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -85,25 +86,13 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2196F3).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        unit == null ? Icons.add_circle : Icons.edit,
-                        color: const Color(0xFF2196F3),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFF2196F3).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(unit == null ? Icons.add_circle : Icons.edit, color: const Color(0xFF2196F3)),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      unit == null ? 'Thêm Unit Mới' : 'Sửa Unit',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
+                    Text(unit == null ? 'Thêm Unit Mới' : 'Sửa Unit', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close),
-                    ),
+                    IconButton(onPressed: () => Navigator.pop(ctx, false), icon: const Icon(Icons.close)),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -143,49 +132,11 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (titleController.text.isEmpty) {
-                        _showError('Vui lòng nhập tiêu đề!');
-                        return;
-                      }
-                      Navigator.pop(ctx);
-                      
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => const Center(child: CircularProgressIndicator()),
-                      );
-
-                      Map<String, dynamic> result;
-                      if (unit == null) {
-                        result = await ApiService.createUnit(
-                          title: titleController.text.trim(),
-                          description: descController.text.trim(),
-                          isPublished: isPublished,
-                        );
-                      } else {
-                        result = await ApiService.updateUnit(unit['id'], {
-                          'title': titleController.text.trim(),
-                          'description': descController.text.trim(),
-                          'isPublished': isPublished,
-                        });
-                      }
-
-                      Navigator.pop(context);
-
-                      if (result['error'] != null) {
-                        _showError(result['error']);
-                      } else {
-                        _showSuccess(unit == null ? 'Tạo Unit thành công!' : 'Cập nhật thành công!');
-                        _loadUnits();
-                      }
+                    onPressed: () {
+                      if (titleController.text.isEmpty) { _showError('Vui lòng nhập tiêu đề!'); return; }
+                      Navigator.pop(ctx, true);
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: Text(unit == null ? 'Thêm Unit' : 'Lưu thay đổi'),
                   ),
                 ),
@@ -195,6 +146,31 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
         ),
       ),
     );
+
+    if (shouldSubmit == true && mounted) {
+      showDialog(context: parentContext, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+      
+      try {
+        Map<String, dynamic> result;
+        if (unit == null) {
+          result = await ApiService.createUnit(title: titleController.text.trim(), description: descController.text.trim(), isPublished: isPublished);
+        } else {
+          result = await ApiService.updateUnit(unit['id'], {'title': titleController.text.trim(), 'description': descController.text.trim(), 'isPublished': isPublished});
+        }
+        
+        if (mounted) Navigator.pop(parentContext); // Close loading
+
+        if (result['error'] != null) {
+          _showError(result['error']);
+        } else {
+          _showSuccess(unit == null ? 'Tạo Unit thành công!' : 'Cập nhật thành công!');
+          _loadUnits();
+        }
+      } catch (e) {
+        if (mounted) Navigator.pop(parentContext); // Ensure loading is closed
+        _showError('Đã có lỗi xảy ra: $e');
+      }
+    }
   }
 
   Future<void> _deleteUnit(Map<String, dynamic> unit) async {

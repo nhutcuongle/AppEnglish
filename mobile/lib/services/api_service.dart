@@ -3,10 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
-  // Thay đổi URL này theo server backend của bạn
-  static const String baseUrl = 'http://10.0.2.2:5000/api'; // Android emulator
-  // static const String baseUrl = 'http://localhost:5000/api'; // iOS simulator
-  // static const String baseUrl = 'http://YOUR_IP:5000/api'; // Real device
+  // Production API URL
+  static const String baseUrl = 'https://appenglish-0uee.onrender.com/api';
+  // static const String baseUrl = 'http://10.0.2.2:5000/api'; // Android emulator
   
   static String? _authToken;
   
@@ -587,6 +586,322 @@ class ApiService {
         headers: _headers,
         body: jsonEncode(data),
       );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== UNITS ====================
+
+  static Future<List<dynamic>> getUnits() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/units'), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching units: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createUnit({required String title, String? description, bool isPublished = true}) async {
+    try {
+      final response = await http.post(Uri.parse('$baseUrl/units'), headers: _headers, body: jsonEncode({'title': title, 'description': description ?? '', 'isPublished': isPublished}));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateUnit(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(Uri.parse('$baseUrl/units/$id'), headers: _headers, body: jsonEncode(data));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteUnit(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/units/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== LESSONS ====================
+
+  static Future<List<dynamic>> getLessonsByUnit(String unitId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/lessons/unit/$unitId'), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching lessons: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createLesson({required String unitId, required String lessonType, required String title, String? content, bool isPublished = true}) async {
+    try {
+      final response = await http.post(Uri.parse('$baseUrl/lessons'), headers: _headers, body: jsonEncode({'unit': unitId, 'lessonType': lessonType, 'title': title, 'content': content ?? '', 'isPublished': isPublished}));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createLessonWithMedia({
+    required String unitId,
+    required String lessonType,
+    required String title,
+    String? content,
+    bool isPublished = true,
+    List<String>? imagePaths,
+    List<String>? audioPaths,
+    List<String>? videoPaths,
+  }) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/lessons'));
+      request.headers.addAll({
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      });
+      
+      request.fields['unit'] = unitId;
+      request.fields['lessonType'] = lessonType;
+      request.fields['title'] = title;
+      request.fields['content'] = content ?? '';
+      request.fields['isPublished'] = isPublished.toString();
+
+      if (imagePaths != null) {
+        for (var path in imagePaths) {
+          request.files.add(await http.MultipartFile.fromPath('images', path));
+        }
+      }
+      if (audioPaths != null) {
+        for (var path in audioPaths) {
+          request.files.add(await http.MultipartFile.fromPath('audios', path));
+        }
+      }
+      if (videoPaths != null) {
+        for (var path in videoPaths) {
+          request.files.add(await http.MultipartFile.fromPath('videos', path));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateLesson(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(Uri.parse('$baseUrl/lessons/$id'), headers: _headers, body: jsonEncode(data));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteLesson(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/lessons/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== GRAMMAR ====================
+
+  static Future<List<dynamic>> getGrammarByLesson(String lessonId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/grammar/lesson/$lessonId'), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching grammar: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createGrammar({required String lessonId, required String title, required String theory, List<String>? examples, bool isPublished = true}) async {
+    try {
+      final response = await http.post(Uri.parse('$baseUrl/grammar'), headers: _headers, body: jsonEncode({'lesson': lessonId, 'title': title, 'theory': theory, 'examples': examples ?? [], 'isPublished': isPublished}));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createGrammarWithMedia({
+    required String lessonId,
+    required String title,
+    required String theory,
+    List<String>? examples,
+    bool isPublished = true,
+    List<String>? imagePaths,
+    List<String>? audioPaths,
+    List<String>? videoPaths,
+  }) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/grammar'));
+      request.headers.addAll({
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      });
+      
+      request.fields['lesson'] = lessonId;
+      request.fields['title'] = title;
+      request.fields['theory'] = theory;
+      request.fields['isPublished'] = isPublished.toString();
+      if (examples != null) {
+        for (var i = 0; i < examples.length; i++) {
+          request.fields['examples[$i]'] = examples[i];
+        }
+      }
+
+      if (imagePaths != null) {
+        for (var path in imagePaths) {
+          request.files.add(await http.MultipartFile.fromPath('images', path));
+        }
+      }
+      if (audioPaths != null) {
+        for (var path in audioPaths) {
+          request.files.add(await http.MultipartFile.fromPath('audios', path));
+        }
+      }
+      if (videoPaths != null) {
+        for (var path in videoPaths) {
+          request.files.add(await http.MultipartFile.fromPath('videos', path));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateGrammar(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(Uri.parse('$baseUrl/grammar/$id'), headers: _headers, body: jsonEncode(data));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteGrammar(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/grammar/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  // ==================== VOCABULARY ====================
+
+  static Future<List<dynamic>> getVocabularyByLesson(String lessonId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/vocabularies/lesson/$lessonId'), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching vocabulary: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createVocabulary({required String lessonId, required String word, String? phonetic, String? meaning, String? example, bool isPublished = true}) async {
+    try {
+      final response = await http.post(Uri.parse('$baseUrl/vocabularies'), headers: _headers, body: jsonEncode({'lesson': lessonId, 'word': word, 'phonetic': phonetic ?? '', 'meaning': meaning ?? '', 'example': example ?? '', 'isPublished': isPublished}));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createVocabularyWithMedia({
+    required String lessonId,
+    required String word,
+    String? phonetic,
+    String? meaning,
+    String? example,
+    bool isPublished = true,
+    List<String>? imagePaths,
+    List<String>? audioPaths,
+    List<String>? videoPaths,
+  }) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/vocabularies'));
+      request.headers.addAll({
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      });
+      
+      request.fields['lesson'] = lessonId;
+      request.fields['word'] = word;
+      request.fields['phonetic'] = phonetic ?? '';
+      request.fields['meaning'] = meaning ?? '';
+      request.fields['example'] = example ?? '';
+      request.fields['isPublished'] = isPublished.toString();
+
+      if (imagePaths != null) {
+        for (var path in imagePaths) {
+          request.files.add(await http.MultipartFile.fromPath('images', path));
+        }
+      }
+      if (audioPaths != null) {
+        for (var path in audioPaths) {
+          request.files.add(await http.MultipartFile.fromPath('audios', path));
+        }
+      }
+      if (videoPaths != null) {
+        for (var path in videoPaths) {
+          request.files.add(await http.MultipartFile.fromPath('videos', path));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateVocabulary(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(Uri.parse('$baseUrl/vocabularies/$id'), headers: _headers, body: jsonEncode(data));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteVocabulary(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/vocabularies/$id'), headers: _headers);
       return jsonDecode(response.body);
     } catch (e) {
       return {'error': 'Lỗi kết nối: $e'};
