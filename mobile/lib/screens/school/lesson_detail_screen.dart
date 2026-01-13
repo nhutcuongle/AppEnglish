@@ -100,21 +100,59 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   }
 
   Widget _buildMediaSection(String title, IconData icon, Color color, List<dynamic> urls) {
+    if (urls.isEmpty) return const SizedBox.shrink();
+
+    // Check if handling images to render them
+    bool isImage = title == 'Hình ảnh';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [Icon(icon, size: 18, color: color), const SizedBox(width: 8), Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color))]),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: urls.map((url) => Chip(
-            avatar: Icon(Icons.link, size: 16, color: color),
-            label: Text(url.toString().split('/').last.length > 20 ? '${url.toString().split('/').last.substring(0, 20)}...' : url.toString().split('/').last, style: TextStyle(fontSize: 12, color: color)),
-            backgroundColor: color.withOpacity(0.05),
-            side: BorderSide(color: color.withOpacity(0.2)),
-          )).toList(),
-        ),
+        if (isImage)
+          Column(
+            children: urls.map((urlItem) {
+              String url = '';
+              if (urlItem is String) url = urlItem;
+              else if (urlItem is Map && urlItem['url'] != null) url = urlItem['url'];
+
+              if (url.isEmpty) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    url,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(height: 200, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                    loadingBuilder: (ctx, child, process) => process == null ? child : Container(height: 200, color: Colors.grey[100], child: const Center(child: CircularProgressIndicator())),
+                  ),
+                ),
+              );
+            }).toList(),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: urls.map((urlItem) {
+               String url = '';
+               if (urlItem is String) url = urlItem;
+               else if (urlItem is Map && urlItem['url'] != null) url = urlItem['url'];
+               
+               if (url.isEmpty) return const SizedBox.shrink();
+
+               return Chip(
+                avatar: Icon(Icons.link, size: 16, color: color),
+                label: Text(url.split('/').last.length > 20 ? '${url.split('/').last.substring(0, 20)}...' : url.split('/').last, style: TextStyle(fontSize: 12, color: color)),
+                backgroundColor: color.withOpacity(0.05),
+                side: BorderSide(color: color.withOpacity(0.2)),
+              );
+            }).toList(),
+          ),
       ],
     );
   }

@@ -48,6 +48,7 @@ class _LessonScreenState extends State<LessonScreen> {
           'content': l['content'] ?? '',
           'isPublished': l['isPublished'] ?? true,
           'order': l['order'] ?? 0,
+          'images': l['images'] ?? [],
         }).toList();
         _isLoading = false;
       });
@@ -254,25 +255,69 @@ class _LessonScreenState extends State<LessonScreen> {
   Widget _buildStat(String value, String label) => Column(children: [Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)), Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11))]);
 
   Widget _buildLessonCard(Map<String, dynamic> lesson) {
+    final images = lesson['images'] as List<dynamic>? ?? [];
+    String? imageUrl;
+    if (images.isNotEmpty) {
+       final first = images.first;
+       if (first is Map && first['url'] != null) imageUrl = first['url'];
+       else if (first is String) imageUrl = first;
+    }
+    
     final type = _lessonTypes.firstWhere((t) => t['value'] == lesson['lessonType'], orElse: () => _lessonTypes.first);
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
       child: InkWell(
         onTap: () => _navigateToContent(lesson),
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            Container(width: 50, height: 50, decoration: BoxDecoration(color: (type['color'] as Color).withOpacity(0.2), borderRadius: BorderRadius.circular(12)), child: Icon(type['icon'] as IconData, color: type['color'] as Color)),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(lesson['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 4),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: (type['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(type['label'] as String, style: TextStyle(fontSize: 11, color: type['color'] as Color, fontWeight: FontWeight.bold))),
-            ])),
-            IconButton(icon: const Icon(Icons.navigate_next, color: Colors.blueAccent), onPressed: () => _navigateToContent(lesson)),
-            PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') _showAddEditDialog(lesson: lesson); if (v == 'delete') _deleteLesson(lesson); }, itemBuilder: (_) => [const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 8), Text('Sửa')])), const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: Colors.red), SizedBox(width: 8), Text('Xóa', style: TextStyle(color: Colors.red))]))]),
-          ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null)
+               ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Image.network(
+                  imageUrl,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(height: 120, color: Colors.grey[300], child: const Icon(Icons.broken_image)),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(color: (type['color'] as Color).withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                    child: Icon(type['icon'] as IconData, color: type['color'] as Color),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(lesson['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: (type['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(type['label'] as String, style: TextStyle(fontSize: 11, color: type['color'] as Color, fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (v) {
+                      if (v == 'edit') _showAddEditDialog(lesson: lesson);
+                      if (v == 'delete') _deleteLesson(lesson);
+                    },
+                    itemBuilder: (_) => [const PopupMenuItem(value: 'edit', child: Text('Sửa')), const PopupMenuItem(value: 'delete', child: Text('Xóa'))],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
