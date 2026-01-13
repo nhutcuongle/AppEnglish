@@ -23,15 +23,16 @@
  *           schema:
  *             type: object
  *             required:
- *               - lesson
+ *               - lessonId
  *             properties:
- *               lesson:
+ *               lessonId:
  *                 type: string
  *                 description: ID của bài học (Lesson)
  *               deadline:
  *                 type: string
  *                 format: date-time
  *                 description: Thời hạn nộp bài
+ *                 example: "2026-01-30T23:59:59+07:00"
  *               isPublished:
  *                 type: boolean
  *                 default: true

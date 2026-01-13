@@ -1,35 +1,69 @@
 import mongoose from "mongoose";
 
-const submissionSchema = new mongoose.Schema(
+/* ===== ANSWER SCHEMA ===== */
+const answerSchema = new mongoose.Schema(
   {
-    assignmentId: {
+    question: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Assignment",
+      ref: "Question",
       required: true,
     },
-    studentId: {
+
+    userAnswer: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+    },
+
+    isCorrect: {
+      type: Boolean,
+      default: null, // essay => null
+    },
+    pointsAwarded: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
+
+/* ===== SUBMISSION SCHEMA ===== */
+const submissionSchema = new mongoose.Schema(
+  {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
-    content: {
-      type: String, // Text answer or URL to file
-      default: "",
+
+    lesson: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lesson",
+      required: true,
+      index: true,
     },
-    score: {
-      type: Number, // 0-10
-      default: null,
+
+    answers: [answerSchema],
+
+    /* ===== SCORE BY SKILL ===== */
+    scores: {
+      vocabulary: { type: Number, default: 0 },
+      grammar: { type: Number, default: 0 },
+      reading: { type: Number, default: 0 },
+      listening: { type: Number, default: 0 },
+      speaking: { type: Number, default: 0 },
+      writing: { type: Number, default: 0 },
     },
-    comment: {
-      type: String,
-      default: "",
+
+    /* ===== TOTAL SCORE ===== */
+    totalScore: {
+      type: Number,
+      default: 0,
     },
+
     submittedAt: {
       type: Date,
       default: Date.now,
-    },
-    gradedAt: {
-      type: Date,
     },
   },
   { timestamps: true }

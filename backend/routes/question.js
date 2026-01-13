@@ -2,12 +2,11 @@ import express from "express";
 import {
   createQuestion,
   getQuestionsByLesson,
-  getQuestionsByAssignment,
   updateQuestion,
   deleteQuestion,
 } from "../controller/questionController.js";
 
-import { authenticate, isTeacher } from "../middlewares/authMiddleware.js";
+import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
 import {
   uploadMultipleMedia,
   uploadErrorHandler,
@@ -15,12 +14,12 @@ import {
 
 const router = express.Router();
 
-/* ================= TEACHER ================= */
+/* ================= SCHOOL (CRUD) ================= */
 
 router.post(
   "/",
   authenticate,
-  isTeacher,
+  isSchool,
   uploadMultipleMedia,
   uploadErrorHandler,
   createQuestion
@@ -29,26 +28,20 @@ router.post(
 router.patch(
   "/:id",
   authenticate,
-  isTeacher,
+  isSchool,
   uploadMultipleMedia,
   uploadErrorHandler,
   updateQuestion
 );
 
-router.delete("/:id", authenticate, isTeacher, deleteQuestion);
+router.delete("/:id", authenticate, isSchool, deleteQuestion);
 
-/* ================= STUDENT / TEACHER ================= */
+/* ================= STUDENT / TEACHER / SCHOOL (VIEW) ================= */
 
 router.get(
   "/lesson/:lessonId",
   authenticate,
   getQuestionsByLesson
-);
-
-router.get(
-  "/assignment/:assignmentId",
-  authenticate,
-  getQuestionsByAssignment
 );
 
 export default router;

@@ -21,10 +21,10 @@
  *           schema:
  *             type: object
  *             required:
- *               - lesson
+ *               - lessonId
  *               - answers
  *             properties:
- *               lesson:
+ *               lessonId:
  *                 type: string
  *                 description: ID của bài học
  *                 example: "507f1f77bcf86cd799439011"
@@ -115,6 +115,7 @@
  *                 deadline:
  *                   type: string
  *                   format: date-time
+ *                   example: "2026-01-30T23:59:59+07:00"
  *       500:
  *         description: Lỗi server
  *         content:
@@ -242,6 +243,24 @@
  *                 totalScore:
  *                   type: number
  *                   example: 14
+ *                 answers:
+ *                   type: array
+ *                   description: Chi tiết từng câu trả lời để học sinh xem lại
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       question:
+ *                         type: string
+ *                         description: ID của câu hỏi
+ *                       userAnswer:
+ *                         description: Câu trả lời đã chọn (String, Number, hoặc Array)
+ *                       isCorrect:
+ *                         type: boolean
+ *                         description: Kết quả (true/false), null nếu là essay chưa chấm
+ *                       pointsAwarded:
+ *                         type: number
+ *                         description: Số điểm đạt được cho câu này
+ *                         example: 1
  *                 submittedAt:
  *                   type: string
  *                   format: date-time
@@ -302,6 +321,9 @@
  *                             type: string
  *                           email:
  *                             type: string
+ *                           fullName:
+ *                             type: string
+ *                             example: "Nguyễn Văn A"
  *                       scores:
  *                         type: object
  *                         properties:
@@ -365,6 +387,9 @@
  *                       type: string
  *                     email:
  *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                       example: "Nguyễn Văn A"
  *                 lesson:
  *                   type: object
  *                   properties:
@@ -412,6 +437,10 @@
  *                         type: boolean
  *                         nullable: true
  *                         description: null nếu là essay
+ *                       pointsAwarded:
+ *                         type: number
+ *                         description: Số điểm học sinh đạt được cho câu này
+ *                         example: 2
  *                 submittedAt:
  *                   type: string
  *                   format: date-time
@@ -424,3 +453,4 @@
  *       500:
  *         description: Lỗi server
  */
+

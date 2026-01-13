@@ -4,10 +4,10 @@ import Class from "../models/Class.js";
 /* ================= CREATE OR UPDATE ASSIGNMENT ================= */
 export const createOrUpdateAssignment = async (req, res) => {
   try {
-    const { lesson, deadline, isPublished } = req.body;
+    const { lessonId, deadline, isPublished } = req.body;
 
-    if (!lesson) {
-      return res.status(400).json({ message: "Thiếu lesson ID" });
+    if (!lessonId) {
+      return res.status(400).json({ message: "Thiếu lessonId" });
     }
 
     /* Kiểm tra giáo viên chủ nhiệm để xác định lớp */
@@ -24,7 +24,7 @@ export const createOrUpdateAssignment = async (req, res) => {
 
     /* Upsert Assignment */
     const assignment = await Assignment.findOneAndUpdate(
-      { class: teacherClass._id, lesson },
+      { class: teacherClass._id, lesson: lessonId },
       { 
         deadline: deadline !== undefined ? deadline : null,
         isPublished: isPublished !== undefined ? isPublished : true 

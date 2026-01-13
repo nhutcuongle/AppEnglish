@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   name: Questions
- *   description: Bài tập / câu hỏi cho tất cả kỹ năng (Teacher CRUD theo lớp chủ nhiệm, Student xem theo lớp học)
+ *   description: Bài tập / câu hỏi cho tất cả kỹ năng (Nhà trường CRUD, Học sinh & Giảng viên xem)
  */
 
 /* ================= TEACHER ================= */
@@ -11,36 +11,130 @@
  * @swagger
  * /api/questions:
  *   post:
- *     summary: Giáo viên tạo question mới (Tự động gán vào lớp chủ nhiệm) (Giảng viên)
+ *     summary: Tạo question mới (Tạo đơn lẻ kèm media hoặc tạo hàng loạt) (Nhà trường)
  *     description: >
- *       Chỉ giáo viên chủ nhiệm mới được tạo câu hỏi.
- *       Câu hỏi sẽ tự động được gán ID của lớp mà giáo viên đó đang chủ nhiệm.
+ *       - Chỉ nhà trường mới được tạo.
+ *       - Nếu dùng multipart/form-data: Tạo 1 câu hỏi kèm upload ảnh/audio/video. Yêu cầu classId.
+ *       - Nếu dùng application/json: Có thể tạo 1 mảng câu hỏi (bulk create).
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - lessonId
+ *               - classId
+ *               - skill
+ *               - type
+ *               - content
+ *             properties:
+ *               lessonId:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *               classId:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439015"
+ *               skill:
+ *                 type: string
+ *                 enum: [vocabulary, grammar, reading, listening, speaking, writing]
+ *                 example: vocabulary
+ *               type:
+ *                 type: string
+ *                 enum: [mcq, true_false, fill_blank, matching, essay]
+ *                 example: mcq
+ *               content:
+ *                 type: string
+ *                 description: Nội dung câu hỏi (HTML / Rich Text)
+ *                 example: "Chọn từ đồng nghĩa với 'Happy':"
+ *               points:
+ *                 type: number
+ *                 example: 1
+ *                 description: Số điểm cho câu hỏi này
+ *               options:
+ *                 type: array
+ *                 description: Danh sách lựa chọn (cho mcq, matching)
+ *                 items:
+ *                   type: string
+ *                 example: ["Joyful", "Sad", "Angry", "Bored"]
+ *               correctAnswer:
+ *                 type: string
+ *                 description: Đáp án đúng (String cho MCQ, JSON String cho Matching/FillBlank)
+ *                 example: "Joyful"
+ *               explanation:
+ *                 type: string
+ *                 example: "Joyful là từ đồng nghĩa phổ biến nhất của Happy."
+ *               order:
+ *                 type: number
+ *                 example: 1
+ *               isPublished:
+ *                 type: boolean
+ *                 example: true
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-01-30T23:59:59+07:00"
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               imageCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               audios:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               audioCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               videos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *         application/json:
  *           schema:
- *             oneOf:
- *               - type: array
+ *             type: object
+ *             properties:
+ *               lessonId:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *               classId:
+ *                 type: string
+ *                 description: Required if creating questions for a specific class in bulk
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-01-30T23:59:59+07:00"
+ *               questions:
+ *                 type: array
  *                 items:
  *                   type: object
- *                   required:
- *                     - lesson
- *                     - skill
- *                     - type
- *                     - content
+ *                   required: [skill, type, content]
  *                   properties:
- *                     lesson:
- *                       type: string
  *                     skill:
  *                       type: string
+ *                       enum: [vocabulary, grammar, reading, listening, speaking, writing]
  *                     type:
  *                       type: string
+ *                       enum: [mcq, true_false, fill_blank, matching, essay]
  *                     content:
  *                       type: string
+ *                     points:
+ *                       type: number
+ *                       example: 1
  *                     options:
  *                       type: array
  *                       items:
@@ -51,134 +145,21 @@
  *                       type: string
  *                     isPublished:
  *                       type: boolean
- *               - type: object
- *                 properties:
- *                   lesson:
- *                     type: string
- *                   deadline:
- *                     type: string
- *                     format: date-time
- *                   questions:
- *                     type: array
- *                     items:
- *                       type: object
- *                       required:
- *                         - skill
- *                         - type
- *                         - content
- *                       properties:
- *                         skill:
- *                           type: string
- *                         type:
- *                           type: string
- *                         content:
- *                           type: string
- *                         options:
- *                           type: array
- *                           items:
- *                             type: string
- *                         correctAnswer:
- *                           type: string
- *                         explanation:
- *                           type: string
- *                         isPublished:
- *                           type: boolean
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - lesson
- *               - skill
- *               - type
- *               - content
- *             properties:
- *               lesson:
- *                 type: string
- *                 example: 695f79f2927eb2fb1a5d9ed3
- *
- *               skill:
- *                 type: string
- *                 enum:
- *                   - vocabulary
- *                   - grammar
- *                   - reading
- *                   - listening
- *                   - speaking
- *                   - writing
- *
- *               type:
- *                 type: string
- *                 enum:
- *                   - mcq
- *                   - true_false
- *                   - fill_blank
- *                   - matching
- *                   - essay
- *
- *               content:
- *                 type: string
- *                 description: Nội dung câu hỏi (HTML / Rich Text)
- *
- *               options:
- *                 type: array
- *                 items:
- *                   type: string
- *
- *               correctAnswer:
- *                 type: string
- *
- *               explanation:
- *                 type: string
- *
- *               isPublished:
- *                 type: boolean
- *
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
- *
- *               imageCaptions:
- *                 type: array
- *                 items:
- *                   type: string
- *
- *               audios:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
- *
- *               audioCaptions:
- *                 type: array
- *                 items:
- *                   type: string
- *
- *               videos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
- *
- *               videoCaptions:
- *                 type: array
- *                 items:
- *                   type: string
  *     responses:
  *       201:
- *         description: Tạo question thành công
+ *         description: Tạo thành công
  *       400:
  *         description: Dữ liệu không hợp lệ
  *       403:
- *         description: Không phải giáo viên chủ nhiệm nên không được tạo
+ *         description: Không có quyền truy cập (Chỉ Nhà trường được phép)
  */
 
 /**
  * @swagger
  * /api/questions/{id}:
  *   patch:
- *     summary: Giáo viên cập nhật question (Chỉ GVCN của lớp đó) (Giảng viên)
+ *     summary: Cập nhật question (Nhà trường)
+ *     description: Chỉ có thể cập nhật câu hỏi thuộc trường mình quản lý.
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -212,18 +193,28 @@
  *                 type: array
  *               videos:
  *                 type: array
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-01-30T23:59:59+07:00"
+ *               points:
+ *                 type: number
+ *                 example: 2
  *     responses:
  *       200:
  *         description: Cập nhật question thành công
  *       404:
- *         description: Không tìm thấy question hoặc không thuộc lớp của GVCN
+ *         description: Không tìm thấy question
+ *       403:
+ *         description: Không thuộc quản lý của trường bạn
  */
 
 /**
  * @swagger
  * /api/questions/{id}:
  *   delete:
- *     summary: Giáo viên xóa question (Chỉ GVCN của lớp đó) (Giảng viên)
+ *     summary: Xóa question (Nhà trường)
+ *     description: Chỉ có thể xóa câu hỏi thuộc trường mình quản lý.
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -237,7 +228,9 @@
  *       200:
  *         description: Xóa question thành công
  *       404:
- *         description: Không tìm thấy question hoặc không thuộc lớp của GVCN
+ *         description: Không tìm thấy question
+ *       403:
+ *         description: Không thuộc quản lý của trường bạn
  */
 
 /* ================= STUDENT / TEACHER ================= */
@@ -246,7 +239,7 @@
  * @swagger
  * /api/questions/lesson/{lessonId}:
  *   get:
- *     summary: Xem danh sách question theo lesson (Tự động lọc theo lớp) (Giảng viên, Học sinh)
+ *     summary: Xem danh sách question theo bài học (Giảng viên, Học sinh)
  *     description: >
  *       - Giáo viên: Chỉ thấy question của lớp mình chủ nhiệm.
  *       - Học sinh: Chỉ thấy question của lớp mình đang theo học.
@@ -273,6 +266,25 @@
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       points:
+ *                         type: number
+ *                       skill:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                       options:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       isPublished:
+ *                         type: boolean
+ *                       order:
+ *                         type: number
  *                 assignment:
  *                   type: object
  *                   properties:

@@ -16,13 +16,7 @@ const questionSchema = new mongoose.Schema(
     lesson: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
-      required: false,
-      index: true,
-    },
-    assignment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Assignment",
-      required: false,
+      required: true,
       index: true,
     },
     class: {
@@ -31,78 +25,44 @@ const questionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
-    /* Skill của câu hỏi (đồng bộ lessonType) */
     skill: {
       type: String,
-      enum: [
-        "vocabulary",
-        "grammar",
-        "reading",
-        "listening",
-        "speaking",
-        "writing",
-      ],
+      enum: ["vocabulary", "grammar", "reading", "listening", "speaking", "writing"],
       required: true,
       index: true,
     },
-
-    /* Loại câu hỏi */
     type: {
       type: String,
-      enum: [
-        "mcq",          // trắc nghiệm
-        "true_false",   // đúng / sai
-        "fill_blank",   // điền từ
-        "matching",     // nối
-        "essay",        // tự luận (speaking / writing)
-      ],
+      enum: ["mcq", "true_false", "fill_blank", "matching", "essay"],
       required: true,
     },
-
-    /* Nội dung câu hỏi (HTML / Rich Text) */
     content: {
       type: String,
       required: true,
     },
-
-    /* Lựa chọn (MCQ, matching) */
-    options: [
-      {
-        type: String,
-      },
-    ],
-
-    /* Đáp án đúng */
+    options: [{ type: String }],
     correctAnswer: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
-      /*
-        mcq        -> number (index)
-        true_false -> boolean
-        fill_blank -> string
-        matching   -> object
-        essay      -> null
-      */
     },
-
-    /* Giải thích đáp án */
     explanation: {
       type: String,
       default: "",
     },
-
     images: [mediaSchema],
     audios: [mediaSchema],
-
+    videos: [mediaSchema], // Thêm lại trường này để đồng bộ với Controller
     order: {
       type: Number,
       default: 1,
     },
-
     isPublished: {
       type: Boolean,
       default: true,
+    },
+    points: {
+      type: Number,
+      default: 1,
     },
   },
   { timestamps: true }

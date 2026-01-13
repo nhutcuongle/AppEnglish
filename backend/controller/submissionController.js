@@ -3,58 +3,20 @@ import Question from "../models/Question.js";
 import Class from "../models/Class.js";
 import Assignment from "../models/Assignment.js";
 
-export const getSubmissions = async (req, res) => {
-  try {
-    const { assignmentId, studentId } = req.query;
-    const query = {};
-    if (assignmentId) query.assignmentId = assignmentId;
-    if (studentId) query.studentId = studentId;
-
-    const submissions = await Submission.find(query)
-      .populate("studentId", "username fullName email")
-      .populate("assignmentId", "title");
-
-    res.status(200).json(submissions);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export const createSubmission = async (req, res) => {
-  try {
-    const { assignmentId, content } = req.body;
-    const studentId = req.user.id; // From authMiddleware
-
-    // Check if exists
-    let submission = await Submission.findOne({ assignmentId, studentId });
-    if (submission) {
-      submission.content = content || submission.content;
-      submission.submittedAt = Date.now();
-      await submission.save();
-    } else {
-      submission = await Submission.create({
-        assignmentId,
-        studentId,
-        content,
-      });
-    }
-
-    res.status(201).json(submission);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/* ================= SUBMIT LESSON (STUDENT) ================= */
+/* ================= SUBMIT LESSON ================= */
 export const submitLesson = async (req, res) => {
   try {
-    const { lesson, answers } = req.body;
+    const { lessonId, answers } = req.body;
     const userId = req.user.id;
+
+    if (!lessonId || !Array.isArray(answers)) {
+      return res.status(400).json({ message: "Thiếu dữ liệu submit" });
+    }
 
     /* ===== CHECK DEADLINE ===== */
     if (req.user.role === "student") {
       const assignment = await Assignment.findOne({
-        lesson,
+        lesson: lessonId,
         class: req.user.class,
       }).lean();
 
@@ -88,23 +50,25 @@ export const submitLesson = async (req, res) => {
         isCorrect =
           JSON.stringify(ans.userAnswer) ===
           JSON.stringify(question.correctAnswer);
-
-        if (isCorrect) {
-          scores[question.skill] += 1;
-          totalScore += 1;
-        }
       }
 
       checkedAnswers.push({
         question: ans.question,
         userAnswer: ans.userAnswer,
         isCorrect,
+        pointsAwarded: isCorrect ? (question.points || 1) : 0,
       });
+
+      if (isCorrect) {
+        const p = question.points || 1;
+        scores[question.skill] += p;
+        totalScore += p;
+      }
     }
 
     const submission = await Submission.create({
       user: userId,
-      lesson,
+      lesson: lessonId,
       answers: checkedAnswers,
       scores,
       totalScore,
@@ -121,22 +85,7 @@ export const submitLesson = async (req, res) => {
   }
 };
 
-/* ================= GRADE SUBMISSION (TEACHER) ================= */
-export const gradeSubmission = async (req, res) => {
-  try {
-    const { score, comment } = req.body;
-    const submission = await Submission.findByIdAndUpdate(
-      req.params.id,
-      { score, comment, gradedAt: Date.now() },
-      { new: true }
-    );
-    res.status(200).json(submission);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/* ================= GET SUBMISSION BY ID (STUDENT) ================= */
+/* ================= STUDENT: VIEW OWN SUBMISSION ================= */
 export const getSubmissionById = async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id)
@@ -155,7 +104,8 @@ export const getSubmissionById = async (req, res) => {
       lesson: submission.lesson,
       scores: submission.scores,
       totalScore: submission.totalScore,
-      submittedAt: submission.createdAt,
+      answers: submission.answers,
+      submittedAt: submission.submittedAt,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -175,7 +125,7 @@ export const getMySubmissions = async (req, res) => {
       lesson: sub.lesson,
       scores: sub.scores,
       totalScore: sub.totalScore,
-      submittedAt: sub.createdAt,
+      submittedAt: sub.submittedAt,
     }));
 
     res.json({
@@ -207,9 +157,9 @@ export const getScoresByLesson = async (req, res) => {
     // 2. Chỉ lấy bài nộp của học sinh trong lớp này
     const submissions = await Submission.find({
       lesson: lessonId,
-      user: { $in: teacherClass.students },
+      user: { $in: teacherClass.students }, // ⭐ CHỈ LẤY CỦA HỌC SINH LỚP MÌNH
     })
-      .populate("user", "username email")
+      .populate("user", "username email fullName")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -219,14 +169,15 @@ export const getScoresByLesson = async (req, res) => {
         id: sub.user._id,
         username: sub.user.username,
         email: sub.user.email,
+        fullName: sub.user.fullName || sub.user.username,
       },
       scores: sub.scores,
       totalScore: sub.totalScore,
-      submittedAt: sub.createdAt,
+      submittedAt: sub.submittedAt,
     }));
 
     res.json({
-      className: teacherClass.name,
+      className: teacherClass.name, // Trả thêm tên lớp cho FE dễ hiển thị
       totalStudents: result.length,
       data: result,
     });
@@ -252,7 +203,7 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
     // 2. Kiểm tra quyền của giáo viên (phải là GVCN của học sinh này)
     const teacherClass = await Class.findOne({
       homeroomTeacher: req.user._id,
-      students: submission.user._id,
+      students: submission.user._id, // Kiểm tra xem học sinh có trong list students không
       isActive: true,
     });
 
@@ -263,7 +214,12 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
     }
 
     res.json({
-      student: submission.user,
+      student: {
+        id: submission.user._id,
+        username: submission.user.username,
+        email: submission.user.email,
+        fullName: submission.user.fullName || submission.user.username,
+      },
       lesson: submission.lesson,
       scores: submission.scores,
       totalScore: submission.totalScore,
@@ -273,8 +229,9 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
         skill: a.question.skill,
         userAnswer: a.userAnswer,
         isCorrect: a.isCorrect,
+        pointsAwarded: a.pointsAwarded || 0,
       })),
-      submittedAt: submission.createdAt,
+      submittedAt: submission.submittedAt,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
