@@ -3,7 +3,7 @@ import 'package:apptienganh10/screens/school/teacher_management_screen.dart';
 import 'package:apptienganh10/screens/school/class_management_screen.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
 
-import 'package:apptienganh10/screens/school/lesson_screen.dart';
+import 'package:apptienganh10/screens/school/unit_management_screen.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/school/school_info_screen.dart';
 
@@ -410,7 +410,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
                 'Bài học',
                 Icons.menu_book_rounded,
                 const Color(0xFF42A5F5),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LessonScreen())),
+                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const UnitManagementScreen())),
               ),
             ),
           ],
