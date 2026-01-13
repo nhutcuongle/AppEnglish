@@ -40,9 +40,7 @@ export const createQuestion = async (req, res) => {
       }
 
       if (req.user.role === "school") {
-        if (!targetLesson && questionsData.some(q => !q.classId)) {
-          return res.status(400).json({ message: "Thiếu classId cho một số câu hỏi" });
-        }
+        // School no longer strictly requires classId in bulk
       }
 
       const createdQuestions = [];
@@ -56,21 +54,24 @@ export const createQuestion = async (req, res) => {
         const finalClass = qClassId || req.body.classId;
         const finalExam = qData.examId || targetExamId;
 
-        if ((!finalLesson && !finalExam) || !skill || !type || !content || !finalClass) {
+        if ((!finalLesson && !finalExam) || !skill || !type || !content || (!isSchool && !finalClass)) {
           continue; 
         }
 
         /* Permission check for each question in bulk */
-        if (req.user.role === "school") {
-          const targetClass = await Class.findOne({ _id: finalClass, school: req.user._id });
-          if (!targetClass) continue;
-          if (finalLesson) {
-            const lessonExists = await Lesson.exists({ _id: finalLesson });
-            if (!lessonExists) continue;
+        if (isSchool) {
+          if (finalClass) {
+            const targetClass = await Class.findOne({ _id: finalClass, school: req.user._id });
+            if (!targetClass) continue;
           }
         } else if (req.user.role === "teacher") {
-          // finalExam already checked globally or should be checked per item if different
-          if (!finalExam) continue;
+          if (!finalExam || !finalClass) continue;
+          // Teacher must be the homeroom teacher of finalClass
+          const targetClass = await Class.findOne({ _id: finalClass, homeroomTeacher: req.user._id });
+          if (!targetClass) continue;
+          
+          const exam = await Exam.findById(finalExam);
+          if (!exam || exam.class.toString() !== finalClass.toString()) continue;
         }
 
         /* Auto Order */
@@ -82,11 +83,12 @@ export const createQuestion = async (req, res) => {
         const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
 
         const newQuestion = await Question.create({
-          lesson: finalLesson || null,
+          lesson: isSchool ? (finalLesson || null) : null, // Teacher cannot link to Lesson
           exam: finalExam || null,
           skill, type, content, options, correctAnswer, explanation, isPublished,
           points: points || 1,
-          class: finalClass,
+          class: finalClass || null,
+          school: isSchool ? req.user._id : null,
           order: nextOrder,
           images: [], audios: [], videos: [] 
         });
@@ -117,7 +119,10 @@ export const createQuestion = async (req, res) => {
 
     /* ===== VALIDATE ===== */
     const { examId } = req.body;
-    if ((!lessonId && !examId) || !skill || !type || !content || !classId) {
+    // School creates for all classes, so classId is NOT required for school role
+    const isSchool = req.user.role === "school";
+    
+    if ((!lessonId && !examId) || !skill || !type || !content || (!isSchool && !classId)) {
       return res.status(400).json({
         message: "Thiếu lessonId/examId, skill, type, content hoặc classId",
       });
@@ -149,24 +154,35 @@ export const createQuestion = async (req, res) => {
       }
     }
 
-    /* ===== CHECK CLASS BELONGS TO SCHOOL ===== */
-    const targetClass = await Class.findOne({
-      _id: classId,
-      school: req.user._id,
-      isActive: true,
-    });
-
-    if (!targetClass) {
-      return res.status(403).json({
-        message: "Lớp không tồn tại hoặc không thuộc quản lý của bạn",
+    /* ===== CHECK CLASS BELONGS TO SCHOOL (IF CLASS PROVIDED) ===== */
+    let targetClass = null;
+    if (classId) {
+       targetClass = await Class.findOne({
+        _id: classId,
+        isActive: true,
       });
+
+      if (!targetClass) {
+        return res.status(403).json({ message: "Lớp không tồn tại" });
+      }
+
+      // If school is creating for a specific class, verify ownership
+      if (isSchool && targetClass.school.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Lớp không thuộc quản lý của trường bạn" });
+      }
     }
 
     /* ===== VALIDATE EXAM BELONGS TO THIS TEACHER & CLASS ===== */
-    if (examId && req.user.role === "teacher") {
+    if (req.user.role === "teacher") {
+       if (!examId || !classId) {
+         return res.status(400).json({ message: "Giảng viên cần cung cấp examId và classId" });
+       }
        const exam = await Exam.findById(examId);
-       if (exam.teacher.toString() !== req.user._id.toString() || exam.class.toString() !== classId) {
-         return res.status(403).json({ message: "Bạn không có quyền thêm câu hỏi vào bài kiểm tra này" });
+       if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
+         return res.status(403).json({ message: "Bạn không có quyền quản lý bài kiểm tra này" });
+       }
+       if (exam.class.toString() !== classId) {
+         return res.status(403).json({ message: "examId và classId không khớp nhau" });
        }
     }
 
@@ -183,7 +199,8 @@ export const createQuestion = async (req, res) => {
     const lastQuestion = await Question.findOne({
       lesson: lessonId || null,
       exam: examId || null,
-      class: classId,
+      class: classId || null,
+      school: isSchool ? req.user._id : null
     })
       .sort({ order: -1 })
       .select("order");
@@ -234,7 +251,7 @@ export const createQuestion = async (req, res) => {
 
     /* ===== CREATE ===== */
     const question = await Question.create({
-      lesson: lessonId || null,
+      lesson: isSchool ? (lessonId || null) : null,
       exam: examId || null,
       skill,
       type,
@@ -248,8 +265,8 @@ export const createQuestion = async (req, res) => {
       images,
       audios,
       videos,
-      class: classId,
-      exam: req.body.examId || null,
+      class: classId || null,
+      school: isSchool ? req.user._id : null,
     });
 
     res.status(201).json({
@@ -298,9 +315,24 @@ export const getQuestionsByLesson = async (req, res) => {
        });
     }
 
+    /* Find schoolId to fetch school-wide questions */
+    let schoolId = null;
+    if (req.user.role === "student") {
+        const studentClass = await Class.findById(classId).select("school");
+        if (studentClass) schoolId = studentClass.school;
+    } else if (req.user.role === "teacher") {
+        const teacherClass = await Class.findById(classId).select("school");
+        if (teacherClass) schoolId = teacherClass.school;
+    } else if (req.user.role === "school") {
+        schoolId = req.user._id;
+    }
+
     const questions = await Question.find({
       lesson: req.params.lessonId,
-      class: classId, // ⭐ FILTER THEO LỚP ĐÃ XÁC ĐỊNH
+      $or: [
+        { class: classId }, // Lớp cụ thể
+        { class: null, school: schoolId } // Toàn trường
+      ],
       isPublished: true,
     })
       .sort({ order: 1, createdAt: 1 })
@@ -345,7 +377,11 @@ export const updateQuestion = async (req, res) => {
     }
 
     if (req.user.role === "school") {
-      if (question.class.school.toString() !== req.user._id.toString()) {
+      // If it has class, check class.school. If no class, check question.school
+      const isOwner = (question.class && question.class.school.toString() === req.user._id.toString()) || 
+                      (!question.class && question.school && question.school.toString() === req.user._id.toString());
+      
+      if (!isOwner) {
          return res.status(403).json({
           message: "Question không thuộc quản lý của trường bạn",
         });
@@ -421,7 +457,10 @@ export const deleteQuestion = async (req, res) => {
     }
 
     if (req.user.role === "school") {
-      if (question.class.school.toString() !== req.user._id.toString()) {
+      const isOwner = (question.class && question.class.school.toString() === req.user._id.toString()) || 
+                      (!question.class && question.school && question.school.toString() === req.user._id.toString());
+
+      if (!isOwner) {
           return res.status(403).json({
               message: "Question không thuộc quản lý của trường bạn",
           });

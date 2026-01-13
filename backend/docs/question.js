@@ -13,10 +13,15 @@
  *   post:
  *     summary: Tạo question mới (Tạo đơn lẻ kèm media hoặc tạo hàng loạt) (Nhà trường / Giảng viên)
  *     description: >
- *       - Nhà trường: Tạo câu hỏi cho bài học (Lesson). Yêu cầu classId và lessonId.
- *       - Giảng viên: Tạo câu hỏi cho bài kiểm tra (Exam). Yêu cầu classId và examId.
- *       - Nếu dùng multipart/form-data: Tạo 1 câu hỏi kèm upload ảnh/audio/video.
- *       - Nếu dùng application/json: Có thể tạo 1 mảng câu hỏi (bulk create).
+ *       Hệ thống phân tách rõ rệt quyền tạo câu hỏi theo vai trò của người dùng:
+ *
+ *       1. **NHÀ TRƯỜNG (SCHOOL)**: Chỉ tạo nội dung cho Bài học (`lessonId`).
+ *       2. **GIẢNG VIÊN (TEACHER)**: Chỉ tạo nội dung cho Bài kiểm tra (`examId`).
+ *
+ *       Xem chi tiết quy tắc của từng trường (lessonId, examId, classId) ở phần `properties` bên dưới.
+ *
+ *       - Dùng `multipart/form-data`: Tạo 1 câu hỏi + Upload Media.
+ *       - Dùng `application/json`: Bulk Create (Tạo hàng loạt mảng JSON).
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -27,17 +32,27 @@
  *           schema:
  *             type: object
  *             required:
- *               - lessonId
- *               - classId
  *               - skill
  *               - type
  *               - content
  *             properties:
  *               lessonId:
  *                 type: string
+ *                 description: |
+ *                   - **Nhà trường**: BẮT BUỘC. Dùng để gắn câu hỏi vào bài học.
+ *                   - **Giảng viên**: KHÔNG ĐƯỢC DÙNG (Sẽ bị server bỏ qua).
  *                 example: "507f1f77bcf86cd799439011"
+ *               examId:
+ *                 type: string
+ *                 description: |
+ *                   - **Nhà trường**: KHÔNG DÙNG.
+ *                   - **Giảng viên**: BẮT BUỘC. Dùng để gắn câu hỏi vào bài kiểm tra 15p/45p.
+ *                 example: "507f1f77bcf86cd799439099"
  *               classId:
  *                 type: string
+ *                 description: |
+ *                   - **Nhà trường**: TÙY CHỌN. Điền ID lớp để tạo cho 1 lớp, BỎ TRỐNG để tạo dùng chung toàn trường.
+ *                   - **Giảng viên**: BẮT BUỘC. Phải là ID lớp mà bạn đang chủ nhiệm.
  *                 example: "507f1f77bcf86cd799439015"
  *               skill:
  *                 type: string
@@ -111,15 +126,22 @@
  *             properties:
  *               lessonId:
  *                 type: string
- *                 description: ID của bài học (Nhà trường dùng)
+ *                 description: |
+ *                    - **Nhà trường**: BẮT BUỘC để import hàng loạt vào Bài học.
+ *                    - **Giảng viên**: Bỏ trống.
  *                 example: "507f1f77bcf86cd799439011"
  *               examId:
  *                 type: string
- *                 description: ID của bài kiểm tra (Giảng viên dùng)
+ *                 description: |
+ *                    - **Nhà trường**: Bỏ trống.
+ *                    - **Giảng viên**: BẮT BUỘC để tạo đề kiểm tra hàng loạt.
  *                 example: "507f1f77bcf86cd799439099"
  *               classId:
  *                 type: string
- *                 description: Required if creating questions for a specific class in bulk
+ *                 description: |
+ *                    - **Nhà trường**: Tùy chọn (để trống nếu tạo toàn trường).
+ *                    - **Giảng viên**: Bắt buộc (phải là lớp mình chủ nhiệm).
+ *                 example: "507f1f77bcf86cd799439015"
  *               deadline:
  *                 type: string
  *                 format: date-time

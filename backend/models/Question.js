@@ -28,7 +28,13 @@ const questionSchema = new mongoose.Schema(
     class: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Class",
-      required: true,
+      required: false, // Optional if it's a school-wide question
+      index: true,
+    },
+    school: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Role School
+      required: false,
       index: true,
     },
     skill: {
