@@ -176,6 +176,51 @@
  *                     examId:
  *                       type: string
  *                       description: Gắn trực tiếp examId vào từng câu (nếu cần)
+ *                     images:
+ *                       type: array
+ *                       description: Mảng hình ảnh (URL từ Cloudinary hoặc nguồn khác)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           url:
+ *                             type: string
+ *                             example: "https://res.cloudinary.com/.../image.jpg"
+ *                           caption:
+ *                             type: string
+ *                             example: "Question image"
+ *                           order:
+ *                             type: number
+ *                             example: 1
+ *                     audios:
+ *                       type: array
+ *                       description: Mảng audio (URL từ Cloudinary hoặc nguồn khác)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           url:
+ *                             type: string
+ *                             example: "https://res.cloudinary.com/.../audio.mp3"
+ *                           caption:
+ *                             type: string
+ *                             example: "Listening audio"
+ *                           order:
+ *                             type: number
+ *                             example: 1
+ *                     videos:
+ *                       type: array
+ *                       description: Mảng video (URL từ Cloudinary hoặc nguồn khác)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           url:
+ *                             type: string
+ *                             example: "https://res.cloudinary.com/.../video.mp4"
+ *                           caption:
+ *                             type: string
+ *                             example: "Video description"
+ *                           order:
+ *                             type: number
+ *                             example: 1
  *     responses:
  *       201:
  *         description: Tạo thành công
@@ -316,14 +361,11 @@
  *                         type: boolean
  *                       order:
  *                         type: number
- *                 assignment:
- *                   type: object
- *                   properties:
- *                     deadline:
- *                       type: string
- *                       format: date-time
- *                     isPublished:
- *                       type: boolean
+ *                 deadline:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Hạn nộp bài từ Lesson model (null nếu không có)
+ *                   nullable: true
  *       403:
  *         description: Học sinh chưa được xếp lớp hoặc giáo viên chưa có lớp chủ nhiệm
  */

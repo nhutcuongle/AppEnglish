@@ -1,7 +1,7 @@
 import Submission from "../models/Submission.js";
 import Question from "../models/Question.js";
 import Class from "../models/Class.js";
-import Assignment from "../models/Assignment.js";
+import Lesson from "../models/Lesson.js";
 
 /* ================= SUBMIT LESSON ================= */
 export const submitLesson = async (req, res) => {
@@ -15,15 +15,14 @@ export const submitLesson = async (req, res) => {
 
     /* ===== CHECK DEADLINE ===== */
     if (req.user.role === "student") {
-      const assignment = await Assignment.findOne({
-        lesson: lessonId,
-        class: req.user.class,
-      }).lean();
+      const lesson = await Lesson.findById(lessonId)
+        .select("deadline")
+        .lean();
 
-      if (assignment && assignment.deadline && new Date() > new Date(assignment.deadline)) {
+      if (lesson && lesson.deadline && new Date() > new Date(lesson.deadline)) {
         return res.status(403).json({
           message: "Đã hết hạn nộp bài cho bài tập này",
-          deadline: assignment.deadline
+          deadline: lesson.deadline
         });
       }
     }

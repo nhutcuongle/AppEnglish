@@ -10,8 +10,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-       // url: "https://appenglish-0uee.onrender.com",
-          url: "http://localhost:5000",
+        url: "https://appenglish-0uee.onrender.com",
+       //   url: "http://localhost:5000",
       },
     ],
 
@@ -54,13 +54,9 @@ const swaggerOptions = {
         name: "Questions",
         description: " Bài tập / câu hỏi cho tất cả kỹ năng ",
       },
-      {
+       {
         name: "Exams",
         description: " Chức năng Bài kiểm tra (15 phút / 45 phút) dành cho Giảng viên và Học sinh",
-      },
-       {
-        name: "Assignments",
-        description: "Thiết lập bài tập (Hạn nộp, công khai...) cho từng lớp/bài học",
       },
       {
         name: "Submissions",

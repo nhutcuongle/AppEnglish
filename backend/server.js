@@ -17,7 +17,6 @@ import vocabularyRoutes from "./routes/vocabulary.js";
 import grammarRoutes from "./routes/grammar.js";
 import questionRoutes from "./routes/question.js";
 import submissionRoutes from "./routes/submission.js";
-import assignmentRoutes from "./routes/assignment.js";
 import examRoutes from "./routes/exam.js";
 
 
@@ -41,7 +40,6 @@ app.use("/api/vocabularies", vocabularyRoutes);
 app.use("/api/grammar", grammarRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/submissions", submissionRoutes);
-app.use("/api/assignments", assignmentRoutes);
 app.use("/api/exams", examRoutes);
 
 

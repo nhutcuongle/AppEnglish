@@ -63,6 +63,12 @@ const lessonSchema = new mongoose.Schema(
       default: 1,
     },
 
+    deadline: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
     isPublished: {
       type: Boolean,
       default: true,

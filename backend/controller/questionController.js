@@ -1,7 +1,6 @@
 import Question from "../models/Question.js";
 import Lesson from "../models/Lesson.js";
 import Class from "../models/Class.js";
-import Assignment from "../models/Assignment.js";
 import Exam from "../models/Exam.js";
 
 /* ================= CREATE QUESTION ================= */
@@ -43,11 +42,26 @@ export const createQuestion = async (req, res) => {
         // School no longer strictly requires classId in bulk
       }
 
+      /* Get starting order number (query once for efficiency) */
+      const firstQuestion = questionsData[0];
+      const firstLesson = firstQuestion?.lessonId || targetLesson;
+      const firstClass = firstQuestion?.classId || req.body.classId;
+      const firstExam = firstQuestion?.examId || targetExamId;
+      
+      const lastQuestion = await Question.findOne({
+        lesson: firstLesson || null,
+        exam: firstExam || null,
+        class: firstClass || null,
+      }).sort({ order: -1 }).select("order");
+      
+      let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
+
       const createdQuestions = [];
       
       for (const qData of questionsData) {
         const {
-           lessonId: qLessonId, skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId
+           lessonId: qLessonId, skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
+           images, audios, videos
         } = qData;
 
         const finalLesson = qLessonId || targetLesson;
@@ -74,14 +88,6 @@ export const createQuestion = async (req, res) => {
           if (!exam || exam.class.toString() !== finalClass.toString()) continue;
         }
 
-        /* Auto Order */
-        const lastQuestion = await Question.findOne({
-            lesson: finalLesson || null,
-            exam: finalExam || null,
-            class: finalClass,
-        }).sort({ order: -1 }).select("order");
-        const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
-
         const newQuestion = await Question.create({
           lesson: isSchool ? (finalLesson || null) : null, // Teacher cannot link to Lesson
           exam: finalExam || null,
@@ -89,8 +95,10 @@ export const createQuestion = async (req, res) => {
           points: points || 1,
           class: finalClass || null,
           school: isSchool ? req.user._id : null,
-          order: nextOrder,
-          images: [], audios: [], videos: [] 
+          order: currentOrder++, // Auto-increment order
+          images: images || [], 
+          audios: audios || [], 
+          videos: videos || []
         });
         createdQuestions.push(newQuestion);
       }
@@ -186,12 +194,12 @@ export const createQuestion = async (req, res) => {
        }
     }
 
-    /* ===== SYNC ASSIGNMENT DEADLINE ===== */
+    /* ===== SYNC LESSON DEADLINE ===== */
     if (deadline) {
-      await Assignment.findOneAndUpdate(
-        { class: classId, lesson: lessonId },
+      await Lesson.findByIdAndUpdate(
+        lessonId,
         { deadline: deadline },
-        { upsert: true, new: true }
+        { new: true }
       );
     }
 
@@ -338,16 +346,15 @@ export const getQuestionsByLesson = async (req, res) => {
       .sort({ order: 1, createdAt: 1 })
       .lean();
 
-    /* ===== FETCH ASSIGNMENT SETTINGS (DEADLINE) ===== */
-    const assignment = await Assignment.findOne({
-      lesson: req.params.lessonId,
-      class: classId
-    }).select("deadline isPublished").lean();
+    /* ===== FETCH LESSON DEADLINE ===== */
+    const lesson = await Lesson.findById(req.params.lessonId)
+      .select("deadline")
+      .lean();
 
     res.json({
       total: questions.length,
       data: questions,
-      assignment: assignment || null, // Trả về deadline chung ở đây
+      deadline: lesson?.deadline || null, // Trả về deadline từ lesson
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -403,7 +410,6 @@ export const updateQuestion = async (req, res) => {
       "images",
       "audios",
       "videos",
-      "deadline",
       "points",
     ];
 
@@ -413,12 +419,12 @@ export const updateQuestion = async (req, res) => {
       }
     });
 
-    /* ===== SYNC ASSIGNMENT DEADLINE IF UPDATED ===== */
-    if (req.body.deadline !== undefined) {
-      await Assignment.findOneAndUpdate(
-        { class: question.class._id, lesson: question.lesson },
+    /* ===== SYNC LESSON DEADLINE IF UPDATED ===== */
+    if (req.body.deadline !== undefined && question.lesson) {
+      await Lesson.findByIdAndUpdate(
+        question.lesson,
         { deadline: req.body.deadline },
-        { upsert: true, new: true }
+        { new: true }
       );
     }
 
