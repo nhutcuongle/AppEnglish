@@ -10,6 +10,9 @@
  * /api/exams:
  *   post:
  *     summary: Tạo bài kiểm tra mới (Giảng viên)
+ *     description: >
+ *       Sử dụng để tạo khung (metadata) cho một bài kiểm tra 15p hoặc 45p.
+ *       Sau khi tạo xong, bạn lấy `_id` của bài kiểm tra để tiếp tục tạo câu hỏi ở mục **Questions**.
  *     tags: [Exams]
  *     security:
  *       - bearerAuth: []
@@ -18,26 +21,42 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [title, type, classId, startTime, endTime]
- *             properties:
- *               title:
- *                 type: string
- *                 example: "Kiểm tra 15 phút Unit 1"
- *               type:
- *                 type: string
- *                 enum: [15m, 45m]
- *               classId:
- *                 type: string
- *               startTime:
- *                 type: string
- *                 format: date-time
- *               endTime:
- *                 type: string
- *                 format: date-time
+ *             $ref: '#/components/schemas/ExamRequest'
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/ExamRequest'
  *     responses:
  *       201:
  *         description: Tạo thành công
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ExamRequest:
+ *       type: object
+ *       required: [title, type, classId, startTime, endTime]
+ *       properties:
+ *         title:
+ *           type: string
+ *           description: Tiêu đề bài kiểm tra
+ *           example: "Kiểm tra 15 phút Unit 1"
+ *         type:
+ *           type: string
+ *           enum: [15m, 45m]
+ *           description: Loại bài kiểm tra
+ *         classId:
+ *           type: string
+ *           description: ID của lớp mà bạn đang chủ nhiệm
+ *         startTime:
+ *           type: string
+ *           format: date-time
+ *           description: Thời gian bắt đầu làm bài
+ *         endTime:
+ *           type: string
+ *           format: date-time
+ *           description: Thời gian kết thúc/hết hạn nộp bài
  */
 
 /**
@@ -70,6 +89,23 @@
  *     requestBody:
  *       content:
  *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [15m, 45m]
+ *               startTime:
+ *                 type: string
+ *                 format: date-time
+ *               endTime:
+ *                 type: string
+ *                 format: date-time
+ *               isPublished:
+ *                 type: boolean
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:

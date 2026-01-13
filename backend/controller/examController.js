@@ -220,6 +220,18 @@ export const submitExam = async (req, res) => {
 export const getQuestionsByExam = async (req, res) => {
   try {
     const { id } = req.params;
+    const exam = await Exam.findById(id);
+
+    if (!exam) return res.status(404).json({ message: "Không tìm thấy bài kiểm tra" });
+
+    // Nếu là Học sinh, phải kiểm tra thời gian bắt đầu
+    if (req.user.role === "student") {
+      const now = new Date();
+      if (now < new Date(exam.startTime)) {
+        return res.status(403).json({ message: "Chưa đến giờ làm bài kiểm tra" });
+      }
+    }
+
     const questions = await Question.find({ exam: id }).sort({ order: 1 });
     res.json(questions);
   } catch (err) {
