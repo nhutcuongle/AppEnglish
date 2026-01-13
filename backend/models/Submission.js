@@ -39,7 +39,13 @@ const submissionSchema = new mongoose.Schema(
     lesson: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
-      required: true,
+      required: false,
+      index: true,
+    },
+    exam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Exam",
+      required: false,
       index: true,
     },
 

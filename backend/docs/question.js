@@ -11,10 +11,11 @@
  * @swagger
  * /api/questions:
  *   post:
- *     summary: Tạo question mới (Tạo đơn lẻ kèm media hoặc tạo hàng loạt) (Nhà trường)
+ *     summary: Tạo question mới (Tạo đơn lẻ kèm media hoặc tạo hàng loạt) (Nhà trường / Giảng viên)
  *     description: >
- *       - Chỉ nhà trường mới được tạo.
- *       - Nếu dùng multipart/form-data: Tạo 1 câu hỏi kèm upload ảnh/audio/video. Yêu cầu classId.
+ *       - Nhà trường: Tạo câu hỏi cho bài học (Lesson). Yêu cầu classId và lessonId.
+ *       - Giảng viên: Tạo câu hỏi cho bài kiểm tra (Exam). Yêu cầu classId và examId.
+ *       - Nếu dùng multipart/form-data: Tạo 1 câu hỏi kèm upload ảnh/audio/video.
  *       - Nếu dùng application/json: Có thể tạo 1 mảng câu hỏi (bulk create).
  *     tags: [Questions]
  *     security:
@@ -110,7 +111,12 @@
  *             properties:
  *               lessonId:
  *                 type: string
+ *                 description: ID của bài học (Nhà trường dùng)
  *                 example: "507f1f77bcf86cd799439011"
+ *               examId:
+ *                 type: string
+ *                 description: ID của bài kiểm tra (Giảng viên dùng)
+ *                 example: "507f1f77bcf86cd799439099"
  *               classId:
  *                 type: string
  *                 description: Required if creating questions for a specific class in bulk
@@ -145,6 +151,9 @@
  *                       type: string
  *                     isPublished:
  *                       type: boolean
+ *                     examId:
+ *                       type: string
+ *                       description: Gắn trực tiếp examId vào từng câu (nếu cần)
  *     responses:
  *       201:
  *         description: Tạo thành công

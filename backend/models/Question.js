@@ -16,7 +16,13 @@ const questionSchema = new mongoose.Schema(
     lesson: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
-      required: true,
+      required: false, // Optional if it's an exam
+      index: true,
+    },
+    exam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Exam",
+      required: false,
       index: true,
     },
     class: {
