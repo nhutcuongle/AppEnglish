@@ -221,6 +221,26 @@ class ApiService {
     }
   }
 
+  // Assign/Unassign teacher to class
+  static Future<Map<String, dynamic>> assignTeacherToClass({
+    required String classId,
+    String? teacherId, // null to unassign
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/classes/assign-teacher'),
+        headers: _headers,
+        body: jsonEncode({
+          'classId': classId,
+          'teacherId': teacherId,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
   // ==================== STUDENTS ====================
   
   static Future<List<dynamic>> getStudents() async {
@@ -243,24 +263,29 @@ class ApiService {
   static Future<Map<String, dynamic>> createStudent({
     required String username,
     required String password,
+    String? email,
     String? fullName,
     String? phone,
     String? gender,
     String? dateOfBirth,
-    List<String>? classes,
+    String? classId, // Changed from classes array to classId
   }) async {
     try {
+      // Generate email from username if not provided
+      final studentEmail = email ?? '$username@student.school.edu.vn';
+      
       final response = await http.post(
         Uri.parse('$baseUrl/users/students'),
         headers: _headers,
         body: jsonEncode({
           'username': username,
+          'email': studentEmail,
           'password': password,
           'fullName': fullName ?? '',
           'phone': phone ?? '',
           'gender': gender ?? '',
           'dateOfBirth': dateOfBirth,
-          'classes': classes ?? [],
+          'classId': classId,
         }),
       );
       return jsonDecode(response.body);

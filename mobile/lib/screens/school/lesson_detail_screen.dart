@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import 'question_management_screen.dart';
 
 class LessonDetailScreen extends StatefulWidget {
   final Map<String, dynamic> lesson;
@@ -21,9 +22,6 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     super.initState();
     _lesson = widget.lesson;
   }
-  
-  // Reuse code from lesson_screen for editing if needed, or just show content
-  // Để đơn giản, ta chỉ hiển thị nội dung. Title, Content, Media.
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +93,19 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             ],
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => QuestionManagementScreen(
+              lessonId: _lesson['id'],
+              lessonTitle: _lesson['title'],
+            ),
+          ));
+        },
+        backgroundColor: color,
+        icon: const Icon(Icons.quiz, color: Colors.white),
+        label: const Text('Câu hỏi', style: TextStyle(color: Colors.white)),
       ),
     );
   }

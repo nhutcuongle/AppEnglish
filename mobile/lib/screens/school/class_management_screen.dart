@@ -24,18 +24,46 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
   Future<void> _loadClasses() async {
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getClasses();
+      // Fetch classes and students in parallel
+      final results = await Future.wait([
+        ApiService.getClasses(),
+        ApiService.getStudents(),
+      ]);
+      final classData = results[0] as List;
+      final studentsData = results[1] as List;
+      
+      // Build gender counts per class
+      final Map<String, int> maleCountMap = {};
+      final Map<String, int> femaleCountMap = {};
+      
+      for (var student in studentsData) {
+        // Get class name from student's class field
+        String? className;
+        if (student['class'] is Map) {
+          className = student['class']['name']?.toString();
+        }
+        if (className != null && className.isNotEmpty) {
+          final gender = student['gender']?.toString().toLowerCase() ?? '';
+          if (gender == 'male' || gender == 'nam') {
+            maleCountMap[className] = (maleCountMap[className] ?? 0) + 1;
+          } else if (gender == 'female' || gender == 'nữ' || gender == 'nu') {
+            femaleCountMap[className] = (femaleCountMap[className] ?? 0) + 1;
+          }
+        }
+      }
+      
       setState(() {
-        _classes = data.map<Map<String, dynamic>>((c) {
+        _classes = classData.map<Map<String, dynamic>>((c) {
+          final className = c['name']?.toString() ?? '';
           return {
             'id': c['_id']?.toString() ?? '',
-            'name': c['name']?.toString() ?? '',
+            'name': className,
             'grade': c['grade'] ?? 10,
             'homeroomTeacher': c['homeroomTeacher']?['fullName'] ?? c['homeroomTeacher']?['username'] ?? 'Chưa có',
             'homeroomTeacherId': c['homeroomTeacher']?['_id']?.toString(),
-            'studentCount': c['studentCount'] ?? (c['students'] as List?)?.length ?? 0,
-            'maleCount': 0,
-            'femaleCount': 0,
+            'studentCount': (c['students'] as List?)?.length ?? c['studentCount'] ?? 0,
+            'maleCount': maleCountMap[className] ?? 0,
+            'femaleCount': femaleCountMap[className] ?? 0,
             'status': c['isActive'] == true ? 'active' : 'inactive',
           };
         }).toList();
