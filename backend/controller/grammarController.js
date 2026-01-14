@@ -40,12 +40,60 @@ export const createGrammar = async (req, res) => {
         order: index + 1,
       })) || [];
 
-    const videos =
+    /* ===== VIDEO (UPLOAD + YOUTUBE) ===== */
+
+    // caption cho video upload
+    const videoCaptions = Array.isArray(req.body.videoCaptions)
+      ? req.body.videoCaptions
+      : req.body.videoCaptions
+      ? [req.body.videoCaptions]
+      : [];
+
+    // video upload từ máy
+    const uploadVideos =
       req.files?.videos?.map((file, index) => ({
+        type: "upload",
         url: file.path,
-        caption: "",
+        caption: videoCaptions[index] || "",
         order: index + 1,
       })) || [];
+
+    // ===== YOUTUBE URL =====
+    const youtubeUrls = Array.isArray(req.body.youtubeVideos)
+      ? req.body.youtubeVideos
+      : req.body.youtubeVideos
+      ? [req.body.youtubeVideos]
+      : [];
+
+    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions)
+      ? req.body.youtubeVideoCaptions
+      : req.body.youtubeVideoCaptions
+      ? [req.body.youtubeVideoCaptions]
+      : [];
+
+    const youtubeVideos = youtubeUrls.map((url, index) => {
+      // Regex support:
+      // - https://youtu.be/ID
+      // - https://www.youtube.com/watch?v=ID
+      // - https://www.youtube.com/watch?v=ID&list=...
+      // - https://www.youtube.com/watch?param=...&v=ID
+      // - https://www.youtube.com/embed/ID
+      const match = url.match(
+        /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+      );
+      const youtubeId = match && match[2].length === 11 ? match[2] : null;
+
+      return {
+        type: "youtube",
+        url,
+        youtubeId,
+        caption: youtubeCaptions[index] || "",
+        order: uploadVideos.length + index + 1,
+      };
+    });
+
+    // ===== GỘP CHUNG =====
+    const videos = [...uploadVideos, ...youtubeVideos];
 
     const grammar = await Grammar.create({
       lesson,

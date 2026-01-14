@@ -58,17 +58,43 @@
  *                   type: string
  *                   format: binary
  *
+ *               imageCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
+ * 
  *               audios:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
  *
+ *               audioCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
+ * 
  *               videos:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
+ * 
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of YouTube URLs
+ *
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       201:
  *         description: Tạo grammar thành công
@@ -145,6 +171,11 @@
  *                       type: string
  *                     order:
  *                       type: number
+ *                     type:
+ *                       type: string
+ *                       enum: [upload, youtube]
+ *                     youtubeId:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Cập nhật grammar thành công

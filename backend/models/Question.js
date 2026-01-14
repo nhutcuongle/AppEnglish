@@ -3,12 +3,35 @@ import mongoose from "mongoose";
 /* ===== MEDIA SCHEMA ===== */
 const mediaSchema = new mongoose.Schema(
   {
-    url: { type: String, required: true },
-    caption: { type: String, default: "" },
-    order: { type: Number, default: 0 },
+    type: {
+      type: String,
+      enum: ["upload", "youtube"],
+      default: "upload",
+    },
+
+    url: {
+      type: String,
+      required: true,
+    },
+
+    youtubeId: {
+      type: String,
+      default: null,
+    },
+
+    caption: {
+      type: String,
+      default: "",
+    },
+
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   { _id: false }
 );
+
 
 /* ===== QUESTION SCHEMA ===== */
 const questionSchema = new mongoose.Schema(

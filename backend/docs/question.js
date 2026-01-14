@@ -120,6 +120,15 @@
  *                 type: array
  *                 items:
  *                   type: string
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of YouTube URLs
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *         application/json:
  *           schema:
  *             type: object
@@ -221,6 +230,11 @@
  *                           order:
  *                             type: number
  *                             example: 1
+ *                           type:
+ *                             type: string
+ *                             enum: [upload, youtube]
+ *                           youtubeId:
+ *                             type: string
  *     responses:
  *       201:
  *         description: Tạo thành công
@@ -228,7 +242,7 @@
  *         description: Dữ liệu không hợp lệ
  *       403:
  *         description: Không có quyền truy cập (Chỉ Nhà trường được phép)
- */
+ * */
 
 /**
  * @swagger
@@ -269,6 +283,20 @@
  *                 type: array
  *               videos:
  *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     caption:
+ *                       type: string
+ *                     order:
+ *                       type: number
+ *                     type:
+ *                       type: string
+ *                       enum: [upload, youtube]
+ *                     youtubeId:
+ *                       type: string
  *               deadline:
  *                 type: string
  *                 format: date-time
