@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/login_screen.dart';
+import 'package:apptienganh10/screens/school/school_home_screen.dart';
+import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
+import 'package:apptienganh10/home_screen.dart';
+import 'package:apptienganh10/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Sử dụng API backend thay vì kết nối MongoDB trực tiếp
+  // Initialize AuthService to load saved token
+  await AuthService.init();
   runApp(const MyApp());
 }
 
@@ -20,7 +25,23 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const LoginScreen(),
+      home: _getInitialScreen(),
     );
   }
+
+  Widget _getInitialScreen() {
+    // Check if user is logged in with valid token
+    if (AuthService.isLoggedIn) {
+      final role = AuthService.userRole;
+      if (role == 'school' || role == 'admin') {
+        return const SchoolHomeScreen();
+      } else if (role == 'teacher') {
+        return const TeacherHomeScreen();
+      } else {
+        return const HomeScreen();
+      }
+    }
+    return const LoginScreen();
+  }
 }
+

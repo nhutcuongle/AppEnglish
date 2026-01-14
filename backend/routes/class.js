@@ -1,12 +1,12 @@
 import express from "express";
 import {
-  createClass,
-  assignTeacherToClass,
-  getAllClasses,
-  getClassDetail,
-  updateClass,
-  deleteClass,
-  getTeacherClasses,
+   createClass,
+   assignTeacherToClass,
+   getAllClasses,
+   getClassDetail,
+   updateClass,
+   deleteClass,
+   getTeacherClasses,
 } from "../controller/classController.js";
 
 import { authenticate, isSchool, isTeacher } from "../middlewares/authMiddleware.js";
@@ -47,10 +47,10 @@ router.delete("/:id", authenticate, isSchool, deleteClass);
    ASSIGN / CHANGE TEACHER (School)
 ===================================================== */
 router.post(
-  "/assign-teacher",
-  authenticate,
-  isSchool,
-  assignTeacherToClass
+   "/assign-teacher",
+   authenticate,
+   isSchool,
+   assignTeacherToClass
 );
 
 export default router;

@@ -47,6 +47,17 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       final data = await ApiService.getStudents();
       setState(() {
         _students = data.map<Map<String, dynamic>>((s) {
+          // Extract class name from populated 'class' object
+          List<String> classList = [];
+          if (s['class'] != null) {
+            if (s['class'] is Map) {
+              final className = s['class']['name']?.toString();
+              if (className != null && className.isNotEmpty) classList.add(className);
+            } else if (s['class'] is String) {
+              classList.add(s['class']);
+            }
+          }
+          
           return {
             'id': s['_id']?.toString() ?? '',
             'name': (s['fullName'] != null && s['fullName'].toString().isNotEmpty) ? s['fullName'] : (s['username']?.toString() ?? 'Chưa có tên'),
@@ -54,7 +65,8 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             'phone': s['phone']?.toString() ?? '',
             'gender': s['gender']?.toString() ?? '',
             'dateOfBirth': s['dateOfBirth']?.toString() ?? '',
-            'classes': s['classes'] ?? [],
+            'classes': classList,
+            'classId': s['class'] is Map ? s['class']['_id']?.toString() : (s['class']?.toString() ?? ''),
             'status': s['isDisabled'] == true ? 'inactive' : 'active',
           };
         }).toList();
@@ -474,21 +486,24 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             builder: (c) => const Center(child: CircularProgressIndicator()),
           );
           
+          // Update basic info including gender
           final Map<String, dynamic> updateData = {
             'username': updatedStudent['username'],
             'fullName': updatedStudent['name'],
             'email': updatedStudent['email'],
             'phone': updatedStudent['phone'],
-            'classes': updatedStudent['classes'], // Should be [newClass] only
+            'gender': updatedStudent['gender'],
+            'dateOfBirth': updatedStudent['dateOfBirth'],
             'isDisabled': updatedStudent['status'] == 'active' ? false : true,
           };
           if (updatedStudent['password'] != null && updatedStudent['password'].toString().isNotEmpty) {
             updateData['password'] = updatedStudent['password'];
           }
 
-          print('DEBUG: Updating student with classes: ${updateData['classes']}');
-
           final result = await ApiService.updateStudent(updatedStudent['id'], updateData);
+          
+          // Note: Class update not supported by current API
+          // Backend updateStudent deletes 'class' field before update
           
           Navigator.pop(context); // Close loading
           Navigator.pop(ctx); // Close form
@@ -498,21 +513,8 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
               SnackBar(content: Text('Lỗi cập nhật: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           } else {
-            // Use API response to update local state
-            final updatedFromApi = {
-              'id': result['_id'] ?? updatedStudent['id'],
-              'name': result['fullName'] ?? updatedStudent['name'],
-              'username': result['username'] ?? updatedStudent['username'],
-              'email': result['email'] ?? updatedStudent['email'],
-              'phone': result['phone'] ?? updatedStudent['phone'],
-              'classes': result['classes'] ?? updatedStudent['classes'],
-              'status': result['isDisabled'] == true ? 'inactive' : 'active',
-            };
-            print('DEBUG: API returned classes: ${result['classes']}');
-            setState(() {
-              int index = _students.indexWhere((t) => t['id'] == student['id']);
-              if (index != -1) _students[index] = updatedFromApi;
-            });
+            // Reload from API to get correct data
+            await _loadStudents();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: const Text('Đã cập nhật thông tin học sinh!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
@@ -608,6 +610,20 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             builder: (c) => const Center(child: CircularProgressIndicator()),
           );
           
+          // Lookup classId from class name
+          String? classId;
+          final classList = newStudent['classes'] as List?;
+          if (classList != null && classList.isNotEmpty) {
+            final className = classList.first.toString();
+            final allClasses = await ApiService.getClasses();
+            for (var c in allClasses) {
+              if (c['name']?.toString() == className) {
+                classId = c['_id']?.toString();
+                break;
+              }
+            }
+          }
+          
           final result = await ApiService.createStudent(
             username: newStudent['username'] ?? newStudent['name'],
             password: newStudent['password'] ?? '123456',
@@ -615,7 +631,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
             phone: newStudent['phone'],
             gender: newStudent['gender'],
             dateOfBirth: newStudent['dateOfBirth'],
-            classes: newStudent['classes'] != null ? List<String>.from(newStudent['classes']) : [],
+            classId: classId,
           );
 
 

@@ -22,16 +22,36 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
   Future<void> _loadTeachers() async {
     setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getTeachers();
+      // Fetch both teachers and classes
+      final teachersData = await ApiService.getTeachers();
+      final classesData = await ApiService.getClasses();
+      
+      // Build a map of teacherId -> list of class names
+      final Map<String, List<String>> teacherClassesMap = {};
+      for (var c in classesData) {
+        final homeroomTeacher = c['homeroomTeacher'];
+        String? teacherId;
+        if (homeroomTeacher is Map) {
+          teacherId = homeroomTeacher['_id']?.toString();
+        } else if (homeroomTeacher is String) {
+          teacherId = homeroomTeacher;
+        }
+        if (teacherId != null && teacherId.isNotEmpty) {
+          teacherClassesMap.putIfAbsent(teacherId, () => []);
+          teacherClassesMap[teacherId]!.add(c['name']?.toString() ?? '');
+        }
+      }
+      
       setState(() {
-        _teachers = data.map<Map<String, dynamic>>((t) {
+        _teachers = teachersData.map<Map<String, dynamic>>((t) {
+          final teacherId = t['_id']?.toString() ?? '';
           return {
-            'id': t['_id']?.toString() ?? '',
+            'id': teacherId,
             'name': (t['fullName'] != null && t['fullName'].toString().isNotEmpty) ? t['fullName'] : (t['username']?.toString() ?? 'Chưa có tên'),
             'username': t['username']?.toString() ?? '',
             'email': t['email']?.toString() ?? '',
             'phone': t['phone']?.toString() ?? '',
-            'classes': t['classes'] ?? [],
+            'classes': teacherClassesMap[teacherId] ?? [],
             'status': t['isDisabled'] == true ? 'inactive' : 'active',
           };
         }).toList();
@@ -432,6 +452,9 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
   }
 
   void _showEditTeacherDialog(BuildContext context, Map<String, dynamic> teacher) {
+    // Save old classes for comparison
+    final List<String> oldClasses = List<String>.from(teacher['classes'] ?? []);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -451,14 +474,47 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
             'fullName': updatedTeacher['name'],
             'email': updatedTeacher['email'],
             'phone': updatedTeacher['phone'],
-            'classes': updatedTeacher['classes'],
             'isDisabled': updatedTeacher['status'] == 'active' ? false : true,
           };
           if (updatedTeacher['password'] != null && updatedTeacher['password'].toString().isNotEmpty) {
             updateData['password'] = updatedTeacher['password'];
           }
 
+          // Update teacher basic info
           final result = await ApiService.updateTeacher(updatedTeacher['id'], updateData);
+          
+          if (result['error'] == null) {
+            // Handle class assignments
+            final List<String> newClasses = List<String>.from(updatedTeacher['classes'] ?? []);
+            final teacherId = updatedTeacher['id'];
+            
+            // Get all classes to find classIds
+            final allClasses = await ApiService.getClasses();
+            final Map<String, String> classNameToId = {};
+            for (var c in allClasses) {
+              classNameToId[c['name']?.toString() ?? ''] = c['_id']?.toString() ?? '';
+            }
+            
+            // Unassign from removed classes
+            for (final className in oldClasses) {
+              if (!newClasses.contains(className)) {
+                final classId = classNameToId[className];
+                if (classId != null && classId.isNotEmpty) {
+                  await ApiService.assignTeacherToClass(classId: classId, teacherId: null);
+                }
+              }
+            }
+            
+            // Assign to new classes
+            for (final className in newClasses) {
+              if (!oldClasses.contains(className)) {
+                final classId = classNameToId[className];
+                if (classId != null && classId.isNotEmpty) {
+                  await ApiService.assignTeacherToClass(classId: classId, teacherId: teacherId);
+                }
+              }
+            }
+          }
           
           Navigator.pop(context); // Close loading
           Navigator.pop(ctx); // Close form
@@ -468,10 +524,8 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
               SnackBar(content: Text('Lỗi cập nhật: ${result['error']}'), backgroundColor: const Color(0xFFEF4444), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
           } else {
-             setState(() {
-              int index = _teachers.indexWhere((t) => t['id'] == teacher['id']);
-              if (index != -1) _teachers[index] = updatedTeacher;
-            });
+            // Reload from API to get correct data (including updated classes)
+            await _loadTeachers();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: const Text('Đã cập nhật thông tin giáo viên!'), backgroundColor: const Color(0xFF2196F3), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.all(16)),
             );
@@ -757,6 +811,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
   late TextEditingController _passwordController;
   List<String> _selectedClasses = [];
   List<String> _allClasses = [];
+  Map<String, String> _classTeacherMap = {}; // className -> teacherId
+  Map<String, String> _classTeacherNameMap = {}; // className -> teacherName
   bool _isLoadingClasses = true;
 
   bool get isEditing => widget.teacher != null;
@@ -779,7 +835,32 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
       final classesData = await ApiService.getClasses();
       if (mounted) {
         setState(() {
-          _allClasses = classesData.map<String>((e) => e['name'].toString()).toList();
+          _allClasses = [];
+          _classTeacherMap = {};
+          _classTeacherNameMap = {};
+          for (var c in classesData) {
+            final className = c['name']?.toString() ?? '';
+            _allClasses.add(className);
+            
+            // Extract homeroom teacher info
+            final homeroomTeacher = c['homeroomTeacher'];
+            if (homeroomTeacher != null) {
+              String? teacherId;
+              String? teacherName;
+              if (homeroomTeacher is Map) {
+                teacherId = homeroomTeacher['_id']?.toString();
+                teacherName = homeroomTeacher['fullName']?.toString() ?? homeroomTeacher['username']?.toString();
+              } else if (homeroomTeacher is String && homeroomTeacher.isNotEmpty) {
+                teacherId = homeroomTeacher;
+              }
+              if (teacherId != null && teacherId.isNotEmpty) {
+                _classTeacherMap[className] = teacherId;
+                if (teacherName != null && teacherName.isNotEmpty) {
+                  _classTeacherNameMap[className] = teacherName;
+                }
+              }
+            }
+          }
           _allClasses.sort(); // Sort classes alphabetically
           _isLoadingClasses = false;
         });
@@ -945,6 +1026,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
   }
 
   Widget _buildClassSelector() {
+    final currentTeacherId = widget.teacher?['id']?.toString();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -956,16 +1039,58 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
                 spacing: 8, runSpacing: 8,
                 children: _allClasses.map((c) {
             bool isSelected = _selectedClasses.contains(c);
-            return GestureDetector(
-              onTap: () => setState(() => isSelected ? _selectedClasses.remove(c) : _selectedClasses.add(c)),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
+            
+            // Check if class already has a different teacher
+            final assignedTeacherId = _classTeacherMap[c];
+            final isAssignedToOther = assignedTeacherId != null && 
+                assignedTeacherId.isNotEmpty && 
+                assignedTeacherId != currentTeacherId;
+            final assignedTeacherName = _classTeacherNameMap[c];
+            
+            // Determine colors based on state
+            Color backgroundColor;
+            Color borderColor;
+            Color textColor;
+            
+            if (isSelected) {
+              backgroundColor = const Color(0xFF2196F3);
+              borderColor = const Color(0xFF2196F3);
+              textColor = Colors.white;
+            } else if (isAssignedToOther) {
+              // Orange tint to indicate has another teacher, but still selectable
+              backgroundColor = const Color(0xFFFFF7ED);
+              borderColor = const Color(0xFFFED7AA);
+              textColor = const Color(0xFFEA580C);
+            } else {
+              backgroundColor = const Color(0xFFF8FAFC);
+              borderColor = const Color(0xFFE3F2FD);
+              textColor = const Color(0xFF64748B);
+            }
+            
+            return Tooltip(
+              message: isAssignedToOther 
+                  ? 'GV: ${assignedTeacherName ?? 'Chưa rõ'} (chọn để chuyển sang)'
+                  : '',
+              child: GestureDetector(
+                onTap: () => setState(() => isSelected ? _selectedClasses.remove(c) : _selectedClasses.add(c)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+                      if (isAssignedToOther && !isSelected) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.swap_horiz, size: 14, color: textColor),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B))),
               ),
             );
           }).toList(),

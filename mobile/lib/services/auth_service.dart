@@ -13,6 +13,8 @@ class AuthService {
   static String? get currentTeacherId => _userData?['_id'];
   static String? get currentUserId => _userData?['_id'];
   static bool get isLoggedIn => _token != null;
+  static String? get userRole => _userData?['role'];
+  static Map<String, dynamic>? get userData => _userData;
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
