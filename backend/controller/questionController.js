@@ -296,32 +296,45 @@ export const createQuestionForTeacher = async (req, res) => {
 /* ================= GET QUESTIONS BY LESSON ================= */
 export const getQuestionsByLesson = async (req, res) => {
   try {
-    let classId = null;
+    let query = { lesson: req.params.lessonId };
 
     if (req.user.role === "student") {
       if (!req.user.class) return res.status(403).json({ message: "Học sinh chưa được xếp lớp" });
-      classId = req.user.class;
+      const classId = req.user.class;
+      const targetClass = await Class.findById(classId).select("school");
+      const schoolId = targetClass ? targetClass.school : null;
+
+      query = {
+        lesson: req.params.lessonId,
+        $or: [
+          { class: classId },
+          { class: null, school: schoolId }
+        ],
+        isPublished: true,
+      };
     } else if (req.user.role === "teacher") {
       const teacherClass = await Class.findOne({ homeroomTeacher: req.user._id, isActive: true });
       if (!teacherClass) return res.status(403).json({ message: "Bạn không phải giáo viên chủ nhiệm lớp nào" });
-      classId = teacherClass._id;
+      const classId = teacherClass._id;
+      const schoolId = teacherClass.school;
+
+      query = {
+        lesson: req.params.lessonId,
+        $or: [
+          { class: classId },
+          { class: null, school: schoolId }
+        ],
+        isPublished: true,
+      };
     } else if (req.user.role === "school") {
-       return res.status(403).json({ message: "Nhà trường cần gửi classId cụ thể (chưa implement qua query)" });
+      // School can see all questions they created for this lesson
+      query = {
+        lesson: req.params.lessonId,
+        school: req.user._id,
+      };
     }
 
-    let schoolId = null;
-    const targetClass = await Class.findById(classId).select("school");
-    if (targetClass) schoolId = targetClass.school;
-
-    const questions = await Question.find({
-      lesson: req.params.lessonId,
-      $or: [
-        { class: classId },
-        { class: null, school: schoolId }
-      ],
-      isPublished: true,
-    }).sort({ order: 1, createdAt: 1 }).lean();
-
+    const questions = await Question.find(query).sort({ order: 1, createdAt: 1 }).lean();
     const lesson = await Lesson.findById(req.params.lessonId).select("deadline").lean();
 
     res.json({
@@ -333,7 +346,6 @@ export const getQuestionsByLesson = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 /* ================= UPDATE QUESTION ================= */
 export const updateQuestion = async (req, res) => {
   try {
