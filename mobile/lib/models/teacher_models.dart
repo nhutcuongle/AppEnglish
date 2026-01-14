@@ -9,6 +9,8 @@ class Assignment {
   final String type; // "15m" hoặc "45m"
   final String? unit; 
   final int? timeLimit; 
+  final String? semester; // "1" hoặc "2"
+  final String? academicYear; // "2023-2024"
 
   Assignment({
     required this.id,
@@ -21,6 +23,8 @@ class Assignment {
     required this.type,
     this.unit,
     this.timeLimit,
+    this.semester,
+    this.academicYear,
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
@@ -36,7 +40,7 @@ class Assignment {
     return Assignment(
       id: json['_id']?.toString() ?? '',
       title: json['title'] ?? '',
-      description: cname != null ? 'Lớp: $cname' : (json['description'] ?? ''),
+      description: json['description'] ?? (cname != null ? 'Lớp: $cname' : ''),
       startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : DateTime.now(),
       deadline: json['endTime'] != null ? DateTime.parse(json['endTime']) : DateTime.now(),
       teacherId: (json['teacher'] is Map) ? json['teacher']['_id']?.toString() ?? '' : (json['teacher']?.toString() ?? ''),
@@ -44,6 +48,37 @@ class Assignment {
       type: json['type'] ?? '15m',
       unit: json['type'] == '15m' ? '15 Phút' : '45 Phút',
       timeLimit: json['type'] == '15m' ? 15 : 45,
+      semester: json['semester']?.toString(),
+      academicYear: json['academicYear']?.toString(),
+    );
+  }
+}
+
+class SchoolAssignment {
+  final String id;
+  final String classId;
+  final String lessonId;
+  final DateTime? deadline;
+  final String description;
+  final bool isPublished;
+
+  SchoolAssignment({
+    required this.id,
+    required this.classId,
+    required this.lessonId,
+    this.deadline,
+    required this.description,
+    required this.isPublished,
+  });
+
+  factory SchoolAssignment.fromJson(Map<String, dynamic> json) {
+    return SchoolAssignment(
+      id: json['_id']?.toString() ?? '',
+      classId: (json['class'] is Map) ? json['class']['_id']?.toString() ?? '' : json['class']?.toString() ?? '',
+      lessonId: (json['lesson'] is Map) ? json['lesson']['_id']?.toString() ?? '' : json['lesson']?.toString() ?? '',
+      deadline: json['deadline'] != null ? DateTime.parse(json['deadline']) : null,
+      description: json['description'] ?? '',
+      isPublished: json['isPublished'] ?? true,
     );
   }
 }
@@ -139,6 +174,7 @@ class Submission {
   final double? score;
   final String? comment;
   final DateTime submittedAt;
+  final Map<String, dynamic>? skillScores;
 
   Submission({
     required this.id,
@@ -147,6 +183,7 @@ class Submission {
     this.score,
     this.comment,
     required this.submittedAt,
+    this.skillScores,
   });
 
   factory Submission.fromJson(Map<String, dynamic> json) {
@@ -157,6 +194,7 @@ class Submission {
       score: json['totalScore'] != null ? (json['totalScore'] as num).toDouble() : null,
       comment: json['comment'],
       submittedAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      skillScores: json['scores'] != null ? Map<String, dynamic>.from(json['scores']) : null,
     );
   }
 }

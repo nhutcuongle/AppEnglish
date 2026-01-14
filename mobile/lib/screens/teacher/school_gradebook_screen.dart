@@ -4,6 +4,7 @@ import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/screens/teacher/submission_detail_view_screen.dart';
 import 'package:apptienganh10/widgets/audio_player_widget.dart';
 import 'package:apptienganh10/widgets/media_preview_dialog.dart';
+import 'package:intl/intl.dart';
 
 class SchoolGradebookScreen extends StatefulWidget {
   const SchoolGradebookScreen({super.key});
@@ -66,9 +67,8 @@ class _SchoolGradebookScreenState extends State<SchoolGradebookScreen> {
 
   Future<void> _loadScores(String lessonId, String classId) async {
     setState(() => _isLoading = true);
-    // Note: To filter by class on client side or if API supports it
-    // Using getScoresByLesson and then filtering locally by class
-    final allScores = await ApiService.getScoresByLesson(lessonId);
+    // Note: Filtering by class via API
+    final allScores = await ApiService.getScoresByLesson(lessonId, classId: classId);
     
     // Get students in this class to ensure we show everyone
     final studentsInClass = await ApiService.getStudentsByClassForTeacher(classId);
@@ -90,6 +90,131 @@ class _SchoolGradebookScreenState extends State<SchoolGradebookScreen> {
       _scores = combinedData;
       _isLoading = false;
     });
+  }
+
+  Future<void> _showAssignmentSettings() async {
+    if (_selectedLessonId == null || _selectedClassId == null) return;
+
+    setState(() => _isLoading = true);
+    final settings = await ApiService.getAssignmentSettings(_selectedLessonId!, classId: _selectedClassId);
+    setState(() => _isLoading = false);
+
+    DateTime? deadline = settings != null && settings['deadline'] != null 
+        ? DateTime.parse(settings['deadline']) 
+        : null;
+    final descController = TextEditingController(text: settings?['description'] ?? '');
+    bool isPublished = settings?['isPublished'] ?? true;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Cài đặt Giao bài', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              
+              const Text('Hạn nộp bài', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
+                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (pickedDate != null) {
+                    final pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(deadline ?? DateTime.now()),
+                    );
+                    if (pickedTime != null) {
+                      setModalState(() {
+                        deadline = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute);
+                      });
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 18, color: Colors.blue),
+                      const SizedBox(width: 12),
+                      Text(deadline == null ? 'Chưa đặt hạn nộp' : DateFormat('dd/MM/yyyy HH:mm').format(deadline!)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              const Text('Hướng dẫn/Mô tả', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descController,
+                decoration: InputDecoration(
+                  hintText: 'Nhập hướng dẫn cho học sinh...',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Công khai bài tập', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Switch(
+                    value: isPublished,
+                    onChanged: (val) => setModalState(() => isPublished = val),
+                    activeColor: Colors.blue,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  onPressed: () async {
+                    final res = await ApiService.createOrUpdateAssignment({
+                      'lessonId': _selectedLessonId,
+                      'classId': _selectedClassId,
+                      'deadline': deadline?.toIso8601String(),
+                      'description': descController.text,
+                      'isPublished': isPublished,
+                    });
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cập nhật giao bài thành công!')));
+                    }
+                  },
+                  child: const Text('LƯU CÀI ĐẶT', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _onUnitSelected(dynamic unit) {
@@ -454,50 +579,103 @@ class _SchoolGradebookScreenState extends State<SchoolGradebookScreen> {
         final student = data['student'];
         final submission = data['submission'];
         
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.withOpacity(0.1),
-              child: Text((student['fullName'] ?? '?')[0].toUpperCase(), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-            ),
-            title: Text(student['fullName'] ?? student['username'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))),
-            subtitle: Text(submission == null ? 'Chưa làm bài' : 'Đã nộp bài', style: TextStyle(color: submission == null ? Colors.orange : Colors.green, fontSize: 13, fontWeight: FontWeight.w500)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (submission != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: (submission['totalScore'] >= 5 ? Colors.green : Colors.red).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${submission['totalScore']}',
-                      style: TextStyle(
-                        fontSize: 14, 
-                        fontWeight: FontWeight.bold,
-                        color: submission['totalScore'] >= 5 ? Colors.green[700] : Colors.red[700]
-                      ),
-                    ),
-                  )
-                else
-                  const Text('-', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: Colors.grey),
-              ],
-            ),
-            onTap: submission != null ? () => _viewDetail(submission, student['fullName'] ?? student['username']) : null,
-          ),
-        );
+        if (i == 0) {
+           return Column(
+             children: [
+               _buildAssignmentInfoCard(),
+               const SizedBox(height: 16),
+               _buildStudentTile(student, submission),
+             ],
+           );
+        }
+        
+        return _buildStudentTile(student, submission);
       },
+    );
+  }
+
+  Widget _buildAssignmentInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+                child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 15),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Trạng thái giao bài', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('Quản lý thời hạn và hướng dẫn', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _showAssignmentSettings,
+                icon: const Icon(Icons.settings_suggest_rounded, color: Colors.blue),
+                tooltip: 'Cài đặt giao bài',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentTile(dynamic student, dynamic submission) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue.withOpacity(0.1),
+          child: Text((student['fullName'] ?? '?')[0].toUpperCase(), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+        ),
+        title: Text(student['fullName'] ?? student['username'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+        subtitle: Text(submission == null ? 'Chưa làm bài' : 'Đã nộp bài', style: TextStyle(color: submission == null ? Colors.orange : Colors.green, fontSize: 13, fontWeight: FontWeight.w500)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (submission != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (submission['totalScore'] >= 5 ? Colors.green : Colors.red).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${submission['totalScore']}',
+                  style: TextStyle(
+                    fontSize: 14, 
+                    fontWeight: FontWeight.bold,
+                    color: submission['totalScore'] >= 5 ? Colors.green[700] : Colors.red[700]
+                  ),
+                ),
+              )
+            else
+              const Text('-', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+        onTap: submission != null ? () => _viewDetail(submission, student['fullName'] ?? student['username']) : null,
+      ),
     );
   }
 

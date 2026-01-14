@@ -1,74 +1,87 @@
-// import Assignment from "../models/Assignment.js";
-// import Class from "../models/Class.js";
+import Assignment from "../models/Assignment.js";
+import Class from "../models/Class.js";
 
-// /* ================= CREATE OR UPDATE ASSIGNMENT ================= */
-// export const createOrUpdateAssignment = async (req, res) => {
-//   try {
-//     const { lessonId, deadline, isPublished } = req.body;
+/* ================= CREATE OR UPDATE ASSIGNMENT ================= */
+export const createOrUpdateAssignment = async (req, res) => {
+    try {
+        const { lessonId, classId, deadline, description, isPublished } = req.body;
 
-//     if (!lessonId) {
-//       return res.status(400).json({ message: "Thiếu lessonId" });
-//     }
+        if (!lessonId) {
+            return res.status(400).json({ message: "Thiếu lessonId" });
+        }
 
-//     /* Kiểm tra giáo viên chủ nhiệm để xác định lớp */
-//     const teacherClass = await Class.findOne({
-//       homeroomTeacher: req.user._id,
-//       isActive: true,
-//     });
+        let targetClassId = classId;
 
-//     if (!teacherClass) {
-//       return res.status(403).json({
-//         message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
-//       });
-//     }
+        /* Nếu không truyền classId, tìm lớp mà giáo viên này làm chủ nhiệm */
+        if (!targetClassId) {
+            const teacherClass = await Class.findOne({
+                homeroomTeacher: req.user._id,
+                isActive: true,
+            });
 
-//     /* Upsert Assignment */
-//     const assignment = await Assignment.findOneAndUpdate(
-//       { class: teacherClass._id, lesson: lessonId },
-//       { 
-//         deadline: deadline !== undefined ? deadline : null,
-//         isPublished: isPublished !== undefined ? isPublished : true 
-//       },
-//       { new: true, upsert: true, setDefaultsOnInsert: true }
-//     );
+            if (!teacherClass) {
+                return res.status(403).json({
+                    message: "Bạn không phải giáo viên chủ nhiệm lớp nào và không cung cấp classId",
+                });
+            }
+            targetClassId = teacherClass._id;
+        }
 
-//     res.status(200).json({
-//       message: "Cập nhật thiết lập bài tập thành công",
-//       assignment,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+        /* Upsert Assignment */
+        const assignment = await Assignment.findOneAndUpdate(
+            { class: targetClassId, lesson: lessonId },
+            {
+                deadline: deadline !== undefined ? deadline : null,
+                description: description || "",
+                isPublished: isPublished !== undefined ? isPublished : true
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
 
-// /* ================= GET ASSIGNMENT SETTINGS ================= */
-// export const getAssignmentByLesson = async (req, res) => {
-//   try {
-//     const { lessonId } = req.params;
-//     let classId = null;
+        res.status(200).json({
+            message: "Cập nhật thiết lập bài tập thành công",
+            assignment,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 
-//     if (req.user.role === "student") {
-//       if (!req.user.class) {
-//         return res.status(403).json({ message: "Học sinh chưa được xếp lớp" });
-//       }
-//       classId = req.user.class;
-//     } else if (req.user.role === "teacher") {
-//       const teacherClass = await Class.findOne({
-//         homeroomTeacher: req.user._id,
-//         isActive: true,
-//       });
-//       if (!teacherClass) {
-//         return res.status(403).json({ message: "Bạn không phải giáo viên chủ nhiệm lớp nào" });
-//       }
-//       classId = teacherClass._id;
-//     }
+/* ================= GET ASSIGNMENT SETTINGS ================= */
+export const getAssignmentByLesson = async (req, res) => {
+    try {
+        const { lessonId } = req.params;
+        let classId = null;
 
-//     const assignment = await Assignment.findOne({ class: classId, lesson: lessonId });
+        if (req.user.role === "student") {
+            if (!req.user.class) {
+                return res.status(403).json({ message: "Học sinh chưa được xếp lớp" });
+            }
+            classId = req.user.class;
+        } else if (req.user.role === "teacher") {
+            // Ưu tiên tìm theo query classId nếu có, nếu không tìm lớp chủ nhiệm
+            classId = req.query.classId;
+            if (!classId) {
+                const teacherClass = await Class.findOne({
+                    homeroomTeacher: req.user._id,
+                    isActive: true,
+                });
+                if (teacherClass) {
+                    classId = teacherClass._id;
+                }
+            }
+        }
 
-//     res.json({
-//       data: assignment || null,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+        if (!classId) {
+            return res.status(400).json({ message: "Thiếu classId" });
+        }
+
+        const assignment = await Assignment.findOne({ class: classId, lesson: lessonId });
+
+        res.json({
+            data: assignment || null,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -81,6 +81,8 @@ class _SubmissionDetailViewScreenState extends State<SubmissionDetailViewScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStudentHeader(),
+                  const SizedBox(height: 16),
+                  _buildSkillScores(),
                   const Divider(height: 32),
                   const Text('Câu hỏi & Trả lời', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
@@ -104,6 +106,51 @@ class _SubmissionDetailViewScreenState extends State<SubmissionDetailViewScreen>
             Text(widget.studentName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Text(widget.lessonTitle, style: TextStyle(color: Colors.grey.shade600)),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkillScores() {
+    final scores = _detail?['scores'] as Map<String, dynamic>?;
+    if (scores == null) return const SizedBox.shrink();
+
+    final skillLabels = {
+      'vocabulary': 'Từ vựng',
+      'grammar': 'Ngữ pháp',
+      'reading': 'Đọc hiểu',
+      'listening': 'Nghe',
+      'speaking': 'Nói',
+      'writing': 'Viết',
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Điểm theo kỹ năng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: skillLabels.entries.map((e) {
+            final val = (scores[e.key] ?? 0.0).toDouble();
+            if (val == 0 && scores[e.key] == null) return const SizedBox.shrink();
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.blue.withOpacity(0.1)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${e.value}: ', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  Text('$val', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue)),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ],
     );

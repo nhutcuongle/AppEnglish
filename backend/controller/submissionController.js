@@ -140,23 +140,39 @@ export const getMySubmissions = async (req, res) => {
 export const getScoresByLesson = async (req, res) => {
   try {
     const { lessonId } = req.params;
+    const { classId } = req.query;
 
-    // 1. Tìm lớp chủ nhiệm của giáo viên
-    const teacherClass = await Class.findOne({
-      homeroomTeacher: req.user._id,
-      isActive: true,
-    });
+    let targetClass;
 
-    if (!teacherClass) {
-      return res.status(403).json({
-        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+    if (classId) {
+      // Nếu có classId, kiểm tra quyền của giáo viên đối với lớp đó
+      targetClass = await Class.findOne({
+        _id: classId,
+        homeroomTeacher: req.user._id,
+        isActive: true,
       });
+
+      if (!targetClass) {
+        return res.status(403).json({ message: " Bạn không có quyền xem điểm của lớp này" });
+      }
+    } else {
+      // Nếu không có classId, tìm lớp chủ nhiệm (backward compatibility)
+      targetClass = await Class.findOne({
+        homeroomTeacher: req.user._id,
+        isActive: true,
+      });
+
+      if (!targetClass) {
+        return res.status(403).json({
+          message: "Bạn không phải giáo viên chủ nhiệm lớp nào và không cung cấp classId",
+        });
+      }
     }
 
     // 2. Chỉ lấy bài nộp của học sinh trong lớp này
     const submissions = await Submission.find({
       lesson: lessonId,
-      user: { $in: teacherClass.students }, // ⭐ CHỈ LẤY CỦA HỌC SINH LỚP MÌNH
+      user: { $in: targetClass.students },
     })
       .populate("user", "username email fullName")
       .sort({ createdAt: -1 })
