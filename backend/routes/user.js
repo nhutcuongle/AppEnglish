@@ -10,6 +10,7 @@ import {
   updateProfile,
   getProfile,
   getStudentsByClassForTeacher,
+  getMyStudents,
 } from "../controller/userController.js";
 
 import {
@@ -111,5 +112,6 @@ router.put("/students/:id/enable", authenticate, isSchool, enableUser);
    TEACHER
 ===================================================== */
 router.get("/teacher/class-students/:classId", authenticate, isTeacher, getStudentsByClassForTeacher);
+router.get("/teacher/my-students", authenticate, isTeacher, getMyStudents);
 
 export default router;
