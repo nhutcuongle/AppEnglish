@@ -35,6 +35,20 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    
+    // 2FA Security
+    is2FAEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    otpCode: {
+      type: String,
+      default: null,
+    },
+    otpExpire: {
+      type: Date,
+      default: null,
+    },
 
     // Profile
     fullName: {

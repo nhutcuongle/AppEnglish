@@ -112,7 +112,6 @@ export const updateGrammar = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 /* ================= DELETE GRAMMAR ================= */
 export const deleteGrammar = async (req, res) => {
   try {

@@ -113,7 +113,7 @@ export const updateLesson = async (req, res) => {
       message: "Cập nhật lesson thành công",
       lesson,
     });
-  } catch (err) {
+} catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
