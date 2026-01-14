@@ -1,95 +1,49 @@
-
 class Assignment {
   final String id;
   final String title;
   final String description;
-  final DateTime deadline;
+  final DateTime startTime;
+  final DateTime deadline; 
   final String teacherId;
-  final String type; // 'homework' or 'test'
-  final String? unit;
-  final int? timeLimit; // Dành cho Bài kiểm tra
-  final int? totalQuestions; // Dành cho Bài kiểm tra
-  final String? submissionFormat; // Dành cho Bài tập
+  final String? classId;
+  final String type; // "15m" hoặc "45m"
+  final String? unit; 
+  final int? timeLimit; 
 
   Assignment({
     required this.id,
     required this.title,
     required this.description,
+    required this.startTime,
     required this.deadline,
     required this.teacherId,
+    this.classId,
     required this.type,
     this.unit,
     this.timeLimit,
-    this.totalQuestions,
-    this.submissionFormat,
   });
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
+    String? cid;
+    String? cname;
+    if (json['class'] is Map) {
+      cid = json['class']['_id']?.toString();
+      cname = json['class']['name']?.toString();
+    } else {
+      cid = json['class']?.toString();
+    }
+
     return Assignment(
       id: json['_id']?.toString() ?? '',
       title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      deadline: json['deadline'] is String 
-          ? DateTime.parse(json['deadline']) 
-          : (json['deadline'] ?? DateTime.now()),
-      teacherId: json['teacherId'] ?? '',
-      type: json['type'] ?? 'homework',
-      unit: json['unit'],
-      timeLimit: json['timeLimit'],
-      totalQuestions: json['totalQuestions'],
-      submissionFormat: json['submissionFormat'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      '_id': id,
-      'title': title,
-      'description': description,
-      'deadline': deadline.toIso8601String(),
-      'teacherId': teacherId,
-      'type': type,
-      'unit': unit,
-      'timeLimit': timeLimit,
-      'totalQuestions': totalQuestions,
-      'submissionFormat': submissionFormat,
-    };
-  }
-}
-
-class Submission {
-  final String id;
-  final String assignmentId;
-  final String studentId;
-  final String content;
-  final double? score;
-  final String? comment;
-  final DateTime submittedAt;
-  final DateTime? gradedAt;
-
-  Submission({
-    required this.id,
-    required this.assignmentId,
-    required this.studentId,
-    required this.content,
-    this.score,
-    this.comment,
-    required this.submittedAt,
-    this.gradedAt,
-  });
-
-  factory Submission.fromJson(Map<String, dynamic> json) {
-    return Submission(
-      id: json['_id']?.toString() ?? '',
-      assignmentId: json['assignmentId']?.toString() ?? '',
-      studentId: json['studentId']?.toString() ?? '',
-      content: json['content'] ?? '',
-      score: json['score'] != null ? (json['score'] as num).toDouble() : null,
-      comment: json['comment'],
-      submittedAt: json['submittedAt'] is String 
-          ? DateTime.parse(json['submittedAt']) 
-          : (json['submittedAt'] ?? DateTime.now()),
-      gradedAt: json['gradedAt'] != null ? DateTime.parse(json['gradedAt']) : null,
+      description: cname != null ? 'Lớp: $cname' : (json['description'] ?? ''),
+      startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : DateTime.now(),
+      deadline: json['endTime'] != null ? DateTime.parse(json['endTime']) : DateTime.now(),
+      teacherId: (json['teacher'] is Map) ? json['teacher']['_id']?.toString() ?? '' : (json['teacher']?.toString() ?? ''),
+      classId: cid,
+      type: json['type'] ?? '15m',
+      unit: json['type'] == '15m' ? '15 Phút' : '45 Phút',
+      timeLimit: json['type'] == '15m' ? 15 : 45,
     );
   }
 }
@@ -112,7 +66,7 @@ class Student {
   factory Student.fromJson(Map<String, dynamic> json) {
     return Student(
       id: json['_id']?.toString() ?? '',
-      name: json['username'] ?? json['name'] ?? 'Không tên',
+      name: json['fullName'] ?? json['username'] ?? 'Không tên',
       classId: json['classId'],
       progress: (json['progress'] ?? 0.0).toDouble(),
       score: (json['score'] ?? 0.0).toDouble(),
@@ -125,14 +79,12 @@ class Announcement {
   final String title;
   final String content;
   final DateTime createdAt;
-  final String teacherId;
 
   Announcement({
     required this.id,
     required this.title,
     required this.content,
     required this.createdAt,
-    required this.teacherId,
   });
 
   factory Announcement.fromJson(Map<String, dynamic> json) {
@@ -140,10 +92,7 @@ class Announcement {
       id: json['_id']?.toString() ?? '',
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      createdAt: json['createdAt'] is String 
-          ? DateTime.parse(json['createdAt']) 
-          : (json['createdAt'] ?? DateTime.now()),
-      teacherId: json['teacherId'] ?? '',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 }
@@ -154,10 +103,9 @@ class LessonPlan {
   final String unit;
   final String topic;
   final String objectives;
-  final List<String> resources; // Links tài liệu
   final String content;
+  final List<String> resources;
   final DateTime createdAt;
-  final String teacherId;
 
   LessonPlan({
     required this.id,
@@ -165,39 +113,50 @@ class LessonPlan {
     required this.unit,
     required this.topic,
     required this.objectives,
-    required this.resources,
     required this.content,
+    required this.resources,
     required this.createdAt,
-    required this.teacherId,
   });
 
   factory LessonPlan.fromJson(Map<String, dynamic> json) {
     return LessonPlan(
       id: json['_id']?.toString() ?? '',
       title: json['title'] ?? '',
-      unit: json['unit'] ?? '',
-      topic: json['topic'] ?? '',
+      unit: json['unit'] ?? 'Unit ?',
+      topic: json['topic'] ?? 'Chủ đề',
       objectives: json['objectives'] ?? '',
-      resources: List<String>.from(json['resources'] ?? []),
       content: json['content'] ?? '',
-      createdAt: json['createdAt'] is String 
-          ? DateTime.parse(json['createdAt']) 
-          : (json['createdAt'] ?? DateTime.now()),
-      teacherId: json['teacherId'] ?? '',
+      resources: json['resources'] != null ? List<String>.from(json['resources']) : [],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
+}
 
-  Map<String, dynamic> toJson() {
-    return {
-      '_id': id,
-      'title': title,
-      'unit': unit,
-      'topic': topic,
-      'objectives': objectives,
-      'resources': resources,
-      'content': content,
-      'createdAt': createdAt.toIso8601String(),
-      'teacherId': teacherId,
-    };
+class Submission {
+  final String id;
+  final String examId;
+  final String studentId;
+  final double? score;
+  final String? comment;
+  final DateTime submittedAt;
+
+  Submission({
+    required this.id,
+    required this.examId,
+    required this.studentId,
+    this.score,
+    this.comment,
+    required this.submittedAt,
+  });
+
+  factory Submission.fromJson(Map<String, dynamic> json) {
+    return Submission(
+      id: json['_id']?.toString() ?? '',
+      examId: json['exam']?.toString() ?? '',
+      studentId: json['user']?.toString() ?? '',
+      score: json['totalScore'] != null ? (json['totalScore'] as num).toDouble() : null,
+      comment: json['comment'],
+      submittedAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+    );
   }
 }

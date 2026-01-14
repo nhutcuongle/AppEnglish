@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/student_list_screen.dart';
@@ -36,7 +35,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -111,7 +110,7 @@ class TeacherDashboardTab extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.2), width: 2),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2), width: 2),
               ),
               child: const CircleAvatar(
                 radius: 25,
@@ -141,7 +140,7 @@ class TeacherDashboardTab extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
             boxShadow: [
-              BoxShadow(color: Color(0xFF3B82F6).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+              BoxShadow(color: const Color(0xFF3B82F6).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
             ],
           ),
           child: Column(
@@ -155,13 +154,13 @@ class TeacherDashboardTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Container(height: 1, color: Colors.white.withOpacity(0.15)),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
               const SizedBox(height: 15),
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.info_outline_rounded, color: Colors.white70, size: 14),
                   SizedBox(width: 8),
-                  Text('Dữ liệu lớp 10A1 cập nhật theo thời gian thực', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('Dữ liệu lớp học cập nhật theo thời gian thực', style: TextStyle(color: Colors.white70, fontSize: 11)),
                 ],
               ),
             ],
@@ -211,8 +210,8 @@ class TeacherDashboardTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: isTop3 ? Border.all(color: medalColors[index].withOpacity(0.3), width: 1.5) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        border: isTop3 ? Border.all(color: medalColors[index].withValues(alpha: 0.3), width: 1.5) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -221,7 +220,7 @@ class TeacherDashboardTab extends StatelessWidget {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isTop3 ? medalColors[index].withOpacity(0.1) : const Color(0xFF64748B).withOpacity(0.05),
+              color: isTop3 ? medalColors[index].withValues(alpha: 0.1) : const Color(0xFF64748B).withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
             child: isTop3 
@@ -254,8 +253,7 @@ class TeacherDashboardTab extends StatelessWidget {
       childAspectRatio: 1.15,
       children: [
         _buildToolCard(context, 'Học sinh', Icons.people_rounded, Colors.blue, const StudentListScreen()),
-        _buildToolCard(context, 'Bài tập', Icons.assignment_rounded, Colors.orange, const AssignmentListScreen(filterType: 'homework')),
-        _buildToolCard(context, 'Kiểm tra', Icons.quiz_rounded, Colors.purple, const AssignmentListScreen(filterType: 'test')),
+        _buildToolCard(context, 'Bài kiểm tra', Icons.quiz_rounded, Colors.purple, const AssignmentListScreen(filterType: 'test')),
         _buildToolCard(context, 'Sổ Điểm', Icons.grid_view_rounded, Colors.teal, const GradebookScreen()),
         _buildToolCard(context, 'Lịch Dạy', Icons.calendar_today_rounded, Colors.indigo, const TeacherCalendarScreen()),
         _buildToolCard(context, 'Thống kê', Icons.insert_chart_rounded, Colors.green, const ClassStatisticsScreen()),
@@ -271,14 +269,14 @@ class TeacherDashboardTab extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5))],
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 15, offset: const Offset(0, 5))],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 15),

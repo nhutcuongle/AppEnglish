@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
-
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
-import 'package:apptienganh10/widgets/loading_widgets.dart';
 import 'package:intl/intl.dart';
 
 class AssignmentListScreen extends StatefulWidget {
@@ -25,18 +23,18 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     super.dispose();
   }
 
-  Future<void> _deleteAssignment(Assignment item) async {
+  Future<void> _deleteExam(Assignment item) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Xác nhận xóa?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Anh có chắc muốn xóa bài "${item.title}" không? Hành động này không thể hoàn tác.'),
+        content: Text('Anh có chắc muốn xóa bài kiểm tra "${item.title}" không?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('HỦY', style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () => Navigator.pop(context, true), 
-            child: const Text('XÓA VĨNH VIỄN', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+            child: const Text('XÓA', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
           ),
         ],
       ),
@@ -44,24 +42,22 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
     if (confirmed == true) {
       try {
-        await ApiService.deleteAssignment(item.id);
+        await ApiService.deleteExam(item.id);
         if (!mounted) return;
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa thành công!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa bài kiểm tra thành công!')));
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi xóa: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    String title = widget.filterType == 'test' ? 'Quản lý Kiểm tra' : 'Quản lý Bài tập';
-    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Quản lý Kiểm tra', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1E293B),
         elevation: 0,
@@ -74,23 +70,23 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
         ),
       ),
       body: FutureBuilder<List<Assignment>>(
-        future: TeacherService.getFilteredAssignments(widget.filterType, query: _searchQuery),
+        future: TeacherService.getFilteredAssignments(null, query: _searchQuery),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return ShimmerWidgets.listShimmer();
+            return const Center(child: CircularProgressIndicator());
           }
           
           if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
 
-          final assignments = snapshot.data ?? [];
-          if (assignments.isEmpty) return _buildEmptyState();
+          final exams = snapshot.data ?? [];
+          if (exams.isEmpty) return _buildEmptyState();
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: assignments.length,
+            itemCount: exams.length,
             itemBuilder: (context, index) {
-              final item = assignments[index];
-              return _buildAssignmentCard(item);
+              final item = exams[index];
+              return _buildExamCard(item);
             },
           );
         },
@@ -99,13 +95,13 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
         onPressed: () async {
           final result = await Navigator.push(
             context, 
-            MaterialPageRoute(builder: (context) => AddAssignmentScreen(initialType: widget.filterType))
+            MaterialPageRoute(builder: (context) => const AddAssignmentScreen())
           );
           if (result == true) setState(() {});
         },
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.purple,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('Tạo mới', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text('Tạo bài thi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -120,7 +116,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
-          hintText: 'Tìm theo tiêu đề bài tập...',
+          hintText: 'Tìm bài kiểm tra...',
           hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B)),
           suffixIcon: _searchQuery.isNotEmpty 
@@ -139,7 +135,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 
-  Widget _buildAssignmentCard(Assignment item) {
+  Widget _buildExamCard(Assignment item) {
     final isExpired = item.deadline.isBefore(DateTime.now());
 
     return Container(
@@ -148,7 +144,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,36 +152,32 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildTypeTag(item.type),
-              Row(
-                children: [
-                  _buildDeadlineStatus(item.deadline, isExpired),
-                  const SizedBox(width: 8),
-                  _buildMoreMenu(item),
-                ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Text(
+                  'KIỂM TRA ${item.type.toUpperCase()}', 
+                  style: const TextStyle(color: Colors.purple, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
               ),
+              _buildMoreMenu(item),
             ],
           ),
           const SizedBox(height: 12),
           Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
           const SizedBox(height: 6),
-          Text(item.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, height: 1.4)),
+          Text(item.description, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
           const SizedBox(height: 18),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.menu_book_rounded, size: 14, color: Colors.blueAccent),
-                    const SizedBox(width: 6),
-                    Text(item.unit ?? 'Chương ?', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ],
-                ),
+              Icon(Icons.timer_outlined, size: 14, color: isExpired ? Colors.redAccent : Colors.blueAccent),
+              const SizedBox(width: 6),
+              Text(
+                'Hết hạn: ${DateFormat('dd/MM HH:mm').format(item.deadline)}',
+                style: TextStyle(color: isExpired ? Colors.redAccent : Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
               ),
               const Spacer(),
-              _buildActionBtn('Chi tiết nộp bài', Colors.blueAccent),
+              _buildActionBtn('Kết quả', Colors.purple),
             ],
           ),
         ],
@@ -203,7 +195,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           );
           if (result == true) setState(() {});
         } else if (value == 'delete') {
-          _deleteAssignment(item);
+          _deleteExam(item);
         }
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -211,43 +203,11 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
       itemBuilder: (context) => [
         const PopupMenuItem(
           value: 'edit',
-          child: Row(
-            children: [Icon(Icons.edit_rounded, size: 18, color: Colors.blue), SizedBox(width: 10), Text('Chỉnh sửa')],
-          ),
+          child: Row(children: [Icon(Icons.edit_rounded, size: 18, color: Colors.blue), SizedBox(width: 10), Text('Chỉnh sửa')]),
         ),
         const PopupMenuItem(
           value: 'delete',
-          child: Row(
-            children: [Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red), SizedBox(width: 10), Text('Xóa bài', style: TextStyle(color: Colors.red))],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTypeTag(String type) {
-    bool isTest = type == 'test';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: isTest ? Colors.purple.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        isTest ? 'KIỂM TRA' : 'BÀI TẬP VỀ NHÀ',
-        style: TextStyle(color: isTest ? Colors.purple : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildDeadlineStatus(DateTime deadline, bool isExpired) {
-    return Row(
-      children: [
-        Icon(Icons.timer_outlined, size: 14, color: isExpired ? Colors.redAccent : const Color(0xFF64748B)),
-        const SizedBox(width: 4),
-        Text(
-          'Hạn: ${DateFormat('dd/MM').format(deadline)}',
-          style: TextStyle(color: isExpired ? Colors.redAccent : const Color(0xFF64748B), fontSize: 12, fontWeight: isExpired ? FontWeight.bold : FontWeight.normal),
+          child: Row(children: [Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red), SizedBox(width: 10), Text('Xóa bài', style: TextStyle(color: Colors.red))]),
         ),
       ],
     );
@@ -258,7 +218,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
       onPressed: () {},
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        backgroundColor: color.withOpacity(0.05),
+        backgroundColor: color.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -270,9 +230,9 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_late_rounded, size: 80, color: Colors.grey.shade300),
+          Icon(Icons.quiz_outlined, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text(_searchQuery.isEmpty ? 'Chưa có nội dung nào.' : 'Không tìm thấy bài tập phù hợp.', style: const TextStyle(color: Color(0xFF64748B))),
+          const Text('Chưa có bài kiểm tra nào.', style: TextStyle(color: Color(0xFF64748B))),
         ],
       ),
     );

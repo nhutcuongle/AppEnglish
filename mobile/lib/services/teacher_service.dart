@@ -1,4 +1,3 @@
-
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/api_service.dart';
 
@@ -6,7 +5,6 @@ class TeacherService {
   // --- Quản lý Học sinh ---
 
   static Future<List<Student>> searchStudents(String query) async {
-    // Gọi API thay vì DB trực tiếp
     final studentsRaw = await ApiService.getStudents();
     final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
     
@@ -15,31 +13,27 @@ class TeacherService {
   }
 
   static Future<List<Student>> getTopPerformer() async {
-    // Lấy top 5 học sinh có điểm cao nhất từ API
     final studentsRaw = await ApiService.getStudents();
     final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
     students.sort((a, b) => b.score.compareTo(a.score));
     return students.take(5).toList();
   }
 
-  // --- Quản lý Bài tập ---
+  // --- Quản lý Bài kiểm tra ---
 
   static Future<List<Assignment>> getFilteredAssignments(String? type, {String query = ''}) async {
-    // Gọi API để lấy danh sách bài tập
-    final data = await ApiService.getAssignments();
-    final all = data.map((e) => Assignment.fromJson(e)).toList();
+    // Lấy dữ liệu bài kiểm tra (Exams) từ backend
+    final List<dynamic> data = await ApiService.getTeacherExams();
 
-    // Lọc theo loại (nếu có)
-    List<Assignment> filtered = type != null 
-        ? all.where((a) => a.type == type).toList() 
-        : all;
+    // Sử dụng factory Assignment.fromJson để tự động map dữ liệu
+    List<Assignment> allExams = data.map((e) => Assignment.fromJson(e)).toList();
 
     // Lọc theo từ khóa tìm kiếm
     if (query.isNotEmpty) {
-      filtered = filtered.where((a) => a.title.toLowerCase().contains(query.toLowerCase())).toList();
+      allExams = allExams.where((a) => a.title.toLowerCase().contains(query.toLowerCase())).toList();
     }
-    
-    return filtered;
+
+    return allExams;
   }
 
   // --- Thống kê ---
@@ -85,32 +79,22 @@ class TeacherService {
   }
 
   static Future<List<Map<String, dynamic>>> getUnitCompletionStats() async {
-    final data = await ApiService.getAssignments();
-    final assignments = data.map((e) => Assignment.fromJson(e)).toList();
+    final data = await ApiService.getTeacherExams();
     
-    Map<String, List<Assignment>> unitGroups = {};
-    for (var a in assignments) {
-      if (a.unit != null) {
-        unitGroups.putIfAbsent(a.unit!, () => []).add(a);
-      }
-    }
-
-    List<Map<String, dynamic>> stats = [];
-    unitGroups.forEach((unit, list) {
-      stats.add({
-        'title': 'Unit $unit',
-        'progress': (list.length * 0.15).clamp(0.1, 1.0), 
-      });
-    });
-
-    if (stats.isEmpty) {
+    if (data.isEmpty) {
       return [
-        {'title': 'Unit 1: Family Life', 'progress': 0.8},
-        {'title': 'Unit 2: Environment', 'progress': 0.6},
+        {'title': 'Kiểm tra 15p', 'progress': 0.0},
+        {'title': 'Kiểm tra 45p', 'progress': 0.0},
       ];
     }
 
-    return stats;
+    int m15 = data.where((e) => e['type'] == '15m').length;
+    int m45 = data.where((e) => e['type'] == '45m').length;
+
+    return [
+      {'title': 'Kiểm tra 15p', 'progress': (m15 / 10).clamp(0.0, 1.0)},
+      {'title': 'Kiểm tra 45p', 'progress': (m45 / 10).clamp(0.0, 1.0)},
+    ];
   }
 
   // --- Thông báo ---

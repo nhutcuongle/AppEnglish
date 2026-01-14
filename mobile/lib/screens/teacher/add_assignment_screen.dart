@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
-import 'package:apptienganh10/services/auth_service.dart';
 import 'package:apptienganh10/screens/teacher/question_list_screen.dart';
 import 'package:intl/intl.dart';
 
 
 class AddAssignmentScreen extends StatefulWidget {
   final String? initialType;
-  final Assignment? assignmentToEdit; // Object để chỉnh sửa
+  final Assignment? assignmentToEdit; 
 
   const AddAssignmentScreen({super.key, this.initialType, this.assignmentToEdit});
 
@@ -20,14 +19,16 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
-  final _unitController = TextEditingController();
-  final _timeLimitController = TextEditingController();
-  final _totalQuestionsController = TextEditingController();
-  final _formatController = TextEditingController();
   
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 7));
-  late String _selectedType;
+  DateTime _startTime = DateTime.now();
+  DateTime _endTime = DateTime.now().add(const Duration(hours: 2));
+  
+  String _selectedType = "15m"; 
   bool _isEditMode = false;
+  
+  List<dynamic> _classes = [];
+  String? _selectedClassId;
+  bool _isLoadingClasses = true;
 
   @override
   void initState() {
@@ -38,14 +39,31 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
       final a = widget.assignmentToEdit!;
       _titleController.text = a.title;
       _descController.text = a.description;
-      _unitController.text = a.unit ?? '';
-      _selectedType = a.type;
-      _selectedDate = a.deadline;
-      _timeLimitController.text = a.timeLimit?.toString() ?? '';
-      _totalQuestionsController.text = a.totalQuestions?.toString() ?? '';
-      _formatController.text = a.submissionFormat ?? '';
-    } else {
-      _selectedType = widget.initialType ?? 'homework';
+      _selectedType = a.timeLimit == 45 ? "45m" : "15m";
+      _startTime = DateTime.now(); // Cần backend trả về startTime
+      _endTime = a.deadline;
+      _selectedClassId = a.classId;
+    }
+
+    _fetchClasses();
+  }
+
+  Future<void> _fetchClasses() async {
+    try {
+      final classes = await ApiService.getClasses();
+      if (!mounted) return;
+      setState(() {
+        _classes = classes;
+        if (_classes.isNotEmpty) {
+          bool exists = _classes.any((c) => c['_id'] == _selectedClassId);
+          if (!exists) {
+             _selectedClassId = _classes[0]['_id'];
+          }
+        }
+        _isLoadingClasses = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingClasses = false);
     }
   }
 
@@ -53,15 +71,16 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _unitController.dispose();
-    _timeLimitController.dispose();
-    _totalQuestionsController.dispose();
-    _formatController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveAssignment() async {
+  Future<void> _saveExam() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedClassId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn lớp học')));
+        return;
+      }
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -70,36 +89,25 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
       final data = {
         'title': _titleController.text,
+        'type': _selectedType, // "15m" hoặc "45m"
+        'classId': _selectedClassId,
+        'startTime': _startTime.toIso8601String(),
+        'endTime': _endTime.toIso8601String(),
         'description': _descController.text,
-        'unit': _unitController.text,
-        'deadline': _selectedDate.toIso8601String(),
-        'type': _selectedType,
-        'createdAt': _isEditMode ? widget.assignmentToEdit!.deadline.toIso8601String() : DateTime.now().toIso8601String(), 
-        'deadline': _selectedDate.toIso8601String(),
-        'type': _selectedType,
-        'classId': '10A1', // TODO: Get from class selection
-        if (_selectedType == 'test') ...{
-          'timeLimit': int.tryParse(_timeLimitController.text),
-          'totalQuestions': int.tryParse(_totalQuestionsController.text),
-        },
-        if (_selectedType == 'homework') ...{
-          'submissionFormat': _formatController.text,
-        },
       };
 
       try {
         if (_isEditMode) {
-          await ApiService.updateAssignment(widget.assignmentToEdit!.id, data);
-
+          await ApiService.updateExam(widget.assignmentToEdit!.id, data);
         } else {
-          await ApiService.createAssignment(data);
+          await ApiService.createExam(data);
         }
         
         if (!mounted) return;
-        Navigator.pop(context); // Close loading
-        Navigator.pop(context, true); // Return success
+        Navigator.pop(context); 
+        Navigator.pop(context, true); 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isEditMode ? 'Đã cập nhật thay đổi!' : 'Đã tạo thành công!')),
+          SnackBar(content: Text(_isEditMode ? 'Đã cập nhật!' : 'Đã tạo bài kiểm tra thành công!')),
         );
       } catch (e) {
         if (!mounted) return;
@@ -111,35 +119,47 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isTest = _selectedType == 'test';
-    Color themeColor = isTest ? Colors.purple : Colors.blueAccent;
+    const Color themeColor = Colors.purple;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          _isEditMode ? 'Cập nhật Nội dung' : (isTest ? 'Thiết kế Bài Kiểm Tra' : 'Giao Bài Tập Về Nhà'),
+          _isEditMode ? 'Cập nhật Bài Kiểm Tra' : 'Thiết kế Bài Kiểm Tra',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1E293B),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _isLoadingClasses 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!_isEditMode) _buildTypeSelector(themeColor),
-              const SizedBox(height: 30),
-              
-              _buildLabel('Tiêu đề nội dung'),
+              _buildLabel('Chọn lớp học (Bạn đang chủ nhiệm)'),
+              _buildClassDropdown(themeColor),
+              const SizedBox(height: 25),
+
+              _buildLabel('Tiêu đề bài kiểm tra'),
               TextFormField(
                 controller: _titleController,
-                decoration: _buildInputDecoration('VD: Kiểm tra giữa kỳ, Viết luận Unit 2...'),
+                decoration: _buildInputDecoration('VD: Kiểm tra 15p Unit 1...'),
                 validator: (v) => v!.isEmpty ? 'Vui lòng nhập tiêu đề' : null,
+              ),
+              const SizedBox(height: 25),
+
+              _buildLabel('Loại bài kiểm tra'),
+              Row(
+                children: [
+                  _buildDurationChip("15m", "15 Phút", themeColor),
+                  const SizedBox(width: 15),
+                  _buildDurationChip("45m", "45 Phút", themeColor),
+                ],
               ),
               const SizedBox(height: 25),
 
@@ -149,11 +169,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Chương học (Unit)'),
-                        TextFormField(
-                          controller: _unitController,
-                          decoration: _buildInputDecoration('Unit 1'),
-                        ),
+                        _buildLabel('Giờ bắt đầu'),
+                        _buildDateTimePicker(true, themeColor),
                       ],
                     ),
                   ),
@@ -162,28 +179,25 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Hạn nộp/làm bài'),
-                        _buildDatePicker(themeColor),
+                        _buildLabel('Hạn nộp bài'),
+                        _buildDateTimePicker(false, themeColor),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 25),
-
-              if (isTest) _buildTestFields() else _buildHomeworkFields(),
               
-              const SizedBox(height: 25),
-              _buildLabel('Mô tả chi tiết / Hướng dẫn'),
+              _buildLabel('Mô tả chi tiết'),
               TextFormField(
                 controller: _descController,
-                maxLines: 4,
-                decoration: _buildInputDecoration('Nhập các yêu cầu hoặc hướng dẫn cho học sinh...'),
+                maxLines: 3,
+                decoration: _buildInputDecoration('Hướng dẫn cho học sinh...'),
               ),
               
               const SizedBox(height: 40),
               _buildSubmitButton(themeColor),
-              if (_isEditMode && isTest) _buildManageQuestionsButton(),
+              if (_isEditMode) _buildManageQuestionsButton(),
             ],
           ),
         ),
@@ -191,122 +205,100 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     );
   }
 
-  Widget _buildTypeSelector(Color themeColor) {
+  Widget _buildClassDropdown(Color themeColor) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
-        children: [
-          _buildTypeOption('homework', 'Bài tập', Icons.edit_document),
-          _buildTypeOption('test', 'Kiểm tra', Icons.quiz),
-        ],
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedClassId,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: themeColor),
+          hint: const Text('Chọn lớp học'),
+          items: _classes.map((c) {
+            return DropdownMenuItem<String>(
+              value: c['_id'],
+              child: Text(c['name'] ?? 'Lớp không tên'),
+            );
+          }).toList(),
+          onChanged: (val) => setState(() => _selectedClassId = val),
+        ),
       ),
     );
   }
 
-  Widget _buildTypeOption(String type, String label, IconData icon) {
+  Widget _buildDurationChip(String type, String label, Color themeColor) {
     bool isSelected = _selectedType == type;
     return Expanded(
-      child: GestureDetector(
+      child: InkWell(
         onTap: () => setState(() => _selectedType = type),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 15),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+            color: isSelected ? themeColor : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: isSelected ? themeColor : const Color(0xFFE2E8F0)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: isSelected ? (type == 'test' ? Colors.purple : Colors.blueAccent) : Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF1E293B) : Colors.grey,
-                ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF475569),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTestFields() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildLabel('TG làm bài (phút)'),
-              TextFormField(
-                controller: _timeLimitController,
-                keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration('VD: 45'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildLabel('Số câu hỏi'),
-              TextFormField(
-                controller: _totalQuestionsController,
-                keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration('VD: 40'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHomeworkFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Định dạng nộp bài (Không bắt buộc)'),
-        TextFormField(
-          controller: _formatController,
-          decoration: _buildInputDecoration('Ví dụ: File PDF, Word, Ảnh chụp...'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDatePicker(Color themeColor) {
+  Widget _buildDateTimePicker(bool isStart, Color themeColor) {
+    DateTime current = isStart ? _startTime : _endTime;
     return InkWell(
       onTap: () async {
-        final picked = await showDatePicker(
+        final pickedDate = await showDatePicker(
           context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime.now(),
+          initialDate: current,
+          firstDate: DateTime.now().subtract(const Duration(days: 30)),
           lastDate: DateTime.now().add(const Duration(days: 365)),
         );
-        if (picked != null) setState(() => _selectedDate = picked);
+        if (pickedDate != null) {
+          final pickedTime = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(current),
+          );
+          if (pickedTime != null) {
+            setState(() {
+              DateTime newDt = DateTime(
+                pickedDate.year, pickedDate.month, pickedDate.day,
+                pickedTime.hour, pickedTime.minute
+              );
+              if (isStart) _startTime = newDt;
+              else _endTime = newDt;
+            });
+          }
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
             Icon(Icons.calendar_today_rounded, size: 16, color: themeColor),
             const SizedBox(width: 10),
-            Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text(
+              DateFormat('dd/MM HH:mm').format(current),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            ),
           ],
         ),
       ),
@@ -318,7 +310,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
       width: double.infinity,
       height: 55,
       child: ElevatedButton(
-        onPressed: _saveAssignment,
+        onPressed: _saveExam,
         style: ElevatedButton.styleFrom(
           backgroundColor: themeColor,
           foregroundColor: Colors.white,
@@ -326,7 +318,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
           elevation: 0,
         ),
         child: Text(
-          _isEditMode ? 'CẬP NHẬT THAY ĐỔI' : (_selectedType == 'test' ? 'HOÀN TẤT THIẾT KẾ' : 'GIAO BÀI TẬP VỀ NHÀ'),
+          _isEditMode ? 'CẬP NHẬT BÀI KIỂM TRA' : 'HOÀN TẤT THIẾT KẾ',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
@@ -343,12 +335,11 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   InputDecoration _buildInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
       filled: true,
-      fillColor: const Color(0xFFF1F5F9),
+      fillColor: const Color(0xFFF8FAFC),
       contentPadding: const EdgeInsets.all(18),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.blueAccent, width: 1)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
     );
   }
 
@@ -363,7 +354,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => QuestionListScreen(
-                assignmentId: widget.assignmentToEdit!.id,
+                examId: widget.assignmentToEdit!.id,
                 assignmentTitle: widget.assignmentToEdit!.title,
               ),
             ),
@@ -380,4 +371,3 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     );
   }
 }
-

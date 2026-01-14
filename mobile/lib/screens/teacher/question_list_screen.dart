@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
-import 'package:apptienganh10/models/teacher_models.dart';
-import 'package:apptienganh10/widgets/loading_widgets.dart';
 
 class QuestionListScreen extends StatefulWidget {
-  final String assignmentId;
+  final String examId;
   final String assignmentTitle;
 
-  const QuestionListScreen({super.key, required this.assignmentId, required this.assignmentTitle});
+  const QuestionListScreen({
+    super.key, 
+    required this.examId,
+    required this.assignmentTitle
+  });
 
   @override
   State<QuestionListScreen> createState() => _QuestionListScreenState();
@@ -24,12 +26,22 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   }
 
   Future<void> _loadQuestions() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
-    final questions = await ApiService.getQuestions(assignmentId: widget.assignmentId);
-    setState(() {
-      _questions = questions;
-      _isLoading = false;
-    });
+    try {
+      // Chỉ sử dụng examId vì phần Bài tập (Assignments) đã bị xóa
+      final questions = await ApiService.getQuestions(
+        examId: widget.examId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _questions = questions;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      print('Error loading questions: $e');
+    }
   }
 
   Future<void> _deleteQuestion(String id) async {
@@ -69,7 +81,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                     children: [
                       const Icon(Icons.quiz_outlined, size: 60, color: Colors.grey),
                       const SizedBox(height: 10),
-                      const Text('Chưa có câu hỏi nào'),
+                      const Text('Chưa có câu hỏi nào cho bài thi này'),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         onPressed: () => _openAddQuestion(),
@@ -105,14 +117,16 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   void _openAddQuestion() {
     showDialog(
       context: context,
-      builder: (context) => AddQuestionDialog(assignmentId: widget.assignmentId),
+      builder: (context) => AddQuestionDialog(
+        examId: widget.examId,
+      ),
     ).then((_) => _loadQuestions());
   }
 }
 
 class AddQuestionDialog extends StatefulWidget {
-  final String assignmentId;
-  const AddQuestionDialog({super.key, required this.assignmentId});
+  final String examId;
+  const AddQuestionDialog({super.key, required this.examId});
 
   @override
   State<AddQuestionDialog> createState() => _AddQuestionDialogState();
@@ -121,7 +135,6 @@ class AddQuestionDialog extends StatefulWidget {
 class _AddQuestionDialogState extends State<AddQuestionDialog> {
   final _contentController = TextEditingController();
   String _type = 'mcq';
-  // Simplified for demo: MCQ options
   final _opt1 = TextEditingController();
   final _opt2 = TextEditingController();
   final _opt3 = TextEditingController();
@@ -174,10 +187,10 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> {
         ElevatedButton(
           onPressed: () async {
             final data = {
-              'assignment': widget.assignmentId,
+              'exam': widget.examId,
               'content': _contentController.text,
               'type': _type,
-              'skill': 'reading', // Default
+              'skill': 'reading',
               'options': [_opt1.text, _opt2.text, _opt3.text, _opt4.text],
               'correctAnswer': _correctIndex,
             };

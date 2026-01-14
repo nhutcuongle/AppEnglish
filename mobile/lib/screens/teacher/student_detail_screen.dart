@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/screens/teacher/grade_submission_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class StudentDetailScreen extends StatefulWidget {
   final Student student;
@@ -26,7 +26,6 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Thông tin chung
             _buildProfileHeader(),
             
             const Padding(
@@ -40,12 +39,15 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               ),
             ),
 
-            // Danh sách bài tập từ submissions
             FutureBuilder<List<Submission>>(
-              future: ApiService.getSubmissions(studentId: widget.student.id).then((raw) => raw.map((e) => Submission.fromJson(e)).toList()),
+              future: ApiService.getSubmissions(studentId: widget.student.id)
+                  .then((raw) => raw.map((e) => Submission.fromJson(e)).toList()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: CircularProgressIndicator(),
+                  ));
                 }
 
                 if (snapshot.hasError) {
@@ -53,10 +55,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 }
 
                 final submissions = snapshot.data ?? [];
-
-                if (submissions.isEmpty) {
-                  return _buildEmptySubmissions();
-                }
+                if (submissions.isEmpty) return _buildEmptySubmissions();
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -65,9 +64,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                   itemCount: submissions.length,
                   itemBuilder: (context, index) {
                     final sub = submissions[index];
-                    final bool isGraded = sub.score != null;
-                    
-                    return _buildSubmissionCard(sub, index, isGraded);
+                    return _buildSubmissionCard(sub, index, sub.score != null);
                   },
                 );
               },
@@ -129,9 +126,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5, offset: const Offset(0, 2)),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
           border: isGraded ? null : Border.all(color: Colors.orange.withOpacity(0.3)),
         ),
         child: Row(
@@ -146,10 +141,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Bài nộp #${index + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  Text('Bài nộp #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   Text(
                     'Nộp lúc: ${DateFormat('HH:mm - dd/MM/yyyy').format(sub.submittedAt)}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -157,10 +149,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 ],
               ),
             ),
-            if (isGraded)
-              _buildScoreBadge(sub.score!)
-            else
-              _buildGradeAction(),
+            if (isGraded) _buildScoreBadge(sub.score!) else _buildGradeAction(),
           ],
         ),
       ),
@@ -170,14 +159,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   Widget _buildScoreBadge(double score) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        '$score',
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 15),
-      ),
+      decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+      child: Text('$score', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 15)),
     );
   }
 
@@ -213,6 +196,9 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   }
 
   Widget _buildErrorState(String error) {
-    return Center(child: Text('Lỗi: $error', style: const TextStyle(color: Colors.red)));
+    return Center(child: Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Text('Lỗi: $error', style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+    ));
   }
 }

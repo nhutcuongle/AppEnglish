@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:apptienganh10/models/teacher_models.dart';
+import 'package:apptienganh10/services/api_service.dart';
 
 class GradeSubmissionScreen extends StatefulWidget {
   final Submission submission;
@@ -14,6 +14,7 @@ class GradeSubmissionScreen extends StatefulWidget {
 class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
   late TextEditingController _scoreController;
   late TextEditingController _commentController;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -38,31 +39,29 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
       return;
     }
 
-    _showLoading();
+    setState(() => _isSaving = true);
 
     try {
-      await ApiService.gradeSubmission(
+      final result = await ApiService.gradeSubmission(
         widget.submission.id,
         score,
         comment: _commentController.text,
       );
+      
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
-      Navigator.pop(context, true); // Return success
-      _showSuccessSnack();
+      setState(() => _isSaving = false);
+
+      if (result.containsKey('error')) {
+        _showErrorSnack(result['error']);
+      } else {
+        _showSuccessSnack();
+        Navigator.pop(context, true); // Trả về true để màn hình trước đó load lại data
+      }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
+      setState(() => _isSaving = false);
       _showErrorSnack(e.toString());
     }
-  }
-
-  void _showLoading() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
   }
 
   void _showSuccessSnack() {
@@ -80,7 +79,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Chấm điểm', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Chấm điểm Bài thi', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -93,8 +92,8 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
             _buildHeader(),
             const SizedBox(height: 25),
             
-            _buildLabel('Nội dung bài làm:'),
-            _buildContentPreview(),
+            _buildLabel('Thông tin bài làm:'),
+            _buildInfoCard(),
             const SizedBox(height: 30),
             
             _buildLabel('Nhập điểm số (0 - 10)'),
@@ -117,7 +116,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
           child: const Icon(Icons.person, color: Colors.blue, size: 30),
         ),
         const SizedBox(width: 15),
@@ -132,7 +131,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     );
   }
 
-  Widget _buildContentPreview() {
+  Widget _buildInfoCard() {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 10),
@@ -140,11 +139,17 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F7FA),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
-      child: Text(
-        widget.submission.content.isNotEmpty ? widget.submission.content : 'Không có nội dung bài làm.',
-        style: const TextStyle(fontSize: 15, height: 1.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Loại bài nộp: Bài kiểm tra hệ thống', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text('ID bài thi: ${widget.submission.examId}'),
+          const SizedBox(height: 8),
+          const Text('Trạng thái: Đã nhận dữ liệu từ backend.', style: TextStyle(color: Colors.blue, fontSize: 13)),
+        ],
       ),
     );
   }
@@ -162,7 +167,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     return TextField(
       controller: _commentController,
       maxLines: 4,
-      decoration: _buildInputDecoration('Ghi nhận xét của anh cho học sinh tại đây...'),
+      decoration: _buildInputDecoration('Ghi nhận xét cho học sinh tại đây...'),
     );
   }
 
@@ -189,14 +194,16 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
       width: double.infinity,
       height: 55,
       child: ElevatedButton(
-        onPressed: _submitGrade,
+        onPressed: _isSaving ? null : _submitGrade,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 2,
+          elevation: 0,
         ),
-        child: const Text('Xác nhận & Lưu điểm', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        child: _isSaving 
+          ? const CircularProgressIndicator(color: Colors.white)
+          : const Text('Xác nhận & Lưu điểm', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ),
     );
   }
