@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/login_screen.dart';
 import 'package:apptienganh10/screens/school/school_home_screen.dart';
 import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
-import 'package:apptienganh10/home_screen.dart';
+import 'package:apptienganh10/screens/student/home_screen.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 
 void main() async {

@@ -331,6 +331,18 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<dynamic> getPublicUnits() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/units/public'), headers: _headers);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   // ==================== QUESTIONS ====================
 
   static Future<List<dynamic>> getQuestions({String? examId, String? lessonId}) async {
