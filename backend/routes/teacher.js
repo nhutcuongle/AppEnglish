@@ -4,7 +4,6 @@ import {
   getTeachers,
   updateTeacher,
   deleteTeacher,
-  getMyClassStudents,
 } from "../controller/teacherController.js";
 
 import {
@@ -20,13 +19,5 @@ router.post("/", authenticate, isSchool, createTeacher);
 router.get("/", authenticate, isSchool, getTeachers);
 router.put("/:id", authenticate, isSchool, updateTeacher);
 router.delete("/:id", authenticate, isSchool, deleteTeacher);
-
-// TEACHER
-router.get(
-  "/my-class/students",
-  authenticate,
-  isTeacher,
-  getMyClassStudents
-);
 
 export default router;

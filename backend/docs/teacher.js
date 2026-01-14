@@ -99,16 +99,3 @@
  *       200:
  *         description: Xóa giảng viên thành công
  */
-
-/**
- * @swagger
- * /api/teachers/my-class/students:
- *   get:
- *     summary: Lấy học sinh lớp chủ nhiệm (Giảng viên)
- *     tags: [Teachers]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Thành công
- */

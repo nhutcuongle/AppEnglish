@@ -9,6 +9,7 @@ import {
   getAssignableStudents,
   updateProfile,
   getProfile,
+  getStudentsByClassForTeacher,
 } from "../controller/userController.js";
 
 import {
@@ -105,5 +106,10 @@ router.delete("/students/:id", authenticate, isSchool, deleteStudent);
 router.put("/students/:id/disable", authenticate, isSchool, disableUser);
 
 router.put("/students/:id/enable", authenticate, isSchool, enableUser);
+
+/* =====================================================
+   TEACHER
+===================================================== */
+router.get("/teacher/class-students/:classId", authenticate, isTeacher, getStudentsByClassForTeacher);
 
 export default router;

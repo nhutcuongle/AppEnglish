@@ -1,12 +1,18 @@
 import express from "express";
 import {
-  createQuestion,
+  createQuestion,                // School
+  createQuestionForTeacher,      // Teacher (NEW)
   getQuestionsByLesson,
   updateQuestion,
   deleteQuestion,
 } from "../controller/questionController.js";
 
-import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
+import {
+  authenticate,
+  isSchool,
+  isTeacher,
+} from "../middlewares/authMiddleware.js";
+
 import {
   uploadMultipleMedia,
   uploadErrorHandler,
@@ -14,8 +20,20 @@ import {
 
 const router = express.Router();
 
-/* ================= SCHOOL (CRUD) ================= */
+/* ================= TEACHER (EXAM QUESTIONS) ================= */
 
+router.post(
+  "/teacher",
+  authenticate,
+  isTeacher,
+  uploadMultipleMedia,
+  uploadErrorHandler,
+  createQuestionForTeacher
+);
+
+/* ================= SCHOOL / TEACHER (CRUD) ================= */
+
+// POST / for School (Lesson questions)
 router.post(
   "/",
   authenticate,
@@ -25,16 +43,20 @@ router.post(
   createQuestion
 );
 
+// PATCH / DELETE for both (Granular checks in controller)
 router.patch(
   "/:id",
   authenticate,
-  isSchool,
   uploadMultipleMedia,
   uploadErrorHandler,
   updateQuestion
 );
 
-router.delete("/:id", authenticate, isSchool, deleteQuestion);
+router.delete(
+  "/:id",
+  authenticate,
+  deleteQuestion
+);
 
 /* ================= STUDENT / TEACHER / SCHOOL (VIEW) ================= */
 

@@ -6,46 +6,46 @@ import {
   getClassDetail,
   updateClass,
   deleteClass,
+  getTeacherClasses,
 } from "../controller/classController.js";
 
-import { authenticate, isSchool } from "../middlewares/authMiddleware.js";
+import { authenticate, isSchool, isTeacher } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 /* =====================================================
-   CREATE CLASS
+   TEACHER: GET MY CLASSES
 ===================================================== */
+router.get("/teacher/my-classes", authenticate, isTeacher, getTeacherClasses);
 
+/* =====================================================
+   CREATE CLASS (School)
+===================================================== */
 router.post("/", authenticate, isSchool, createClass);
 
 /* =====================================================
-   GET ALL CLASSES
+   GET ALL CLASSES (School)
 ===================================================== */
-
 router.get("/", authenticate, isSchool, getAllClasses);
 
 /* =====================================================
-   GET CLASS DETAIL
+   GET CLASS DETAIL (School)
 ===================================================== */
-
 router.get("/:id", authenticate, isSchool, getClassDetail);
 
 /* =====================================================
-   UPDATE CLASS
+   UPDATE CLASS (School)
 ===================================================== */
-
 router.put("/:id", authenticate, isSchool, updateClass);
 
 /* =====================================================
-   DELETE CLASS
-===================================================== */
-
+   DELETE CLASS (School)
+==================================================== */
 router.delete("/:id", authenticate, isSchool, deleteClass);
 
 /* =====================================================
-   ASSIGN / CHANGE TEACHER
+   ASSIGN / CHANGE TEACHER (School)
 ===================================================== */
-
 router.post(
   "/assign-teacher",
   authenticate,

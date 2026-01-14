@@ -10,8 +10,12 @@ const swaggerOptions = {
     },
     servers: [
       {
+        url: "http://localhost:5000",
+        description: "Local development server",
+      },
+      {
         url: "https://appenglish-0uee.onrender.com",
-        //  url: "http://localhost:5000",
+        description: "Production server",
       },
     ],
 
@@ -52,7 +56,7 @@ const swaggerOptions = {
       },
       {
         name: "Questions",
-        description: " Bài tập / câu hỏi cho tất cả kỹ năng ",
+        description: "Quản lý câu hỏi (Nhà trường tạo bài học / Giáo viên tạo bài kiểm tra) ",
       },
        {
         name: "Exams",

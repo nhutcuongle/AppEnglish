@@ -277,3 +277,33 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/* TEACHER: GET STUDENTS BY CLASS */
+export const getStudentsByClassForTeacher = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    // Verify if teacher is the homeroom teacher of this class
+    const classData = await Class.findOne({
+      _id: classId,
+      homeroomTeacher: req.user._id,
+      isActive: true
+    });
+
+    if (!classData) {
+      return res.status(403).json({ 
+        message: "Bạn không có quyền xem học sinh lớp này hoặc lớp không tồn tại" 
+      });
+    }
+
+    const students = await User.find({ 
+      class: classId, 
+      role: "student" 
+    }).select("-password");
+
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+

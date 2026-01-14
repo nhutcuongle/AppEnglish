@@ -3,114 +3,13 @@ import Lesson from "../models/Lesson.js";
 import Class from "../models/Class.js";
 import Exam from "../models/Exam.js";
 
-/* ================= CREATE QUESTION ================= */
+/* ================= CREATE QUESTION (SCHOOL ONLY - FOR LESSONS) ================= */
 export const createQuestion = async (req, res) => {
   try {
-    /* ===== BULK CREATE ===== */
-    let questionsData = null;
-    let commonDeadline = null;
-    let targetLesson = null;
-
-    if (Array.isArray(req.body)) {
-      questionsData = req.body;
-    } else if (req.body.questions && Array.isArray(req.body.questions)) {
-      questionsData = req.body.questions;
-      commonDeadline = req.body.deadline;
-      targetLesson = req.body.lessonId;
+    if (req.user.role !== "school") {
+      return res.status(403).json({ message: "Chỉ nhà trường mới có quyền sử dụng đầu API này" });
     }
 
-    if (questionsData) {
-      if (questionsData.length === 0) {
-        return res.status(400).json({ message: "Danh sách câu hỏi trống" });
-      }
-
-      /* Check Permissions & Class */
-      let classId = targetLesson ? req.body.classId : null;
-      const targetExamId = req.body.examId;
-
-      if (req.user.role === "teacher") {
-        if (!targetExamId) {
-          return res.status(403).json({ message: "Giảng viên không có quyền tạo câu hỏi bài học hàng loạt" });
-        }
-        const exam = await Exam.findById(targetExamId);
-        if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ message: "Bạn không có quyền quản lý bài kiểm tra này" });
-        }
-      }
-
-      if (req.user.role === "school") {
-        // School no longer strictly requires classId in bulk
-      }
-
-      /* Get starting order number (query once for efficiency) */
-      const firstQuestion = questionsData[0];
-      const firstLesson = firstQuestion?.lessonId || targetLesson;
-      const firstClass = firstQuestion?.classId || req.body.classId;
-      const firstExam = firstQuestion?.examId || targetExamId;
-      
-      const lastQuestion = await Question.findOne({
-        lesson: firstLesson || null,
-        exam: firstExam || null,
-        class: firstClass || null,
-      }).sort({ order: -1 }).select("order");
-      
-      let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
-
-      const createdQuestions = [];
-      
-      for (const qData of questionsData) {
-        const {
-           lessonId: qLessonId, skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
-           images, audios, videos
-        } = qData;
-
-        const finalLesson = qLessonId || targetLesson;
-        const finalClass = qClassId || req.body.classId;
-        const finalExam = qData.examId || targetExamId;
-
-        if ((!finalLesson && !finalExam) || !skill || !type || !content || (!isSchool && !finalClass)) {
-          continue; 
-        }
-
-        /* Permission check for each question in bulk */
-        if (isSchool) {
-          if (finalClass) {
-            const targetClass = await Class.findOne({ _id: finalClass, school: req.user._id });
-            if (!targetClass) continue;
-          }
-        } else if (req.user.role === "teacher") {
-          if (!finalExam || !finalClass) continue;
-          // Teacher must be the homeroom teacher of finalClass
-          const targetClass = await Class.findOne({ _id: finalClass, homeroomTeacher: req.user._id });
-          if (!targetClass) continue;
-          
-          const exam = await Exam.findById(finalExam);
-          if (!exam || exam.class.toString() !== finalClass.toString()) continue;
-        }
-
-        const newQuestion = await Question.create({
-          lesson: isSchool ? (finalLesson || null) : null, // Teacher cannot link to Lesson
-          exam: finalExam || null,
-          skill, type, content, options, correctAnswer, explanation, isPublished,
-          points: points || 1,
-          class: finalClass || null,
-          school: isSchool ? req.user._id : null,
-          order: currentOrder++, // Auto-increment order
-          images: images || [], 
-          audios: audios || [], 
-          videos: videos || []
-        });
-        createdQuestions.push(newQuestion);
-      }
-
-      return res.status(201).json({
-        message: `Đã tạo ${createdQuestions.length} câu hỏi`,
-        data: createdQuestions,
-        deadline: commonDeadline || null
-      });
-    }
-
-    /* ===== SINGLE CREATE (Existing Logic) ===== */
     const {
       lessonId,
       skill,
@@ -125,167 +24,108 @@ export const createQuestion = async (req, res) => {
       deadline
     } = req.body;
 
-    /* ===== VALIDATE ===== */
-    const { examId } = req.body;
-    // School creates for all classes, so classId is NOT required for school role
-    const isSchool = req.user.role === "school";
-    
-    if ((!lessonId && !examId) || !skill || !type || !content || (!isSchool && !classId)) {
-      return res.status(400).json({
-        message: "Thiếu lessonId/examId, skill, type, content hoặc classId",
+    /* ===== BULK CREATE ===== */
+    let questionsData = null;
+    if (Array.isArray(req.body)) {
+      questionsData = req.body;
+    } else if (req.body.questions && Array.isArray(req.body.questions)) {
+      questionsData = req.body.questions;
+    }
+
+    if (questionsData) {
+      if (questionsData.length === 0) {
+        return res.status(400).json({ message: "Danh sách câu hỏi trống" });
+      }
+
+      const targetLesson = req.body.lessonId || questionsData[0].lessonId;
+      if (!targetLesson) {
+        return res.status(400).json({ message: "Thiếu lessonId cho tất cả câu hỏi" });
+      }
+
+      const lastQuestion = await Question.findOne({
+        lesson: targetLesson,
+        school: req.user._id,
+      }).sort({ order: -1 }).select("order");
+      
+      let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
+      const createdQuestions = [];
+      
+      for (const qData of questionsData) {
+        const {
+           skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
+           images, audios, videos
+        } = qData;
+
+        if (!skill || !type || !content) continue;
+
+        const newQuestion = await Question.create({
+          lesson: targetLesson,
+          exam: null,
+          skill, type, content, options, correctAnswer, explanation, isPublished,
+          points: points || 1,
+          class: qClassId || req.body.classId || null,
+          school: req.user._id,
+          order: currentOrder++,
+          images: images || [], 
+          audios: audios || [], 
+          videos: videos || []
+        });
+        createdQuestions.push(newQuestion);
+      }
+
+      return res.status(201).json({
+        message: `Đã tạo ${createdQuestions.length} câu hỏi cho bài học`,
+        data: createdQuestions
       });
     }
 
-    if (req.user.role !== "school") {
-        // Teacher can create if it's for an Exam they own
-        const { examId } = req.body;
-        if (!examId || req.user.role !== "teacher") {
-          return res.status(403).json({ message: "Chỉ nhà trường mới có quyền tạo câu hỏi bài học" });
-        }
-        const exam = await Exam.findById(examId);
-        if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
-           return res.status(403).json({ message: "Bạn không có quyền tạo câu hỏi cho bài kiểm tra này" });
-        }
+    /* ===== SINGLE CREATE ===== */
+    if (!lessonId || !skill || !type || !content) {
+      return res.status(400).json({ message: "Thiếu lessonId, skill, type hoặc content" });
     }
 
-    /* ===== CHECK LESSON / EXAM ===== */
-    if (lessonId) {
-      const lessonData = await Lesson.findById(lessonId);
-      if (!lessonData) {
-        return res.status(400).json({ message: "Lesson không tồn tại" });
-      }
-    }
-    if (examId) {
-      const examData = await Exam.findById(examId);
-      if (!examData) {
-        return res.status(400).json({ message: "Bài kiểm tra không tồn tại" });
-      }
+    const lessonData = await Lesson.findById(lessonId);
+    if (!lessonData) return res.status(400).json({ message: "Lesson không tồn tại" });
+
+    if (deadline && req.user.role === "school") {
+      await Lesson.findByIdAndUpdate(lessonId, { deadline });
     }
 
-    /* ===== CHECK CLASS BELONGS TO SCHOOL (IF CLASS PROVIDED) ===== */
-    let targetClass = null;
-    if (classId) {
-       targetClass = await Class.findOne({
-        _id: classId,
-        isActive: true,
-      });
-
-      if (!targetClass) {
-        return res.status(403).json({ message: "Lớp không tồn tại" });
-      }
-
-      // If school is creating for a specific class, verify ownership
-      if (isSchool && targetClass.school.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: "Lớp không thuộc quản lý của trường bạn" });
-      }
-    }
-
-    /* ===== VALIDATE EXAM BELONGS TO THIS TEACHER & CLASS ===== */
-    if (req.user.role === "teacher") {
-       if (!examId || !classId) {
-         return res.status(400).json({ message: "Giảng viên cần cung cấp examId và classId" });
-       }
-       const exam = await Exam.findById(examId);
-       if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
-         return res.status(403).json({ message: "Bạn không có quyền quản lý bài kiểm tra này" });
-       }
-       if (exam.class.toString() !== classId) {
-         return res.status(403).json({ message: "examId và classId không khớp nhau" });
-       }
-    }
-
-    /* ===== SYNC LESSON DEADLINE ===== */
-    if (deadline) {
-      await Lesson.findByIdAndUpdate(
-        lessonId,
-        { deadline: deadline },
-        { new: true }
-      );
-    }
-
-    /* ===== AUTO QUESTION ORDER ===== */
     const lastQuestion = await Question.findOne({
-      lesson: lessonId || null,
-      exam: examId || null,
-      class: classId || null,
-      school: isSchool ? req.user._id : null
-    })
-      .sort({ order: -1 })
-      .select("order");
+      lesson: lessonId,
+      school: req.user._id
+    }).sort({ order: -1 }).select("order");
 
     const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
 
-    /* ===== IMAGE ===== */
-    const imageCaptions = Array.isArray(req.body.imageCaptions)
-      ? req.body.imageCaptions
-      : req.body.imageCaptions
-      ? [req.body.imageCaptions]
-      : [];
+    /* Media Handling */
+    const imageCaptions = Array.isArray(req.body.imageCaptions) ? req.body.imageCaptions : (req.body.imageCaptions ? [req.body.imageCaptions] : []);
+    const images = req.files?.images?.map((file, index) => ({
+      url: file.path,
+      caption: imageCaptions[index] || "",
+      order: index + 1,
+    })) || [];
 
-    const images =
-      req.files?.images?.map((file, index) => ({
-        url: file.path,
-        caption: imageCaptions[index] || "",
-        order: index + 1,
-      })) || [];
+    const audioCaptions = Array.isArray(req.body.audioCaptions) ? req.body.audioCaptions : (req.body.audioCaptions ? [req.body.audioCaptions] : []);
+    const audios = req.files?.audios?.map((file, index) => ({
+      url: file.path,
+      caption: audioCaptions[index] || "",
+      order: index + 1,
+    })) || [];
 
-    /* ===== AUDIO ===== */
-    const audioCaptions = Array.isArray(req.body.audioCaptions)
-      ? req.body.audioCaptions
-      : req.body.audioCaptions
-      ? [req.body.audioCaptions]
-      : [];
+    const videoCaptions = Array.isArray(req.body.videoCaptions) ? req.body.videoCaptions : (req.body.videoCaptions ? [req.body.videoCaptions] : []);
+    const uploadVideos = req.files?.videos?.map((file, index) => ({
+      type: "upload",
+      url: file.path,
+      caption: videoCaptions[index] || "",
+      order: index + 1,
+    })) || [];
 
-    const audios =
-      req.files?.audios?.map((file, index) => ({
-        url: file.path,
-        caption: audioCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    /* ===== VIDEO (UPLOAD + YOUTUBE) ===== */
-
-    // caption cho video upload
-    const videoCaptions = Array.isArray(req.body.videoCaptions)
-      ? req.body.videoCaptions
-      : req.body.videoCaptions
-      ? [req.body.videoCaptions]
-      : [];
-
-    // video upload từ máy
-    const uploadVideos =
-      req.files?.videos?.map((file, index) => ({
-        type: "upload",
-        url: file.path,
-        caption: videoCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    // ===== YOUTUBE URL =====
-    const youtubeUrls = Array.isArray(req.body.youtubeVideos)
-      ? req.body.youtubeVideos
-      : req.body.youtubeVideos
-      ? [req.body.youtubeVideos]
-      : [];
-
-    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions)
-      ? req.body.youtubeVideoCaptions
-      : req.body.youtubeVideoCaptions
-      ? [req.body.youtubeVideoCaptions]
-      : [];
-
+    const youtubeUrls = Array.isArray(req.body.youtubeVideos) ? req.body.youtubeVideos : (req.body.youtubeVideos ? [req.body.youtubeVideos] : []);
+    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions) ? req.body.youtubeVideoCaptions : (req.body.youtubeVideoCaptions ? [req.body.youtubeVideoCaptions] : []);
     const youtubeVideos = youtubeUrls.map((url, index) => {
-      // Regex support:
-      // - https://youtu.be/ID
-      // - https://www.youtube.com/watch?v=ID
-      // - https://www.youtube.com/watch?v=ID&list=...
-      // - https://www.youtube.com/watch?param=...&v=ID
-      // - https://www.youtube.com/embed/ID
-      const match = url.match(
-        /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-      );
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
       const youtubeId = match && match[2].length === 11 ? match[2] : null;
-
       return {
         type: "youtube",
         url,
@@ -295,13 +135,35 @@ export const createQuestion = async (req, res) => {
       };
     });
 
-    // ===== GỘP CHUNG =====
     const videos = [...uploadVideos, ...youtubeVideos];
 
-    /* ===== CREATE ===== */
     const question = await Question.create({
-      lesson: isSchool ? (lessonId || null) : null,
-      exam: examId || null,
+      lesson: lessonId,
+      exam: null,
+      skill, type, content, options, correctAnswer, explanation,
+      isPublished,
+      points: points || 1,
+      order: nextOrder,
+      images, audios, videos,
+      class: classId || null,
+      school: req.user._id,
+    });
+
+    res.status(201).json({ message: "Tạo câu hỏi bài học thành công", question });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* ================= CREATE QUESTION FOR TEACHER (EXAM ONLY) ================= */
+export const createQuestionForTeacher = async (req, res) => {
+  try {
+    if (req.user.role !== "teacher") {
+      return res.status(403).json({ message: "Chỉ giảng viên mới có quyền sử dụng đầu API này" });
+    }
+
+    const {
+      examId,
       skill,
       type,
       content,
@@ -309,19 +171,123 @@ export const createQuestion = async (req, res) => {
       correctAnswer,
       explanation,
       isPublished,
-      points: points || 1,
-      order: nextOrder,
-      images,
-      audios,
-      videos,
-      class: classId || null,
-      school: isSchool ? req.user._id : null,
+      points
+    } = req.body;
+
+    /* ===== BULK CREATE ===== */
+    let questionsData = null;
+    if (Array.isArray(req.body)) {
+      questionsData = req.body;
+    } else if (req.body.questions && Array.isArray(req.body.questions)) {
+      questionsData = req.body.questions;
+    }
+
+    const targetExamId = examId || (questionsData && questionsData[0]?.examId);
+    if (!targetExamId) return res.status(400).json({ message: "Thiếu examId" });
+
+    const exam = await Exam.findById(targetExamId);
+    if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Bạn không có quyền quản lý bài kiểm tra này" });
+    }
+
+    if (questionsData) {
+      if (questionsData.length === 0) {
+        return res.status(400).json({ message: "Danh sách câu hỏi trống" });
+      }
+
+      const lastQuestion = await Question.findOne({ exam: targetExamId }).sort({ order: -1 }).select("order");
+      let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
+      const createdQuestions = [];
+      
+      for (const qData of questionsData) {
+        const {
+           skill, type, content, options, correctAnswer, explanation, isPublished, points,
+           images, audios, videos
+        } = qData;
+
+        if (!skill || !type || !content) continue;
+
+        const newQuestion = await Question.create({
+          lesson: null,
+          exam: targetExamId,
+          skill, type, content, options, correctAnswer, explanation, isPublished,
+          points: points || 1,
+          class: exam.class,
+          school: null,
+          order: currentOrder++,
+          images: images || [], 
+          audios: audios || [], 
+          videos: videos || []
+        });
+        createdQuestions.push(newQuestion);
+      }
+
+      return res.status(201).json({
+        message: `Đã tạo ${createdQuestions.length} câu hỏi cho bài kiểm tra`,
+        data: createdQuestions
+      });
+    }
+
+    /* ===== SINGLE CREATE ===== */
+    if (!skill || !type || !content) {
+      return res.status(400).json({ message: "Thiếu skill, type hoặc content" });
+    }
+
+    const lastQuestion = await Question.findOne({ exam: targetExamId }).sort({ order: -1 }).select("order");
+    const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
+
+    /* Media Handling (Copy from School - or could be refactored to helper) */
+    const imageCaptions = Array.isArray(req.body.imageCaptions) ? req.body.imageCaptions : (req.body.imageCaptions ? [req.body.imageCaptions] : []);
+    const images = req.files?.images?.map((file, index) => ({
+      url: file.path,
+      caption: imageCaptions[index] || "",
+      order: index + 1,
+    })) || [];
+
+    const audioCaptions = Array.isArray(req.body.audioCaptions) ? req.body.audioCaptions : (req.body.audioCaptions ? [req.body.audioCaptions] : []);
+    const audios = req.files?.audios?.map((file, index) => ({
+      url: file.path,
+      caption: audioCaptions[index] || "",
+      order: index + 1,
+    })) || [];
+
+    const videoCaptions = Array.isArray(req.body.videoCaptions) ? req.body.videoCaptions : (req.body.videoCaptions ? [req.body.videoCaptions] : []);
+    const uploadVideos = req.files?.videos?.map((file, index) => ({
+      type: "upload",
+      url: file.path,
+      caption: videoCaptions[index] || "",
+      order: index + 1,
+    })) || [];
+
+    const youtubeUrls = Array.isArray(req.body.youtubeVideos) ? req.body.youtubeVideos : (req.body.youtubeVideos ? [req.body.youtubeVideos] : []);
+    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions) ? req.body.youtubeVideoCaptions : (req.body.youtubeVideoCaptions ? [req.body.youtubeVideoCaptions] : []);
+    const youtubeVideos = youtubeUrls.map((url, index) => {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+      const youtubeId = match && match[2].length === 11 ? match[2] : null;
+      return {
+        type: "youtube",
+        url,
+        youtubeId,
+        caption: youtubeCaptions[index] || "",
+        order: uploadVideos.length + index + 1,
+      };
     });
 
-    res.status(201).json({
-      message: "Tạo question thành công",
-      question,
+    const videos = [...uploadVideos, ...youtubeVideos];
+
+    const question = await Question.create({
+      lesson: null,
+      exam: targetExamId,
+      skill, type, content, options, correctAnswer, explanation,
+      isPublished,
+      points: points || 1,
+      order: nextOrder,
+      images, audios, videos,
+      class: exam.class,
+      school: null,
     });
+
+    res.status(201).json({ message: "Tạo câu hỏi bài kiểm tra thành công", question });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -332,70 +298,36 @@ export const getQuestionsByLesson = async (req, res) => {
   try {
     let classId = null;
 
-    /* REQ.USER.CLASS chỉ có ở Student (do authMiddleware populate hoặc có sẵn) 
-       Teacher thì không có field này trong User model -> phải tìm trong Class collection */
-    
     if (req.user.role === "student") {
-      if (!req.user.class) {
-        return res.status(403).json({
-          message: "Học sinh chưa được xếp lớp",
-        });
-      }
+      if (!req.user.class) return res.status(403).json({ message: "Học sinh chưa được xếp lớp" });
       classId = req.user.class;
     } else if (req.user.role === "teacher") {
-       // Tìm lớp mà giáo viên này chủ nhiệm
-      const teacherClass = await Class.findOne({
-        homeroomTeacher: req.user._id,
-        isActive: true,
-      });
-
-      if (!teacherClass) {
-        return res.status(403).json({
-          message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
-        });
-      }
+      const teacherClass = await Class.findOne({ homeroomTeacher: req.user._id, isActive: true });
+      if (!teacherClass) return res.status(403).json({ message: "Bạn không phải giáo viên chủ nhiệm lớp nào" });
       classId = teacherClass._id;
-    } else if (req.user.role === "admin" || req.user.role === "school") {
-      // Admin/School có thể xem nội dung nếu muốn (tùy logic, ở đây tạm allow all hoặc chặn)
-      // Nếu muốn test nhanh có thể return, hoặc yêu cầu gửi classId trong query
-      // Ở đây tạm thời chặn nếu không logic cụ thể
-       return res.status(403).json({
-          message: "Role này cần gửi classId cụ thể (chưa implement)",
-       });
+    } else if (req.user.role === "school") {
+       return res.status(403).json({ message: "Nhà trường cần gửi classId cụ thể (chưa implement qua query)" });
     }
 
-    /* Find schoolId to fetch school-wide questions */
     let schoolId = null;
-    if (req.user.role === "student") {
-        const studentClass = await Class.findById(classId).select("school");
-        if (studentClass) schoolId = studentClass.school;
-    } else if (req.user.role === "teacher") {
-        const teacherClass = await Class.findById(classId).select("school");
-        if (teacherClass) schoolId = teacherClass.school;
-    } else if (req.user.role === "school") {
-        schoolId = req.user._id;
-    }
+    const targetClass = await Class.findById(classId).select("school");
+    if (targetClass) schoolId = targetClass.school;
 
     const questions = await Question.find({
       lesson: req.params.lessonId,
       $or: [
-        { class: classId }, // Lớp cụ thể
-        { class: null, school: schoolId } // Toàn trường
+        { class: classId },
+        { class: null, school: schoolId }
       ],
       isPublished: true,
-    })
-      .sort({ order: 1, createdAt: 1 })
-      .lean();
+    }).sort({ order: 1, createdAt: 1 }).lean();
 
-    /* ===== FETCH LESSON DEADLINE ===== */
-    const lesson = await Lesson.findById(req.params.lessonId)
-      .select("deadline")
-      .lean();
+    const lesson = await Lesson.findById(req.params.lessonId).select("deadline").lean();
 
     res.json({
       total: questions.length,
       data: questions,
-      deadline: lesson?.deadline || null, // Trả về deadline từ lesson
+      deadline: lesson?.deadline || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -405,76 +337,36 @@ export const getQuestionsByLesson = async (req, res) => {
 /* ================= UPDATE QUESTION ================= */
 export const updateQuestion = async (req, res) => {
   try {
-    // Chỉ School mới được sửa
-    if (req.user.role !== "school") {
-      const question = await Question.findById(req.params.id);
-      if (!question || !question.exam) {
-        return res.status(403).json({ message: "Chỉ nhà trường mới được sửa câu hỏi bài học" });
-      }
-      const exam = await Exam.findById(question.exam);
-      if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: "Bạn không có quyền sửa câu hỏi bài kiểm tra này" });
-      }
-    }
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ message: "Question không tồn tại" });
 
-    /* ===== CHECK QUESTION BELONGS TO SCHOOL'S CLASS ===== */
-    const question = await Question.findById(req.params.id).populate("class");
-
-    if (!question) {
-      return res.status(404).json({ message: "Question không tồn tại" });
-    }
-
+    // Permission Check
     if (req.user.role === "school") {
-      // If it has class, check class.school. If no class, check question.school
-      const isOwner = (question.class && question.class.school.toString() === req.user._id.toString()) || 
+      const targetClass = question.class ? await Class.findById(question.class) : null;
+      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) || 
                       (!question.class && question.school && question.school.toString() === req.user._id.toString());
-      
-      if (!isOwner) {
-         return res.status(403).json({
-          message: "Question không thuộc quản lý của trường bạn",
-        });
-      }
+      if (!isOwner) return res.status(403).json({ message: "Question không thuộc quản lý của trường bạn" });
     } else if (req.user.role === "teacher") {
+      if (!question.exam) return res.status(403).json({ message: "Giáo viên chỉ được sửa câu hỏi trong bài kiểm tra" });
       const exam = await Exam.findById(question.exam);
       if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: "Bạn không có quyền sửa câu hỏi bài kiểm tra này" });
       }
+    } else {
+      return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này" });
     }
 
-    const allowedFields = [
-      "content",
-      "options",
-      "correctAnswer",
-      "explanation",
-      "order",
-      "isPublished",
-      "images",
-      "audios",
-      "videos",
-      "points",
-    ];
-
+    const allowedFields = ["content", "options", "correctAnswer", "explanation", "order", "isPublished", "images", "audios", "videos", "points"];
     allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        question[field] = req.body[field];
-      }
+      if (req.body[field] !== undefined) question[field] = req.body[field];
     });
 
-    /* ===== SYNC LESSON DEADLINE IF UPDATED ===== */
-    if (req.body.deadline !== undefined && question.lesson) {
-      await Lesson.findByIdAndUpdate(
-        question.lesson,
-        { deadline: req.body.deadline },
-        { new: true }
-      );
+    if (req.body.deadline !== undefined && question.lesson && req.user.role === "school") {
+      await Lesson.findByIdAndUpdate(question.lesson, { deadline: req.body.deadline });
     }
 
     await question.save();
-
-    res.json({
-      message: "Cập nhật question thành công",
-      question,
-    });
+    res.json({ message: "Cập nhật question thành công", question });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -483,44 +375,26 @@ export const updateQuestion = async (req, res) => {
 /* ================= DELETE QUESTION ================= */
 export const deleteQuestion = async (req, res) => {
   try {
-    // Chỉ School mới được xóa
-    if (req.user.role !== "school") {
-      const question = await Question.findById(req.params.id);
-      if (!question || !question.exam) {
-        return res.status(403).json({ message: "Chỉ nhà trường mới được xóa câu hỏi bài học" });
-      }
-      const exam = await Exam.findById(question.exam);
-      if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: "Bạn không có quyền xóa câu hỏi bài kiểm tra này" });
-      }
-    }
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ message: "Question không tồn tại" });
 
-    const question = await Question.findById(req.params.id).populate("class");
-
-    if (!question) {
-      return res.status(404).json({
-        message: "Question không tồn tại",
-      });
-    }
-
+    // Permission Check
     if (req.user.role === "school") {
-      const isOwner = (question.class && question.class.school.toString() === req.user._id.toString()) || 
+      const targetClass = question.class ? await Class.findById(question.class) : null;
+      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) || 
                       (!question.class && question.school && question.school.toString() === req.user._id.toString());
-
-      if (!isOwner) {
-          return res.status(403).json({
-              message: "Question không thuộc quản lý của trường bạn",
-          });
-      }
+      if (!isOwner) return res.status(403).json({ message: "Question không thuộc quản lý của trường bạn" });
     } else if (req.user.role === "teacher") {
+      if (!question.exam) return res.status(403).json({ message: "Giáo viên chỉ được xóa câu hỏi trong bài kiểm tra" });
       const exam = await Exam.findById(question.exam);
       if (!exam || exam.teacher.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: "Bạn không có quyền xóa câu hỏi bài kiểm tra này" });
       }
+    } else {
+      return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này" });
     }
 
     await Question.findByIdAndDelete(req.params.id);
-
     res.json({ message: "Xóa question thành công" });
   } catch (err) {
     res.status(500).json({ error: err.message });

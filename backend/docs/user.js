@@ -141,3 +141,25 @@
  *       200:
  *         description: Mở khóa tài khoản thành công
  */
+
+/**
+ * @swagger
+ * /api/users/teacher/class-students/{classId}:
+ *   get:
+ *     summary: Lấy danh sách học sinh của lớp mình chủ nhiệm (Giảng viên)
+ *     description: Trả về danh sách đầy đủ học sinh của lớp do Giảng viên đang đăng nhập quản lý.
+ *     tags: [Students]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: classId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Danh sách học sinh của lớp
+ *       403:
+ *         description: Không có quyền (Chỉ dành cho GVCN của lớp này)
+ */

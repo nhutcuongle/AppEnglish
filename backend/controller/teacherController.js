@@ -139,22 +139,3 @@ export const deleteTeacher = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-/* TEACHER: GET MY CLASS STUDENTS */
-export const getMyClassStudents = async (req, res) => {
-  try {
-    const classData = await Class.findOne({
-      homeroomTeacher: req.user.id,
-    }).populate("students", "username email");
-
-    if (!classData)
-      return res.status(404).json({ message: "Bạn chưa được phân lớp" });
-
-    res.json({
-      class: classData.name,
-      students: classData.students,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};

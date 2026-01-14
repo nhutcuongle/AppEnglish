@@ -199,3 +199,23 @@
  *       404:
  *         description: Không tìm thấy lớp
  */
+
+/* =====================================================
+   TEACHER: GET MY CLASSES
+===================================================== */
+
+/**
+ * @swagger
+ * /api/classes/teacher/my-classes:
+ *   get:
+ *     summary: Lấy danh sách lớp giảng viên chủ nhiệm (Giảng viên)
+ *     description: Trả về danh sách các lớp mà giảng viên đang đăng nhập được gán làm homeroomTeacher.
+ *     tags: [Classes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách lớp học
+ *       403:
+ *         description: Chỉ giảng viên được phép
+ */

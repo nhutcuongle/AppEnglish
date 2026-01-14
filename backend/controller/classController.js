@@ -179,3 +179,34 @@ export const getClassDetail = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/* TEACHER: GET MY CLASSES */
+export const getTeacherClasses = async (req, res) => {
+  try {
+    const classes = await Class.find({ 
+      homeroomTeacher: req.user._id,
+      isActive: true 
+    })
+    .populate("school", "username fullName")
+    .sort({ grade: 1, name: 1 });
+
+    const classesWithCounts = await Promise.all(
+      classes.map(async (classDoc) => {
+        const studentCount = await User.countDocuments({
+          role: "student",
+          class: classDoc._id,
+        });
+
+        return {
+          ...classDoc.toObject(),
+          studentCount,
+        };
+      })
+    );
+
+    res.json(classesWithCounts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
