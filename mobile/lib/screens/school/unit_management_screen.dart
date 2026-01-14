@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import 'lesson_screen.dart';
 
@@ -25,7 +27,7 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
     try {
       final units = await ApiService.getUnits();
       setState(() {
-        _units = units.map((u) => {
+        _units = units.map((u) => <String, dynamic>{
           'id': u['_id']?.toString() ?? '',
           'title': u['title'] ?? '',
           'description': u['description'] ?? '',
@@ -33,6 +35,9 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
           'isPublished': u['isPublished'] ?? true,
           'order': u['order'] ?? 0,
         }).toList();
+        
+        // Sort by order field
+        _units.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
         _isLoading = false;
       });
     } catch (e) {
@@ -63,16 +68,20 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
   Future<void> _showAddEditDialog({Map<String, dynamic>? unit}) async {
     final titleController = TextEditingController(text: unit?['title'] ?? '');
     final descController = TextEditingController(text: unit?['description'] ?? '');
+    final orderController = TextEditingController(text: unit?['order']?.toString() ?? '');
     bool isPublished = unit?['isPublished'] ?? true;
+    String? currentImageUrl = unit?['image'];
+    String? selectedImagePath;
     final parentContext = context;
+    final ImagePicker picker = ImagePicker();
 
-    final shouldSubmit = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.7,
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -92,49 +101,166 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
                     const SizedBox(width: 12),
                     Text(unit == null ? 'Thêm Unit Mới' : 'Sửa Unit', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    IconButton(onPressed: () => Navigator.pop(ctx, false), icon: const Icon(Icons.close)),
+                    IconButton(onPressed: () => Navigator.pop(ctx, null), icon: const Icon(Icons.close)),
                   ],
                 ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    labelText: 'Tiêu đề Unit *',
-                    hintText: 'VD: Unit 1 - Greetings',
-                    prefixIcon: const Icon(Icons.title),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image section
+                        const Text('Ảnh đại diện', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (c) => SafeArea(
+                                child: Wrap(
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library, color: Color(0xFF2196F3)),
+                                      title: const Text('Chọn từ thư viện'),
+                                      onTap: () async {
+                                        Navigator.pop(c);
+                                        final XFile? image = await picker.pickImage(
+                                          source: ImageSource.gallery, 
+                                          imageQuality: 50,
+                                          maxWidth: 800,
+                                          maxHeight: 800,
+                                        );
+                                        if (image != null) {
+                                          setModalState(() => selectedImagePath = image.path);
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.camera_alt, color: Color(0xFF2196F3)),
+                                      title: const Text('Chụp ảnh'),
+                                      onTap: () async {
+                                        Navigator.pop(c);
+                                        final XFile? image = await picker.pickImage(
+                                          source: ImageSource.camera, 
+                                          imageQuality: 50,
+                                          maxWidth: 800,
+                                          maxHeight: 800,
+                                        );
+                                        if (image != null) {
+                                          setModalState(() => selectedImagePath = image.path);
+                                        }
+                                      },
+                                    ),
+                                    if (selectedImagePath != null || currentImageUrl != null)
+                                      ListTile(
+                                        leading: const Icon(Icons.delete, color: Colors.red),
+                                        title: const Text('Xóa ảnh', style: TextStyle(color: Colors.red)),
+                                        onTap: () {
+                                          Navigator.pop(c);
+                                          setModalState(() {
+                                            selectedImagePath = null;
+                                            currentImageUrl = null;
+                                          });
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            height: 150,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE3F2FD), width: 2),
+                            ),
+                            child: selectedImagePath != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(File(selectedImagePath!), fit: BoxFit.cover),
+                                  )
+                                : currentImageUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.network(currentImageUrl!, fit: BoxFit.cover),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey[400]),
+                                          const SizedBox(height: 8),
+                                          Text('Nhấn để chọn ảnh', style: TextStyle(color: Colors.grey[500])),
+                                        ],
+                                      ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            labelText: 'Tiêu đề Unit *',
+                            hintText: 'VD: Unit 1 - Greetings',
+                            prefixIcon: const Icon(Icons.title),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: descController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            labelText: 'Mô tả',
+                            hintText: 'Mô tả nội dung Unit...',
+                            prefixIcon: const Icon(Icons.description),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: orderController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Thứ tự hiển thị',
+                            hintText: 'VD: 1, 2, 3...',
+                            prefixIcon: const Icon(Icons.reorder),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text('Đã xuất bản'),
+                          subtitle: const Text('Học sinh có thể xem Unit này'),
+                          value: isPublished,
+                          onChanged: (v) => setModalState(() => isPublished = v),
+                          activeColor: const Color(0xFF2196F3),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: descController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Mô tả',
-                    hintText: 'Mô tả nội dung Unit...',
-                    prefixIcon: const Icon(Icons.description),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text('Đã xuất bản'),
-                  subtitle: const Text('Học sinh có thể xem Unit này'),
-                  value: isPublished,
-                  onChanged: (v) => setModalState(() => isPublished = v),
-                  activeColor: const Color(0xFF2196F3),
-                ),
-                const Spacer(),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
                       if (titleController.text.isEmpty) { _showError('Vui lòng nhập tiêu đề!'); return; }
-                      Navigator.pop(ctx, true);
+                      Navigator.pop(ctx, {
+                        'title': titleController.text.trim(),
+                        'description': descController.text.trim(),
+                        'order': orderController.text.isNotEmpty ? int.tryParse(orderController.text) : null,
+                        'isPublished': isPublished,
+                        'imagePath': selectedImagePath,
+                      });
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: Text(unit == null ? 'Thêm Unit' : 'Lưu thay đổi'),
@@ -147,21 +273,51 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
       ),
     );
 
-    if (shouldSubmit == true && mounted) {
+    if (result != null && mounted) {
       showDialog(context: parentContext, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
       
       try {
-        Map<String, dynamic> result;
+        Map<String, dynamic> apiResult;
+        final String? imagePath = result['imagePath'];
+        
         if (unit == null) {
-          result = await ApiService.createUnit(title: titleController.text.trim(), description: descController.text.trim(), isPublished: isPublished);
+          // Create new unit
+          if (imagePath != null) {
+            apiResult = await ApiService.createUnitWithImage(
+              title: result['title'], 
+              description: result['description'], 
+              isPublished: result['isPublished'],
+              order: result['order'],
+              imagePath: imagePath,
+            );
+          } else {
+            apiResult = await ApiService.createUnit(
+              title: result['title'], 
+              description: result['description'], 
+              isPublished: result['isPublished'],
+              order: result['order'],
+            );
+          }
         } else {
-          result = await ApiService.updateUnit(unit['id'], {'title': titleController.text.trim(), 'description': descController.text.trim(), 'isPublished': isPublished});
+          // Update existing unit
+          final updateData = <String, dynamic>{
+            'title': result['title'], 
+            'description': result['description'], 
+            'isPublished': result['isPublished'],
+          };
+          if (result['order'] != null) updateData['order'] = result['order'];
+          
+          if (imagePath != null) {
+            apiResult = await ApiService.updateUnitWithImage(unit['id'], updateData, imagePath: imagePath);
+          } else {
+            apiResult = await ApiService.updateUnit(unit['id'], updateData);
+          }
         }
         
         if (mounted) Navigator.pop(parentContext); // Close loading
 
-        if (result['error'] != null) {
-          _showError(result['error']);
+        if (apiResult['error'] != null) {
+          _showError(apiResult['error']);
         } else {
           _showSuccess(unit == null ? 'Tạo Unit thành công!' : 'Cập nhật thành công!');
           _loadUnits();
@@ -333,6 +489,8 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
   }
 
   Widget _buildUnitCard(Map<String, dynamic> unit) {
+    final order = unit['order'] ?? 0;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -351,19 +509,39 @@ class _UnitManagementScreenState extends State<UnitManagementScreen> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: unit['image'] != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(unit['image'], fit: BoxFit.cover),
-                      )
-                    : const Icon(Icons.folder, color: Color(0xFF2196F3), size: 32),
+              Stack(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: unit['image'] != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(unit['image'], fit: BoxFit.cover, width: 60, height: 60),
+                          )
+                        : const Icon(Icons.folder, color: Color(0xFF2196F3), size: 32),
+                  ),
+                  if (order > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2196F3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$order',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(

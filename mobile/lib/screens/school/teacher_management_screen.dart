@@ -811,6 +811,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
   late TextEditingController _passwordController;
   List<String> _selectedClasses = [];
   List<String> _allClasses = [];
+  Map<String, String> _classTeacherMap = {}; // className -> teacherId
+  Map<String, String> _classTeacherNameMap = {}; // className -> teacherName
   bool _isLoadingClasses = true;
 
   bool get isEditing => widget.teacher != null;
@@ -833,7 +835,32 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
       final classesData = await ApiService.getClasses();
       if (mounted) {
         setState(() {
-          _allClasses = classesData.map<String>((e) => e['name'].toString()).toList();
+          _allClasses = [];
+          _classTeacherMap = {};
+          _classTeacherNameMap = {};
+          for (var c in classesData) {
+            final className = c['name']?.toString() ?? '';
+            _allClasses.add(className);
+            
+            // Extract homeroom teacher info
+            final homeroomTeacher = c['homeroomTeacher'];
+            if (homeroomTeacher != null) {
+              String? teacherId;
+              String? teacherName;
+              if (homeroomTeacher is Map) {
+                teacherId = homeroomTeacher['_id']?.toString();
+                teacherName = homeroomTeacher['fullName']?.toString() ?? homeroomTeacher['username']?.toString();
+              } else if (homeroomTeacher is String && homeroomTeacher.isNotEmpty) {
+                teacherId = homeroomTeacher;
+              }
+              if (teacherId != null && teacherId.isNotEmpty) {
+                _classTeacherMap[className] = teacherId;
+                if (teacherName != null && teacherName.isNotEmpty) {
+                  _classTeacherNameMap[className] = teacherName;
+                }
+              }
+            }
+          }
           _allClasses.sort(); // Sort classes alphabetically
           _isLoadingClasses = false;
         });
@@ -999,6 +1026,8 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
   }
 
   Widget _buildClassSelector() {
+    final currentTeacherId = widget.teacher?['id']?.toString();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1010,16 +1039,58 @@ class _TeacherFormSheetState extends State<_TeacherFormSheet> {
                 spacing: 8, runSpacing: 8,
                 children: _allClasses.map((c) {
             bool isSelected = _selectedClasses.contains(c);
-            return GestureDetector(
-              onTap: () => setState(() => isSelected ? _selectedClasses.remove(c) : _selectedClasses.add(c)),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE3F2FD)),
+            
+            // Check if class already has a different teacher
+            final assignedTeacherId = _classTeacherMap[c];
+            final isAssignedToOther = assignedTeacherId != null && 
+                assignedTeacherId.isNotEmpty && 
+                assignedTeacherId != currentTeacherId;
+            final assignedTeacherName = _classTeacherNameMap[c];
+            
+            // Determine colors based on state
+            Color backgroundColor;
+            Color borderColor;
+            Color textColor;
+            
+            if (isSelected) {
+              backgroundColor = const Color(0xFF2196F3);
+              borderColor = const Color(0xFF2196F3);
+              textColor = Colors.white;
+            } else if (isAssignedToOther) {
+              // Orange tint to indicate has another teacher, but still selectable
+              backgroundColor = const Color(0xFFFFF7ED);
+              borderColor = const Color(0xFFFED7AA);
+              textColor = const Color(0xFFEA580C);
+            } else {
+              backgroundColor = const Color(0xFFF8FAFC);
+              borderColor = const Color(0xFFE3F2FD);
+              textColor = const Color(0xFF64748B);
+            }
+            
+            return Tooltip(
+              message: isAssignedToOther 
+                  ? 'GV: ${assignedTeacherName ?? 'Chưa rõ'} (chọn để chuyển sang)'
+                  : '',
+              child: GestureDetector(
+                onTap: () => setState(() => isSelected ? _selectedClasses.remove(c) : _selectedClasses.add(c)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+                      if (isAssignedToOther && !isSelected) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.swap_horiz, size: 14, color: textColor),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : const Color(0xFF64748B))),
               ),
             );
           }).toList(),
