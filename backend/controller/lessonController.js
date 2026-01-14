@@ -1,4 +1,5 @@
 import Lesson from "../models/Lesson.js";
+import { processMedia } from "../utils/mediaHelper.js";
 
 /* ================= CREATE LESSON ================= */
 export const createLesson = async (req, res) => {
@@ -34,89 +35,8 @@ export const createLesson = async (req, res) => {
 
     const nextOrder = lastLesson ? lastLesson.order + 1 : 1;
 
-    /* ===== IMAGE ===== */
-    const imageCaptions = Array.isArray(req.body.imageCaptions)
-      ? req.body.imageCaptions
-      : req.body.imageCaptions
-      ? [req.body.imageCaptions]
-      : [];
-
-    const images =
-      req.files?.images?.map((file, index) => ({
-        url: file.path,
-        caption: imageCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    /* ===== AUDIO ===== */
-    const audioCaptions = Array.isArray(req.body.audioCaptions)
-      ? req.body.audioCaptions
-      : req.body.audioCaptions
-      ? [req.body.audioCaptions]
-      : [];
-
-    const audios =
-      req.files?.audios?.map((file, index) => ({
-        url: file.path,
-        caption: audioCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    /* ===== VIDEO ===== */
-   /* ===== VIDEO (UPLOAD + YOUTUBE) ===== */
-
-// caption cho video upload
-const videoCaptions = Array.isArray(req.body.videoCaptions)
-  ? req.body.videoCaptions
-  : req.body.videoCaptions
-  ? [req.body.videoCaptions]
-  : [];
-
-// video upload từ máy
-const uploadVideos =
-  req.files?.videos?.map((file, index) => ({
-    type: "upload",
-    url: file.path,
-    caption: videoCaptions[index] || "",
-    order: index + 1,
-  })) || [];
-
-// ===== YOUTUBE URL =====
-const youtubeUrls = Array.isArray(req.body.youtubeVideos)
-  ? req.body.youtubeVideos
-  : req.body.youtubeVideos
-  ? [req.body.youtubeVideos]
-  : [];
-
-const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions)
-  ? req.body.youtubeVideoCaptions
-  : req.body.youtubeVideoCaptions
-  ? [req.body.youtubeVideoCaptions]
-  : [];
-
-const youtubeVideos = youtubeUrls.map((url, index) => {
-  // Regex support:
-  // - https://youtu.be/ID
-  // - https://www.youtube.com/watch?v=ID
-  // - https://www.youtube.com/watch?v=ID&list=...
-  // - https://www.youtube.com/watch?param=...&v=ID
-  // - https://www.youtube.com/embed/ID
-  const match = url.match(
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-  );
-  const youtubeId = match && match[2].length === 11 ? match[2] : null;
-
-  return {
-    type: "youtube",
-    url,
-    youtubeId,
-    caption: youtubeCaptions[index] || "",
-    order: uploadVideos.length + index + 1,
-  };
-});
-
-// ===== GỘP CHUNG =====
-const videos = [...uploadVideos, ...youtubeVideos];
+    /* ===== MEDIA ===== */
+    const media = processMedia(req.files, req.body);
 
     /* ===== CREATE ===== */
     const lesson = await Lesson.create({
@@ -126,9 +46,9 @@ const videos = [...uploadVideos, ...youtubeVideos];
       content,
       isPublished,
       order: nextOrder,
-      images,
-      audios,
-      videos,
+      images: media.images || [],
+      audios: media.audios || [],
+      videos: media.videos || [],
     });
 
     res.status(201).json({
@@ -167,6 +87,7 @@ export const updateLesson = async (req, res) => {
       "content",
       "order",
       "isPublished",
+      "lessonType",
       "images",
       "audios",
       "videos",
@@ -179,13 +100,14 @@ export const updateLesson = async (req, res) => {
       }
     });
 
-    const lesson = await Lesson.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    });
+    /* ===== HANDLE MEDIA UPDATE ===== */
+    const media = processMedia(req.files, req.body);
+    if (media.images) updateData.images = media.images;
+    if (media.audios) updateData.audios = media.audios;
+    if (media.videos) updateData.videos = media.videos;
 
-    if (!lesson) {
-      return res.status(404).json({ message: "Không tìm thấy lesson" });
-    }
+    const lesson = await Lesson.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!lesson) return res.status(404).json({ message: "Không tìm thấy lesson" });
 
     res.json({
       message: "Cập nhật lesson thành công",

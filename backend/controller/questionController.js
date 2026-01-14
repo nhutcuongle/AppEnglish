@@ -2,6 +2,7 @@ import Question from "../models/Question.js";
 import Lesson from "../models/Lesson.js";
 import Class from "../models/Class.js";
 import Exam from "../models/Exam.js";
+import { processMedia } from "../utils/mediaHelper.js";
 
 /* ================= CREATE QUESTION (SCHOOL ONLY - FOR LESSONS) ================= */
 export const createQuestion = async (req, res) => {
@@ -99,43 +100,7 @@ export const createQuestion = async (req, res) => {
     const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
 
     /* Media Handling */
-    const imageCaptions = Array.isArray(req.body.imageCaptions) ? req.body.imageCaptions : (req.body.imageCaptions ? [req.body.imageCaptions] : []);
-    const images = req.files?.images?.map((file, index) => ({
-      url: file.path,
-      caption: imageCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const audioCaptions = Array.isArray(req.body.audioCaptions) ? req.body.audioCaptions : (req.body.audioCaptions ? [req.body.audioCaptions] : []);
-    const audios = req.files?.audios?.map((file, index) => ({
-      url: file.path,
-      caption: audioCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const videoCaptions = Array.isArray(req.body.videoCaptions) ? req.body.videoCaptions : (req.body.videoCaptions ? [req.body.videoCaptions] : []);
-    const uploadVideos = req.files?.videos?.map((file, index) => ({
-      type: "upload",
-      url: file.path,
-      caption: videoCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const youtubeUrls = Array.isArray(req.body.youtubeVideos) ? req.body.youtubeVideos : (req.body.youtubeVideos ? [req.body.youtubeVideos] : []);
-    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions) ? req.body.youtubeVideoCaptions : (req.body.youtubeVideoCaptions ? [req.body.youtubeVideoCaptions] : []);
-    const youtubeVideos = youtubeUrls.map((url, index) => {
-      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-      const youtubeId = match && match[2].length === 11 ? match[2] : null;
-      return {
-        type: "youtube",
-        url,
-        youtubeId,
-        caption: youtubeCaptions[index] || "",
-        order: uploadVideos.length + index + 1,
-      };
-    });
-
-    const videos = [...uploadVideos, ...youtubeVideos];
+    const media = processMedia(req.files, req.body);
 
     const question = await Question.create({
       lesson: lessonId,
@@ -144,7 +109,9 @@ export const createQuestion = async (req, res) => {
       isPublished,
       points: points || 1,
       order: nextOrder,
-      images, audios, videos,
+      images: media.images || [],
+      audios: media.audios || [],
+      videos: media.videos || [],
       class: classId || null,
       school: req.user._id,
     });
@@ -236,44 +203,8 @@ export const createQuestionForTeacher = async (req, res) => {
     const lastQuestion = await Question.findOne({ exam: targetExamId }).sort({ order: -1 }).select("order");
     const nextOrder = lastQuestion ? lastQuestion.order + 1 : 1;
 
-    /* Media Handling (Copy from School - or could be refactored to helper) */
-    const imageCaptions = Array.isArray(req.body.imageCaptions) ? req.body.imageCaptions : (req.body.imageCaptions ? [req.body.imageCaptions] : []);
-    const images = req.files?.images?.map((file, index) => ({
-      url: file.path,
-      caption: imageCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const audioCaptions = Array.isArray(req.body.audioCaptions) ? req.body.audioCaptions : (req.body.audioCaptions ? [req.body.audioCaptions] : []);
-    const audios = req.files?.audios?.map((file, index) => ({
-      url: file.path,
-      caption: audioCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const videoCaptions = Array.isArray(req.body.videoCaptions) ? req.body.videoCaptions : (req.body.videoCaptions ? [req.body.videoCaptions] : []);
-    const uploadVideos = req.files?.videos?.map((file, index) => ({
-      type: "upload",
-      url: file.path,
-      caption: videoCaptions[index] || "",
-      order: index + 1,
-    })) || [];
-
-    const youtubeUrls = Array.isArray(req.body.youtubeVideos) ? req.body.youtubeVideos : (req.body.youtubeVideos ? [req.body.youtubeVideos] : []);
-    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions) ? req.body.youtubeVideoCaptions : (req.body.youtubeVideoCaptions ? [req.body.youtubeVideoCaptions] : []);
-    const youtubeVideos = youtubeUrls.map((url, index) => {
-      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-      const youtubeId = match && match[2].length === 11 ? match[2] : null;
-      return {
-        type: "youtube",
-        url,
-        youtubeId,
-        caption: youtubeCaptions[index] || "",
-        order: uploadVideos.length + index + 1,
-      };
-    });
-
-    const videos = [...uploadVideos, ...youtubeVideos];
+    /* Media Handling */
+    const media = processMedia(req.files, req.body);
 
     const question = await Question.create({
       lesson: null,
@@ -282,7 +213,9 @@ export const createQuestionForTeacher = async (req, res) => {
       isPublished,
       points: points || 1,
       order: nextOrder,
-      images, audios, videos,
+      images: media.images || [],
+      audios: media.audios || [],
+      videos: media.videos || [],
       class: exam.class,
       school: null,
     });
@@ -372,6 +305,12 @@ export const updateQuestion = async (req, res) => {
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) question[field] = req.body[field];
     });
+
+    /* ===== XỬ LÝ MEDIA MỚI (NẾU CÓ) ===== */
+    const media = processMedia(req.files, req.body);
+    if (media.images) question.images = media.images;
+    if (media.audios) question.audios = media.audios;
+    if (media.videos) question.videos = media.videos;
 
     if (req.body.deadline !== undefined && question.lesson && req.user.role === "school") {
       await Lesson.findByIdAndUpdate(question.lesson, { deadline: req.body.deadline });

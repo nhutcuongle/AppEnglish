@@ -288,6 +288,59 @@
  *                 type: number
  *               isPublished:
  *                 type: boolean
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *               options:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               correctAnswer:
+ *                 type: string
+ *               explanation:
+ *                 type: string
+ *               points:
+ *                 type: number
+ *               isPublished:
+ *                 type: boolean
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               imageCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               audios:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               audioCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               videos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Cập nhật thành công
