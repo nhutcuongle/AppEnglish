@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:apptienganh10/services/api_service.dart';
-
-import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
+import 'package:apptienganh10/widgets/loading_widgets.dart';
 
-class ClassStatisticsScreen extends StatefulWidget {
+class ClassStatisticsScreen extends StatelessWidget {
   const ClassStatisticsScreen({super.key});
 
-  @override
-  State<ClassStatisticsScreen> createState() => _ClassStatisticsScreenState();
-}
-
-class _ClassStatisticsScreenState extends State<ClassStatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,173 +15,119 @@ class _ClassStatisticsScreenState extends State<ClassStatisticsScreen> {
         foregroundColor: const Color(0xFF1E293B),
         elevation: 0,
       ),
-      body: FutureBuilder<List<Student>>(
-        future: ApiService.getStudents().then((raw) => raw.map((e) => Student.fromJson(e)).toList()),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          final students = snapshot.data ?? [];
-          final overview = TeacherService.calculateClassOverview(students);
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Tổng quan kết quả', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _buildSummaryCard('Điểm TB lớp', overview['avgScore'].toString(), Colors.blueAccent),
-                    const SizedBox(width: 16),
-                    _buildSummaryCard('Nộp bài (%)', '${overview['completionRate']}%', Colors.teal),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                
-                _buildSectionTitle('Phân bố điểm số'),
-                _buildScoreChart(),
-                
-                const SizedBox(height: 32),
-                _buildSectionTitle('Tiến độ theo Unit học tập'),
-                _buildUnitProgressList(),
-                
-                const SizedBox(height: 40),
-                Center(
-                  child: Text(
-                    'Dữ liệu được lấy trực tiếp từ hệ thống',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(String title, String value, Color color) {
-    return Expanded(
-      child: Container(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
-        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 6),
-            Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+            _buildSectionHeader('Phân bổ điểm số', 'Dựa trên tất cả bài thi'),
+            const SizedBox(height: 20),
+            _buildScoreDistribution(),
+            const SizedBox(height: 35),
+            _buildSectionHeader('Tiến độ hoàn thành', 'Theo loại bài kiểm tra'),
+            const SizedBox(height: 20),
+            _buildCompletionStats(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-    );
-  }
-
-  Widget _buildScoreChart() {
-    return FutureBuilder<Map<String, double>>(
-      future: TeacherService.getScoreDistribution(),
-      builder: (context, snapshot) {
-        final dist = snapshot.data ?? {'0-4': 0.1, '4-6': 0.2, '6-8': 0.5, '8-10': 0.2};
-        return Container(
-          height: 220,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildBar(dist['0-4']!, '0-4', Colors.redAccent),
-              _buildBar(dist['4-6']!, '4-6', Colors.orangeAccent),
-              _buildBar(dist['6-8']!, '6-8', Colors.blueAccent),
-              _buildBar(dist['8-10']!, '8-10', Colors.teal),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBar(double factor, String label, Color color) {
+  Widget _buildSectionHeader(String title, String subtitle) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          width: 32,
-          height: (120 * factor).clamp(10, 120),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+        Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
       ],
     );
   }
 
-  Widget _buildUnitProgressList() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: TeacherService.getUnitCompletionStats(),
+  Widget _buildScoreDistribution() {
+    return FutureBuilder<Map<String, double>>(
+      future: TeacherService.getScoreDistribution(),
       builder: (context, snapshot) {
-        final units = snapshot.data ?? [];
-        if (units.isEmpty) return const Center(child: Text('Chưa có dữ liệu bài tập'));
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final data = snapshot.data!;
         
-        return Column(
-          children: units.map((u) => _buildProgressItem(u['title'], u['progress'])).toList(),
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+          ),
+          child: Column(
+            children: data.entries.map((e) => _buildBarRow(e.key, e.value)).toList(),
+          ),
         );
       },
     );
   }
 
-  Widget _buildProgressItem(String title, double progress) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildBarRow(String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))),
-              Text('${(progress * 100).toInt()}%', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-              minHeight: 8,
+          SizedBox(width: 45, child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: value,
+                backgroundColor: const Color(0xFFF1F5F9),
+                color: _getColorForRange(label),
+                minHeight: 8,
+              ),
             ),
           ),
+          const SizedBox(width: 15),
+          Text('${(value * 100).toInt()}%', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         ],
       ),
     );
+  }
+
+  Widget _buildCompletionStats() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: TeacherService.getUnitCompletionStats(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return ShimmerWidgets.listShimmer();
+        final stats = snapshot.data!;
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: stats.length,
+          itemBuilder: (context, index) {
+            final item = stats[index];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.quiz_rounded, color: Colors.purple, size: 20),
+                  const SizedBox(width: 15),
+                  Expanded(child: Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Text('${(item['progress'] * 100).toInt()}%', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Color _getColorForRange(String range) {
+    if (range.contains('8-10')) return Colors.green;
+    if (range.contains('6-8')) return Colors.blue;
+    if (range.contains('4-6')) return Colors.orange;
+    return Colors.red;
   }
 }

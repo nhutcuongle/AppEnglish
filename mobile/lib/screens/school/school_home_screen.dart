@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:apptienganh10/screens/school/teacher_management_screen.dart';
 import 'package:apptienganh10/screens/school/class_management_screen.dart';
 import 'package:apptienganh10/screens/school/student_management_screen.dart';
-
 import 'package:apptienganh10/screens/school/lesson_screen.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/school/school_info_screen.dart';
@@ -33,7 +32,7 @@ class _SchoolHomeScreenState extends State<SchoolHomeScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2196F3).withOpacity(0.1),
+              color: const Color(0xFF2196F3).withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -67,7 +66,7 @@ class _SchoolHomeScreenState extends State<SchoolHomeScreen> {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? const Color(0xFF2196F3).withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -123,13 +122,11 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
       final classes = await ApiService.getClasses();
       final profile = await ApiService.getProfile();
       
-      // Filter only active classes
-      final activeClasses = classes.where((c) => c['isActive'] == true).toList();
-
+      if (!mounted) return;
       setState(() {
         _teacherCount = teachers.length;
         _studentCount = students.length;
-        _classCount = activeClasses.length;
+        _classCount = classes.where((c) => c['isActive'] != false).length;
         if (!profile.containsKey('error')) {
           if (profile['fullName'] != null && profile['fullName'].toString().isNotEmpty) {
             _schoolName = profile['fullName'];
@@ -141,8 +138,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading stats: $e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -190,7 +186,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2196F3).withOpacity(0.4),
+              color: const Color(0xFF2196F3).withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -201,7 +197,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(Icons.school_rounded, color: Colors.white, size: 40),
@@ -223,7 +219,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
                   Text(
                     _schoolYear,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 14,
                     ),
                   ),
@@ -300,7 +296,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
         border: Border.all(color: const Color(0xFFE3F2FD)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -312,7 +308,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -338,7 +334,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -430,7 +426,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
           border: Border.all(color: const Color(0xFFE3F2FD)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -441,7 +437,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -528,7 +524,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
         border: Border.all(color: const Color(0xFFE3F2FD)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -539,7 +535,7 @@ class _SchoolDashboardTabState extends State<SchoolDashboardTab> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 20),

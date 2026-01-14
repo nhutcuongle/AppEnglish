@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
-import 'package:apptienganh10/services/auth_service.dart';
 
 
 class AddAnnouncementScreen extends StatefulWidget {
@@ -39,7 +38,6 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
     final doc = {
       'title': _titleController.text,
       'content': _contentController.text,
-      // 'createdAt' is handled by backend or model but API expects these
       'type': 'class', // Default for now
     };
 

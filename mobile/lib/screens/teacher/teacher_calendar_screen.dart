@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:intl/intl.dart';
 
 class TeacherCalendarScreen extends StatefulWidget {
@@ -22,14 +22,22 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
   }
 
   Future<void> _loadEvents() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
-    final data = await ApiService.getAssignments();
-    setState(() {
-      _allEvents = data.map((e) => Assignment.fromJson(e)).toList();
-      // Sắp xếp theo ngày deadline
-      _allEvents.sort((a, b) => a.deadline.compareTo(b.deadline));
-      _isLoading = false;
-    });
+    try {
+      // Sử dụng TeacherService để lấy danh sách bài kiểm tra (Exams) 
+      // vì ApiService.getAssignments đã bị xóa theo yêu cầu của bạn.
+      final data = await TeacherService.getFilteredAssignments(null);
+      if (!mounted) return;
+      setState(() {
+        _allEvents = data;
+        // Sắp xếp theo ngày deadline (endTime)
+        _allEvents.sort((a, b) => a.deadline.compareTo(b.deadline));
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -85,7 +93,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
           ),
           const SizedBox(height: 15),
           const Text(
-            'Lịch nhắc nhở các mốc thời gian quan trọng',
+            'Lịch nhắc nhở các mốc thời gian bài kiểm tra',
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
         ],
@@ -95,7 +103,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
 
   Widget _buildEventTile(Assignment event) {
     final bool isPast = event.deadline.isBefore(DateTime.now());
-    final Color color = event.type == 'test' ? Colors.purple : Colors.blue;
+    const Color color = Colors.purple; // Luôn là màu tím vì chỉ còn bài kiểm tra
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -103,7 +111,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -111,7 +119,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
             width: 55,
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Column(
@@ -142,7 +150,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  event.type == 'test' ? 'Bài kiểm tra tập trung' : 'Bài tập về nhà',
+                  'Bài kiểm tra ${event.unit}', // Hiển thị 15 Phút hoặc 45 Phút
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
@@ -151,7 +159,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
           if (isPast)
             const Badge(label: Text('ĐÃ QUA'), backgroundColor: Color(0xFF64748B))
           else
-            Icon(Icons.notifications_active_rounded, color: color, size: 20),
+            const Icon(Icons.notifications_active_rounded, color: color, size: 20),
         ],
       ),
     );
@@ -164,7 +172,7 @@ class _TeacherCalendarScreenState extends State<TeacherCalendarScreen> {
         children: [
           Icon(Icons.event_busy_rounded, size: 80, color: Colors.grey.shade200),
           const SizedBox(height: 15),
-          const Text('Hiện không có sự kiện nào sắp tới', style: TextStyle(color: Colors.grey)),
+          const Text('Hiện không có bài kiểm tra nào sắp tới', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );

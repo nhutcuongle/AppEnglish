@@ -12,8 +12,8 @@ class GradebookScreen extends StatefulWidget {
 
 class _GradebookScreenState extends State<GradebookScreen> {
   List<Student> _students = [];
-  List<Assignment> _assignments = [];
-  Map<String, Map<String, double?>> _gradeMatrix = {}; // studentId -> {assignmentId -> score}
+  List<Assignment> _exams = [];
+  Map<String, Map<String, double?>> _gradeMatrix = {}; // studentId -> {examId -> score}
   bool _isLoading = true;
 
   @override
@@ -23,40 +23,43 @@ class _GradebookScreenState extends State<GradebookScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final studentsData = await ApiService.getStudents();
-      final assignmentsData = await ApiService.getAssignments();
+      // Chuyển sang lấy danh sách Bài kiểm tra (Exams)
+      final examsData = await ApiService.getTeacherExams();
       final submissionsData = await ApiService.getSubmissions();
 
       final List<Student> students = studentsData.map((e) => Student.fromJson(e)).toList();
-      final List<Assignment> assignments = assignmentsData.map((e) => Assignment.fromJson(e)).toList();
+      final List<Assignment> exams = examsData.map((e) => Assignment.fromJson(e)).toList();
       final List<Submission> submissions = submissionsData.map((e) => Submission.fromJson(e)).toList();
 
       Map<String, Map<String, double?>> matrix = {};
       for (var student in students) {
         matrix[student.id] = {};
-        for (var assignment in assignments) {
+        for (var exam in exams) {
           try {
+            // Tìm bài nộp của học sinh này cho bài thi này
             final sub = submissions.firstWhere(
-              (s) => s.studentId == student.id && s.assignmentId == assignment.id,
+              (s) => s.studentId == student.id && s.examId == exam.id,
             );
-            matrix[student.id]![assignment.id] = sub.score;
+            matrix[student.id]![exam.id] = sub.score;
           } catch (e) {
-             matrix[student.id]![assignment.id] = null;
+             matrix[student.id]![exam.id] = null;
           }
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _students = students;
-        _assignments = assignments;
+        _exams = exams;
         _gradeMatrix = matrix;
         _isLoading = false;
       });
     } catch (e) {
-      print("Error loading gradebook: $e");
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -75,7 +78,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
       ),
       body: _isLoading
           ? ShimmerWidgets.tableShimmer()
-          : _students.isEmpty || _assignments.isEmpty
+          : _students.isEmpty || _exams.isEmpty
               ? _buildEmptyState()
               : _buildGradeTable(),
     );
@@ -87,21 +90,21 @@ class _GradebookScreenState extends State<GradebookScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(const Color(0xFFF1F5F9)),
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
           columnSpacing: 30,
           horizontalMargin: 20,
           columns: [
             const DataColumn(label: Text('Họ và Tên', style: TextStyle(fontWeight: FontWeight.bold))),
-            ..._assignments.map((a) => DataColumn(
+            ..._exams.map((e) => DataColumn(
               label: Container(
                 constraints: const BoxConstraints(maxWidth: 100),
                 child: Text(
-                  a.title,
+                  e.title,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            )).toList(),
+            )),
           ],
           rows: _students.map((student) {
             return DataRow(cells: [
@@ -109,8 +112,8 @@ class _GradebookScreenState extends State<GradebookScreen> {
                 Text(student.name, style: const TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => _viewStudentDetails(student),
               ),
-              ..._assignments.map((assignment) {
-                final score = _gradeMatrix[student.id]?[assignment.id];
+              ..._exams.map((exam) {
+                final score = _gradeMatrix[student.id]?[exam.id];
                 return DataCell(
                   Center(
                     child: Text(
@@ -121,7 +124,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
                       ),
                     ),
                   ),
-                  onTap: () => _quickGrade(student, assignment),
+                  onTap: () => _quickGrade(student, exam),
                 );
               }).toList(),
             ]);
@@ -132,11 +135,10 @@ class _GradebookScreenState extends State<GradebookScreen> {
   }
 
   void _viewStudentDetails(Student student) {
-    // Chuyển hướng hoặc mở popup xem hồ sơ học sinh
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hồ sơ học sinh: ${student.name}')));
   }
 
-  void _quickGrade(Student student, Assignment assignment) {
+  void _quickGrade(Student student, Assignment exam) {
     final scoreController = TextEditingController();
     showDialog(
       context: context,
@@ -145,7 +147,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(assignment.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(exam.title, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             TextField(
               controller: scoreController,
@@ -160,20 +162,17 @@ class _GradebookScreenState extends State<GradebookScreen> {
             onPressed: () async {
               final score = double.tryParse(scoreController.text);
               if (score != null && score >= 0 && score <= 10) {
-                // Find submission ID if exists, OR create new submission (backend implementation dependant)
-                // For now, assume teacher grades an existing submission or backend creates one.
-                // Since ApiService.gradeSubmission requires ID, we must find the submission First.
-                // Simplified flow: We need submission ID.
                 try {
-                  // Fetch specific submission to get ID
-                  final subs = await ApiService.getSubmissions(assignmentId: assignment.id, studentId: student.id);
+                  // Lấy bài nộp theo examId và studentId
+                  final subs = await ApiService.getSubmissions(examId: exam.id, studentId: student.id);
                   if (subs.isNotEmpty) {
                     final subId = subs.first['_id'];
                     await ApiService.gradeSubmission(subId, score);
+                    if (!mounted) return;
                     Navigator.pop(context);
-                    _loadData(); // Reload
+                    _loadData(); // Tải lại bảng điểm
                   } else {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học sinh chưa nộp bài này!')));
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học sinh chưa làm bài kiểm tra này!')));
                      Navigator.pop(context);
                   }
                 } catch (e) {
@@ -195,7 +194,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
         children: [
           Icon(Icons.assignment_turned_in_rounded, size: 80, color: Colors.grey.shade200),
           const SizedBox(height: 15),
-          const Text('Chưa có đủ dữ liệu học sinh hoặc bài tập', style: TextStyle(color: Colors.grey)),
+          const Text('Chưa có đủ dữ liệu học sinh hoặc bài kiểm tra', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
