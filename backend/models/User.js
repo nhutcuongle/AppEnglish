@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    
+
     // 2FA Security
     is2FAEnabled: {
       type: Boolean,
@@ -80,6 +80,11 @@ const userSchema = new mongoose.Schema(
       ref: "Class",
       default: null,
     },
+
+    // Performance fields (for student)
+    score: { type: Number, default: 0 },
+    progress: { type: Number, default: 0 },
+
     // Academic Year (for School role)
     academicYear: { type: String, default: "" },
   },

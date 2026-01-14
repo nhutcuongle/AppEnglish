@@ -99,10 +99,17 @@ class Student {
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
+    String? cid;
+    if (json['class'] is Map) {
+      cid = json['class']['_id']?.toString();
+    } else {
+      cid = json['class']?.toString();
+    }
+
     return Student(
       id: json['_id']?.toString() ?? '',
       name: json['fullName'] ?? json['username'] ?? 'Không tên',
-      classId: json['classId'],
+      classId: cid,
       progress: (json['progress'] ?? 0.0).toDouble(),
       score: (json['score'] ?? 0.0).toDouble(),
     );

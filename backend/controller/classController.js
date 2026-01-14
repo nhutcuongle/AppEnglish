@@ -183,12 +183,15 @@ export const getClassDetail = async (req, res) => {
 /* TEACHER: GET MY CLASSES */
 export const getTeacherClasses = async (req, res) => {
   try {
-    const classes = await Class.find({ 
-      homeroomTeacher: req.user._id,
-      isActive: true 
+    const classes = await Class.find({
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
+      isActive: true
     })
-    .populate("school", "username fullName")
-    .sort({ grade: 1, name: 1 });
+      .populate("school", "username fullName")
+      .sort({ grade: 1, name: 1 });
 
     const classesWithCounts = await Promise.all(
       classes.map(async (classDoc) => {

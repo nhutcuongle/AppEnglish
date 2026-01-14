@@ -2,6 +2,7 @@ import Submission from "../models/Submission.js";
 import Question from "../models/Question.js";
 import Class from "../models/Class.js";
 import Lesson from "../models/Lesson.js";
+import User from "../models/User.js";
 
 /* ================= SUBMIT LESSON ================= */
 export const submitLesson = async (req, res) => {
@@ -73,6 +74,22 @@ export const submitLesson = async (req, res) => {
       totalScore,
     });
 
+    /* ===== UPDATE STUDENT TOTAL PROGRESS & SCORE ===== */
+    const allSubmissions = await Submission.find({ user: userId }).lean();
+    if (allSubmissions.length > 0) {
+      const totalPoints = allSubmissions.reduce((acc, curr) => acc + (curr.totalScore || 0), 0);
+      const avgScore = totalPoints / allSubmissions.length;
+
+      // Calculate progress roughly as percentage of total available lessons (mock/simple)
+      const totalLessons = await Lesson.countDocuments({ isPublished: true });
+      const progress = totalLessons > 0 ? allSubmissions.length / totalLessons : 0;
+
+      await User.findByIdAndUpdate(userId, {
+        score: avgScore,
+        progress: progress > 1 ? 1 : progress
+      });
+    }
+
     res.status(201).json({
       message: "Nộp bài thành công",
       submissionId: submission._id,
@@ -141,22 +158,29 @@ export const getScoresByLesson = async (req, res) => {
   try {
     const { lessonId } = req.params;
 
-    // 1. Tìm lớp chủ nhiệm của giáo viên
-    const teacherClass = await Class.findOne({
-      homeroomTeacher: req.user._id,
+    // 1. Tìm lớp giáo viên tham gia (chủ nhiệm hoặc được gán)
+    const teacherClasses = await Class.find({
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
       isActive: true,
     });
 
-    if (!teacherClass) {
+    if (teacherClasses.length === 0) {
       return res.status(403).json({
-        message: "Bạn không phải giáo viên chủ nhiệm lớp nào",
+        message: "Bạn không được phân công quản lý lớp nào",
       });
     }
 
-    // 2. Chỉ lấy bài nộp của học sinh trong lớp này
+    const classIds = teacherClasses.map(c => c._id);
+    const managedStudents = await User.find({ class: { $in: classIds } }).select("_id");
+    const managedStudentIds = managedStudents.map(s => s._id);
+
+    // 2. Chỉ lấy bài nộp của học sinh trong các lớp này
     const submissions = await Submission.find({
       lesson: lessonId,
-      user: { $in: teacherClass.students }, // ⭐ CHỈ LẤY CỦA HỌC SINH LỚP MÌNH
+      user: { $in: managedStudentIds },
     })
       .populate("user", "username email fullName")
       .sort({ createdAt: -1 })
@@ -175,8 +199,10 @@ export const getScoresByLesson = async (req, res) => {
       submittedAt: sub.submittedAt,
     }));
 
+    const classNames = teacherClasses.map(c => c.name).join(", ");
+
     res.json({
-      className: teacherClass.name, // Trả thêm tên lớp cho FE dễ hiển thị
+      className: classNames || "Managed Classes",
       totalStudents: result.length,
       data: result,
     });
@@ -199,16 +225,19 @@ export const getSubmissionDetailForTeacher = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy bài làm" });
     }
 
-    // 2. Kiểm tra quyền của giáo viên (phải là GVCN của học sinh này)
-    const teacherClass = await Class.findOne({
-      homeroomTeacher: req.user._id,
-      students: submission.user._id, // Kiểm tra xem học sinh có trong list students không
+    // 2. Kiểm tra quyền của giáo viên (chủ nhiệm hoặc được gán vào lớp của học sinh)
+    const isAuthorized = await Class.exists({
+      _id: submission.user.class,
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
       isActive: true,
     });
 
-    if (!teacherClass) {
+    if (!isAuthorized) {
       return res.status(403).json({
-        message: "Học sinh này không thuộc lớp chủ nhiệm của bạn",
+        message: "Bạn không có quyền xem bài của học sinh này",
       });
     }
 

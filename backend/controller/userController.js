@@ -148,7 +148,7 @@ export const deleteStudent = async (req, res) => {
     if (user.role === "student" && user.class) {
       await Class.findByIdAndUpdate(user.class, { $pull: { students: user._id } });
     }
-    
+
     await user.deleteOne();
     res.json({ message: "Xóa người dùng thành công" });
   } catch (err) {
@@ -206,8 +206,16 @@ export const updateProfile = async (req, res) => {
 export const getStudentsByClassForTeacher = async (req, res) => {
   try {
     const { classId } = req.params;
-    const classData = await Class.findOne({ homeroomTeacher: req.user._id, _id: classId, isActive: true });
-    if (!classData) return res.status(403).json({ message: "Không có quyền xem học sinh lớp này" });
+    const isAuthorized = await Class.exists({
+      _id: classId,
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
+      isActive: true
+    });
+
+    if (!isAuthorized) return res.status(403).json({ message: "Không có quyền xem học sinh lớp này" });
 
     const students = await User.find({ class: classId, role: "student" }).select("-password");
     res.json(students);
@@ -219,7 +227,13 @@ export const getStudentsByClassForTeacher = async (req, res) => {
 /* TEACHER: GET ALL MY STUDENTS */
 export const getMyStudents = async (req, res) => {
   try {
-    const classes = await Class.find({ homeroomTeacher: req.user._id, isActive: true });
+    const classes = await Class.find({
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
+      isActive: true
+    });
     if (classes.length === 0) return res.json([]);
 
     const classIds = classes.map(c => c._id);
