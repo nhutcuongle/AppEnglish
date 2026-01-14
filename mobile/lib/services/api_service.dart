@@ -128,6 +128,13 @@ class ApiService {
     } catch (e) { return []; }
   }
 
+  static Future<List<dynamic>> getTeacherClasses() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/classes/teacher/my-classes'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
   static Future<Map<String, dynamic>> createClass({required String name, required int grade}) async {
     try {
       final response = await http.post( Uri.parse('$baseUrl/classes'), headers: _headers, body: jsonEncode({'name': name, 'grade': grade}));
@@ -174,6 +181,14 @@ class ApiService {
   static Future<List<dynamic>> getStudents() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/users/students'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
+  // Get all students managed by the teacher
+  static Future<List<dynamic>> getMyStudents() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/users/teacher/my-students'), headers: _headers);
       return _handleListResponse(response);
     } catch (e) { return []; }
   }
@@ -333,9 +348,74 @@ class ApiService {
 
   static Future<Map<String, dynamic>> createQuestion(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/questions'), headers: _headers, body: jsonEncode(data));
+      final response = await http.post( Uri.parse('$baseUrl/questions'), headers: _headers, body: jsonEncode(data));
       return jsonDecode(response.body);
     } catch (e) { return {'error': e.toString()}; }
+  }
+
+  // Create Question for Teacher with Media Support
+  static Future<void> createQuestionForTeacher({
+    required String examId,
+    required String skill,
+    required String type,
+    required String content,
+    List<String>? options,
+    dynamic correctAnswer,
+    String? explanation,
+    double points = 1.0,
+    List<File>? images,
+    List<String>? imageCaptions,
+    List<File>? audios,
+    List<String>? audioCaptions,
+  }) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/questions/teacher'));
+      request.headers.addAll(_headers);
+
+      request.fields['examId'] = examId;
+      request.fields['skill'] = skill;
+      request.fields['type'] = type;
+      request.fields['content'] = content;
+      request.fields['explanation'] = explanation ?? '';
+      request.fields['points'] = points.toString();
+      request.fields['isPublished'] = 'true';
+
+      if (options != null) {
+        for (int i = 0; i < options.length; i++) {
+          request.fields['options[$i]'] = options[i];
+        }
+      }
+
+      request.fields['correctAnswer'] = correctAnswer.toString();
+
+      // Images
+      if (images != null) {
+        for (int i = 0; i < images.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath('images', images[i].path));
+          if (imageCaptions != null && i < imageCaptions.length) {
+            request.fields['imageCaptions[$i]'] = imageCaptions[i];
+          }
+        }
+      }
+
+      // Audios
+      if (audios != null) {
+        for (int i = 0; i < audios.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath('audios', audios[i].path));
+          if (audioCaptions != null && i < audioCaptions.length) {
+            request.fields['audioCaptions[$i]'] = audioCaptions[i];
+          }
+        }
+      }
+
+      final streamedResponse = await request.send();
+      if (streamedResponse.statusCode != 201) {
+        final resp = await http.Response.fromStream(streamedResponse);
+        throw Exception(jsonDecode(resp.body)['message'] ?? 'Lỗi tạo câu hỏi');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
   }
 
   static Future<Map<String, dynamic>> updateQuestion(String id, Map<String, dynamic> data) async {

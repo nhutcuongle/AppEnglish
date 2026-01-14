@@ -50,7 +50,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   Future<void> _fetchClasses() async {
     try {
-      final classes = await ApiService.getClasses();
+      final classes = await ApiService.getTeacherClasses();
       if (!mounted) return;
       setState(() {
         _classes = classes;

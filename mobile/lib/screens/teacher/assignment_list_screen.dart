@@ -3,6 +3,7 @@ import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
+import 'package:apptienganh10/screens/teacher/question_list_screen.dart';
 import 'package:intl/intl.dart';
 
 class AssignmentListScreen extends StatefulWidget {
@@ -177,6 +178,18 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
                 style: TextStyle(color: isExpired ? Colors.redAccent : Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
               ),
               const Spacer(),
+              _buildActionBtn('Câu hỏi', Colors.blueAccent, onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => QuestionListScreen(
+                      examId: item.id,
+                      assignmentTitle: item.title,
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(width: 8),
               _buildActionBtn('Kết quả', Colors.purple),
             ],
           ),
@@ -196,6 +209,16 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           if (result == true) setState(() {});
         } else if (value == 'delete') {
           _deleteExam(item);
+        } else if (value == 'questions') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuestionListScreen(
+                examId: item.id,
+                assignmentTitle: item.title,
+              ),
+            ),
+          );
         }
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -206,6 +229,10 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           child: Row(children: [Icon(Icons.edit_rounded, size: 18, color: Colors.blue), SizedBox(width: 10), Text('Chỉnh sửa')]),
         ),
         const PopupMenuItem(
+          value: 'questions',
+          child: Row(children: [Icon(Icons.quiz_rounded, size: 18, color: Colors.purple), SizedBox(width: 10), Text('Quản lý câu hỏi')]),
+        ),
+        const PopupMenuItem(
           value: 'delete',
           child: Row(children: [Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red), SizedBox(width: 10), Text('Xóa bài', style: TextStyle(color: Colors.red))]),
         ),
@@ -213,9 +240,9 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 
-  Widget _buildActionBtn(String label, Color color) {
+  Widget _buildActionBtn(String label, Color color, {VoidCallback? onPressed}) {
     return TextButton(
-      onPressed: () {},
+      onPressed: onPressed ?? () {},
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         backgroundColor: color.withValues(alpha: 0.05),

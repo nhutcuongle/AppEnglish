@@ -127,7 +127,7 @@ class TeacherDashboardTab extends StatelessWidget {
 
   Widget _buildClassOverview() {
     return FutureBuilder<List<Student>>(
-      future: ApiService.getStudents().then((raw) => raw.map((e) => Student.fromJson(e)).toList()),
+      future: ApiService.getMyStudents().then((raw) => raw.map((e) => Student.fromJson(e)).toList()),
       builder: (context, snapshot) {
         final stats = TeacherService.calculateClassOverview(snapshot.data ?? []);
         return Container(

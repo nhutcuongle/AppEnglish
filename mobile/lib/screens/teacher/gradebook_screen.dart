@@ -26,7 +26,7 @@ class _GradebookScreenState extends State<GradebookScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final studentsData = await ApiService.getStudents();
+      final studentsData = await ApiService.getMyStudents();
       // Chuyển sang lấy danh sách Bài kiểm tra (Exams)
       final examsData = await ApiService.getTeacherExams();
       final submissionsData = await ApiService.getSubmissions();

@@ -5,7 +5,7 @@ class TeacherService {
   // --- Quản lý Học sinh ---
 
   static Future<List<Student>> searchStudents(String query) async {
-    final studentsRaw = await ApiService.getStudents();
+    final studentsRaw = await ApiService.getMyStudents();
     final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
     
     if (query.isEmpty) return students;
@@ -13,7 +13,7 @@ class TeacherService {
   }
 
   static Future<List<Student>> getTopPerformer() async {
-    final studentsRaw = await ApiService.getStudents();
+    final studentsRaw = await ApiService.getMyStudents();
     final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
     students.sort((a, b) => b.score.compareTo(a.score));
     return students.take(5).toList();
@@ -56,7 +56,7 @@ class TeacherService {
   }
 
   static Future<Map<String, double>> getScoreDistribution() async {
-    final studentsRaw = await ApiService.getStudents();
+    final studentsRaw = await ApiService.getMyStudents();
     final students = studentsRaw.map((e) => Student.fromJson(e)).toList();
 
     if (students.isEmpty) return {'0-4': 0, '4-6': 0, '6-8': 0, '8-10': 0};
