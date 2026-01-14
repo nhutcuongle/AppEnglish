@@ -3,14 +3,27 @@ import mongoose from "mongoose";
 /* ===== MEDIA SCHEMA ===== */
 const mediaSchema = new mongoose.Schema(
   {
+    type: {
+      type: String,
+      enum: ["upload", "youtube"],
+      default: "upload",
+    },
+
     url: {
       type: String,
       required: true,
     },
+
+    youtubeId: {
+      type: String,
+      default: null,
+    },
+
     caption: {
       type: String,
       default: "",
     },
+
     order: {
       type: Number,
       default: 0,
@@ -18,6 +31,7 @@ const mediaSchema = new mongoose.Schema(
   },
   { _id: false }
 );
+
 
 /* ===== LESSON SCHEMA ===== */
 const lessonSchema = new mongoose.Schema(

@@ -84,6 +84,18 @@
  *                 type: array
  *                 items:
  *                   type: string
+ *
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of YouTube URLs (e.g. https://www.youtube.com/watch?v=...)
+ *
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Captions for YouTube videos
  *     responses:
  *       201:
  *         description: Tạo lesson thành công
@@ -153,6 +165,11 @@
  *                       type: string
  *                     order:
  *                       type: number
+ *                     type:
+ *                       type: string
+ *                       enum: [upload, youtube]
+ *                     youtubeId:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Cập nhật lesson thành công
