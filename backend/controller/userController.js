@@ -106,8 +106,16 @@ export const updateStudent = async (req, res) => {
 =========================== */
 export const disableUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { isDisabled: true }, { new: true });
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "Không tìm thấy user" });
+
+    // Chặn khóa tài khoản School
+    if (user.role === "school") {
+      return res.status(403).json({ message: "Không thể khóa tài khoản quản trị hệ thống" });
+    }
+
+    user.isDisabled = true;
+    await user.save();
     res.json({ message: "Khóa tài khoản thành công" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -129,14 +137,20 @@ export const enableUser = async (req, res) => {
 =========================== */
 export const deleteStudent = async (req, res) => {
   try {
-    const student = await User.findOne({ _id: req.params.id, role: "student" });
-    if (!student) return res.status(404).json({ message: "Không tìm thấy học sinh" });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
 
-    if (student.class) {
-      await Class.findByIdAndUpdate(student.class, { $pull: { students: student._id } });
+    // Bảo vệ tài khoản School
+    if (user.role === "school") {
+      return res.status(403).json({ message: "Không thể xóa tài khoản quản trị hệ thống" });
     }
-    await student.deleteOne();
-    res.json({ message: "Xóa học sinh thành công" });
+
+    if (user.role === "student" && user.class) {
+      await Class.findByIdAndUpdate(user.class, { $pull: { students: user._id } });
+    }
+    
+    await user.deleteOne();
+    res.json({ message: "Xóa người dùng thành công" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

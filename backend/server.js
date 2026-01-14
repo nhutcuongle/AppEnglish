@@ -18,6 +18,7 @@ import grammarRoutes from "./routes/grammar.js";
 import questionRoutes from "./routes/question.js";
 import submissionRoutes from "./routes/submission.js";
 import examRoutes from "./routes/exam.js";
+import { initSchoolAccount } from "./seed.js";
 
 
 
@@ -57,6 +58,9 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI).then(() => {
   console.log("MongoDB connected");
+  
+  // Tự động kiểm tra và khởi tạo tài khoản School (Admin)
+  initSchoolAccount();
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

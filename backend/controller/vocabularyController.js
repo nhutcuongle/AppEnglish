@@ -108,7 +108,7 @@ export const updateVocabulary = async (req, res) => {
     );
 
     if (!vocab) {
-      return res.status(404).json({ message: "Không tìm thấy từ vựng" });
+return res.status(404).json({ message: "Không tìm thấy từ vựng" });
     }
 
     res.json({
