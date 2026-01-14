@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/screens/student/my_submissions_screen.dart';
+import 'package:apptienganh10/screens/student/unit_list_tab.dart';
+import 'package:apptienganh10/screens/student/exam_list_screen.dart';
 
 class StudentDashboardTab extends StatefulWidget {
   final Function(int)? onTabSelected;
@@ -14,24 +17,135 @@ class _StudentDashboardTabState extends State<StudentDashboardTab> {
   String className = "Đang tải...";
   bool isLoading = true;
 
+  // Stats variables
+  int totalLessons = 0;
+  int totalVocab = 0;
+  String averageGrade = "-";
+
   @override
   void initState() {
     super.initState();
     _fetchProfile();
+    _fetchStats();
+  }
+
+
+  Future<void> _fetchStats() async {
+    try {
+      // 1. Fetch Units/Lessons (Stats: Lessons)
+      final unitsResult = await ApiService.getPublicUnits();
+      List<dynamic> units = [];
+      if (unitsResult is List) {
+        units = unitsResult;
+      }
+      
+      int lessonsCount = units.length;
+      
+      // 2. Count Vocab (Client-side scraping)
+      // Loop through first few units to estimate or count
+      int vocabCount = 0;
+      int limit = lessonsCount > 5 ? 5 : lessonsCount; // Limit to 5 units to save requests
+      
+      List<Future<void>> futures = [];
+      for (int i = 0; i < limit; i++) {
+        var u = units[i];
+        if (u['_id'] != null) {
+          futures.add(() async {
+            try {
+              final lessons = await ApiService.getLessonsByUnit(u['_id']);
+              for (var l in lessons) {
+                if (l['_id'] != null) {
+                  final vocabs = await ApiService.getVocabularyByLesson(l['_id']);
+                  vocabCount += vocabs.length;
+                }
+              }
+            } catch (e) {
+              debugPrint('Error fetching vocab for unit ${u['_id']}: $e');
+            }
+          }());
+        }
+      }
+      
+      await Future.wait(futures);
+      
+      // If we limited the loop, extrapolate
+      if (lessonsCount > limit && limit > 0) {
+        vocabCount = (vocabCount / limit * lessonsCount).round();
+      }
+
+      // 3. Fetch Submissions for Score
+      final submissions = await ApiService.getMySubmissions();
+      double totalScore = 0;
+      int count = 0;
+      for (var sub in submissions) {
+         if (sub['totalScore'] != null) {
+           totalScore += (sub['totalScore'] as num).toDouble();
+           count++;
+         }
+      }
+      
+      String grade = "-";
+      if (count > 0) {
+        double avg = totalScore / count; 
+        if (avg >= 9) grade = "A+";
+        else if (avg >= 8) grade = "A";
+        else if (avg >= 7) grade = "B";
+        else if (avg >= 5) grade = "C";
+        else grade = "D";
+      }
+
+      if (mounted) {
+        setState(() {
+          totalLessons = lessonsCount;
+          totalVocab = vocabCount;
+          averageGrade = grade;
+        });
+      }
+    } catch (e) {
+      debugPrint("Stats error: $e");
+    }
   }
 
   Future<void> _fetchProfile() async {
+    // ========== MOCK DATA ĐỂ TEST ==========
+    // Bỏ comment phần này để test với dữ liệu giả
+    /*
+    if (mounted) {
+      setState(() {
+        studentName = "Nguyễn Văn A";
+        className = "Lớp 10A1";
+        isLoading = false;
+      });
+    }
+    return;
+    */
+    // ========================================
+
     try {
       final response = await ApiService.getProfile();
+      debugPrint('=== PROFILE RESPONSE ===');
+      debugPrint(response.toString());
+      
       if (mounted) {
         setState(() {
           var data = response['data'] ?? response;
-          studentName = data['fullName'] ?? "Học sinh";
+          studentName = data['fullName']?.toString().isNotEmpty == true 
+              ? data['fullName'] 
+              : (data['username'] ?? "Học sinh");
           
-          // Lấy thông tin lớp (có thể là object hoặc string tùy API)
+          // Lấy thông tin lớp
           if (data['class'] != null) {
+            debugPrint('=== CLASS DATA: ${data['class']} (${data['class'].runtimeType}) ===');
             if (data['class'] is Map) {
               className = data['class']['name'] ?? "Chưa có lớp";
+            } else if (data['class'] is String) {
+              final classId = data['class'].toString();
+              if (classId.length == 24) {
+                _fetchClassName(classId);
+                className = "Đang tải...";
+              } else {
+                className = classId;
+              }
             } else {
               className = data['class'].toString();
             }
@@ -43,7 +157,29 @@ class _StudentDashboardTabState extends State<StudentDashboardTab> {
         });
       }
     } catch (e) {
+      debugPrint('=== PROFILE ERROR: $e ===');
       if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _fetchClassName(String classId) async {
+    try {
+      // Gọi API lấy danh sách lớp và tìm lớp có ID phù hợp
+      final classes = await ApiService.getClasses();
+      for (var c in classes) {
+        if (c['_id'] == classId) {
+          if (mounted) {
+            setState(() {
+              className = c['name'] ?? 'Chưa có tên';
+            });
+          }
+          return;
+        }
+      }
+      // Nếu không tìm thấy, hiển thị thông báo
+      if (mounted) setState(() => className = "Chưa có lớp");
+    } catch (e) {
+      if (mounted) setState(() => className = "Lỗi tải");
     }
   }
 
@@ -99,6 +235,10 @@ class _StudentDashboardTabState extends State<StudentDashboardTab> {
     );
   }
 
+
+
+  // ... (existing _fetchProfile logic) ...
+
   Widget _buildStatsCard() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -118,9 +258,9 @@ class _StudentDashboardTabState extends State<StudentDashboardTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('Bài học', '12', Icons.auto_stories_rounded),
-              _buildStatItem('Từ vựng', '85', Icons.translate_rounded),
-              _buildStatItem('Thành tích', 'A+', Icons.stars_rounded),
+              _buildStatItem('Bài học', '$totalLessons', Icons.auto_stories_rounded),
+              _buildStatItem('Từ vựng', '$totalVocab', Icons.translate_rounded),
+              _buildStatItem('Thành tích', averageGrade, Icons.stars_rounded),
             ],
           ),
           const SizedBox(height: 20),
@@ -159,12 +299,18 @@ class _StudentDashboardTabState extends State<StudentDashboardTab> {
       mainAxisSpacing: 20,
       childAspectRatio: 1.15,
       children: [
-        _buildQuickTool('Unit', Icons.auto_stories_rounded, Colors.purple),
+        _buildQuickTool('Unit', Icons.auto_stories_rounded, Colors.purple, onTap: () {
+          widget.onTabSelected?.call(1); // Chuyển sang tab Unit (index 1)
+        }),
         _buildQuickTool('Hồ sơ', Icons.person_rounded, Colors.teal, onTap: () {
           widget.onTabSelected?.call(3); // Chuyển sang tab tài khoản (index 3)
         }),
-        _buildQuickTool('Bài kiểm tra', Icons.quiz_rounded, Colors.orange),
-        _buildQuickTool('Bài tập', Icons.assignment_rounded, Colors.green),
+        _buildQuickTool('Bài kiểm tra', Icons.quiz_rounded, Colors.orange, onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamListScreen()));
+        }),
+        _buildQuickTool('Bài tập', Icons.assignment_rounded, Colors.green, onTap: () {
+           Navigator.push(context, MaterialPageRoute(builder: (_) => const MySubmissionsScreen()));
+        }),
       ],
     );
   }
