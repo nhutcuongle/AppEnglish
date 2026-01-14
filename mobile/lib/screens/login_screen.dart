@@ -15,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -33,7 +34,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['error'] != null) {
-      setState(() => _errorMessage = result['error']);
+      if (result['error'].toString().contains('Failed host lookup')) {
+         setState(() => _errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet.');
+      } else {
+         setState(() => _errorMessage = result['error']);
+      }
       return;
     }
 
@@ -118,10 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
                 decoration: InputDecoration(
                   labelText: 'Mật khẩu',
                   prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xFF94A3B8)),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),

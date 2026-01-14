@@ -318,17 +318,29 @@ class ApiService {
 
   // ==================== QUESTIONS ====================
 
-  static Future<List<dynamic>> getQuestions({String? examId}) async {
+  static Future<List<dynamic>> getQuestions({String? examId, String? lessonId}) async {
     try {
-      if (examId == null) return [];
-      final response = await http.get(Uri.parse('$baseUrl/exams/$examId/questions'), headers: _headers);
-      return _handleListResponse(response);
+      if (examId != null) {
+        final response = await http.get(Uri.parse('$baseUrl/exams/$examId/questions'), headers: _headers);
+        return _handleListResponse(response);
+      } else if (lessonId != null) {
+        final response = await http.get(Uri.parse('$baseUrl/questions/lesson/$lessonId'), headers: _headers);
+        return _handleListResponse(response);
+      }
+      return [];
     } catch (e) { return []; }
   }
 
   static Future<Map<String, dynamic>> createQuestion(Map<String, dynamic> data) async {
     try {
       final response = await http.post(Uri.parse('$baseUrl/questions'), headers: _headers, body: jsonEncode(data));
+      return jsonDecode(response.body);
+    } catch (e) { return {'error': e.toString()}; }
+  }
+
+  static Future<Map<String, dynamic>> updateQuestion(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(Uri.parse('$baseUrl/questions/$id'), headers: _headers, body: jsonEncode(data));
       return jsonDecode(response.body);
     } catch (e) { return {'error': e.toString()}; }
   }
