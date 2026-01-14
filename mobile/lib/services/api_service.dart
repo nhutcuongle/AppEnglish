@@ -239,6 +239,13 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<List<dynamic>> getStudentsByClassForTeacher(String classId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/users/teacher/class-students/$classId'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
   // ==================== EXAMS ====================
 
   static Future<List<dynamic>> getTeacherExams() async {
@@ -425,6 +432,60 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<void> updateQuestionForTeacher({
+    required String id,
+    required String skill,
+    required String type,
+    required String content,
+    List<String>? options,
+    dynamic correctAnswer,
+    String? explanation,
+    double points = 1.0,
+    List<File>? images,
+    List<File>? audios,
+  }) async {
+    try {
+      var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/questions/$id'));
+      request.headers.addAll(_headers);
+
+      request.fields['skill'] = skill;
+      request.fields['type'] = type;
+      request.fields['content'] = content;
+      request.fields['explanation'] = explanation ?? '';
+      request.fields['points'] = points.toString();
+
+      if (options != null) {
+        for (int i = 0; i < options.length; i++) {
+          request.fields['options[$i]'] = options[i];
+        }
+      }
+
+      request.fields['correctAnswer'] = correctAnswer.toString();
+
+      // Images
+      if (images != null && images.isNotEmpty) {
+        for (var image in images) {
+          request.files.add(await http.MultipartFile.fromPath('images', image.path));
+        }
+      }
+
+      // Audios
+      if (audios != null && audios.isNotEmpty) {
+        for (var audio in audios) {
+          request.files.add(await http.MultipartFile.fromPath('audios', audio.path));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      if (streamedResponse.statusCode != 200) {
+        final resp = await http.Response.fromStream(streamedResponse);
+        throw Exception(jsonDecode(resp.body)['message'] ?? 'Lỗi cập nhật câu hỏi');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteQuestion(String id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/questions/$id'), headers: _headers);
@@ -456,6 +517,20 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<List<dynamic>> getScoresByLesson(String lessonId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/submissions/lesson/$lessonId/scores'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> getSubmissionDetailForTeacher(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/submissions/teacher/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) { return {'error': e.toString()}; }
+  }
+
   // ==================== UNITS ====================
 
   static Future<List<dynamic>> getUnits() async {
@@ -470,6 +545,13 @@ class ApiService {
       print('Error fetching units: $e');
       return [];
     }
+  }
+
+  static Future<List<dynamic>> getTeacherUnits() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/units/teacher/all'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
   }
 
   static Future<Map<String, dynamic>> getUnitById(String id) async {

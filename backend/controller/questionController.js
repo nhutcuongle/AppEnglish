@@ -46,14 +46,14 @@ export const createQuestion = async (req, res) => {
         lesson: targetLesson,
         school: req.user._id,
       }).sort({ order: -1 }).select("order");
-      
+
       let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
       const createdQuestions = [];
-      
+
       for (const qData of questionsData) {
         const {
-           skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
-           images, audios, videos
+          skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
+          images, audios, videos
         } = qData;
 
         if (!skill || !type || !content) continue;
@@ -66,8 +66,8 @@ export const createQuestion = async (req, res) => {
           class: qClassId || req.body.classId || null,
           school: req.user._id,
           order: currentOrder++,
-          images: images || [], 
-          audios: audios || [], 
+          images: images || [],
+          audios: audios || [],
           videos: videos || []
         });
         createdQuestions.push(newQuestion);
@@ -198,11 +198,11 @@ export const createQuestionForTeacher = async (req, res) => {
       const lastQuestion = await Question.findOne({ exam: targetExamId }).sort({ order: -1 }).select("order");
       let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
       const createdQuestions = [];
-      
+
       for (const qData of questionsData) {
         const {
-           skill, type, content, options, correctAnswer, explanation, isPublished, points,
-           images, audios, videos
+          skill, type, content, options, correctAnswer, explanation, isPublished, points,
+          images, audios, videos
         } = qData;
 
         if (!skill || !type || !content) continue;
@@ -215,8 +215,8 @@ export const createQuestionForTeacher = async (req, res) => {
           class: exam.class,
           school: null,
           order: currentOrder++,
-          images: images || [], 
-          audios: audios || [], 
+          images: images || [],
+          audios: audios || [],
           videos: videos || []
         });
         createdQuestions.push(newQuestion);
@@ -355,8 +355,8 @@ export const updateQuestion = async (req, res) => {
     // Permission Check
     if (req.user.role === "school") {
       const targetClass = question.class ? await Class.findById(question.class) : null;
-      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) || 
-                      (!question.class && question.school && question.school.toString() === req.user._id.toString());
+      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) ||
+        (!question.class && question.school && question.school.toString() === req.user._id.toString());
       if (!isOwner) return res.status(403).json({ message: "Question không thuộc quản lý của trường bạn" });
     } else if (req.user.role === "teacher") {
       if (!question.exam) return res.status(403).json({ message: "Giáo viên chỉ được sửa câu hỏi trong bài kiểm tra" });
@@ -368,10 +368,68 @@ export const updateQuestion = async (req, res) => {
       return res.status(403).json({ message: "Bạn không có quyền thực hiện hành động này" });
     }
 
-    const allowedFields = ["content", "options", "correctAnswer", "explanation", "order", "isPublished", "images", "audios", "videos", "points"];
+    const allowedFields = ["content", "options", "correctAnswer", "explanation", "order", "isPublished", "points"];
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) question[field] = req.body[field];
     });
+
+    /* Media Handling in Update */
+    if (req.files) {
+      if (req.files.images) {
+        const imageCaptions = Array.isArray(req.body.imageCaptions) ? req.body.imageCaptions : (req.body.imageCaptions ? [req.body.imageCaptions] : []);
+        const newImages = req.files.images.map((file, index) => ({
+          url: file.path,
+          caption: imageCaptions[index] || "",
+          order: index + 1,
+        }));
+        // For now, replace existing images if new ones are uploaded
+        // In a more complex app, we might want to merge or use specific indices
+        question.images = newImages;
+      }
+
+      if (req.files.audios) {
+        const audioCaptions = Array.isArray(req.body.audioCaptions) ? req.body.audioCaptions : (req.body.audioCaptions ? [req.body.audioCaptions] : []);
+        const newAudios = req.files.audios.map((file, index) => ({
+          url: file.path,
+          caption: audioCaptions[index] || "",
+          order: index + 1,
+        }));
+        question.audios = newAudios;
+      }
+
+      if (req.files.videos) {
+        const videoCaptions = Array.isArray(req.body.videoCaptions) ? req.body.videoCaptions : (req.body.videoCaptions ? [req.body.videoCaptions] : []);
+        const newVideos = req.files.videos.map((file, index) => ({
+          type: "upload",
+          url: file.path,
+          caption: videoCaptions[index] || "",
+          order: index + 1,
+        }));
+        question.videos = newVideos;
+      }
+    }
+
+    // Handle youtubeVideos specifically if provided in update
+    if (req.body.youtubeVideos) {
+      const youtubeUrls = Array.isArray(req.body.youtubeVideos) ? req.body.youtubeVideos : [req.body.youtubeVideos];
+      const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions) ? req.body.youtubeVideoCaptions : (req.body.youtubeVideoCaptions ? [req.body.youtubeVideoCaptions] : []);
+      const youtubeVideos = youtubeUrls.map((url, index) => {
+        const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+        const youtubeId = match && match[2].length === 11 ? match[2] : null;
+        return {
+          type: "youtube",
+          url,
+          youtubeId,
+          caption: youtubeCaptions[index] || "",
+          order: (question.videos ? question.videos.filter(v => v.type === 'upload').length : 0) + index + 1,
+        };
+      });
+
+      // If youtubeVideos provided, we replace the youtube part of videos or all videos?
+      // Let's replace all videos if youtubeVideos is provided for simplicity in this update
+      const uploadVideos = (question.videos || []).filter(v => v.type === 'upload');
+      question.videos = [...uploadVideos, ...youtubeVideos];
+    }
 
     if (req.body.deadline !== undefined && question.lesson && req.user.role === "school") {
       await Lesson.findByIdAndUpdate(question.lesson, { deadline: req.body.deadline });
@@ -393,8 +451,8 @@ export const deleteQuestion = async (req, res) => {
     // Permission Check
     if (req.user.role === "school") {
       const targetClass = question.class ? await Class.findById(question.class) : null;
-      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) || 
-                      (!question.class && question.school && question.school.toString() === req.user._id.toString());
+      const isOwner = (targetClass && targetClass.school.toString() === req.user._id.toString()) ||
+        (!question.class && question.school && question.school.toString() === req.user._id.toString());
       if (!isOwner) return res.status(403).json({ message: "Question không thuộc quản lý của trường bạn" });
     } else if (req.user.role === "teacher") {
       if (!question.exam) return res.status(403).json({ message: "Giáo viên chỉ được xóa câu hỏi trong bài kiểm tra" });

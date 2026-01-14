@@ -160,3 +160,19 @@ class Submission {
     );
   }
 }
+
+class ClassInfo {
+  final String id;
+  final String name;
+  final int grade;
+
+  ClassInfo({required this.id, required this.name, required this.grade});
+
+  factory ClassInfo.fromJson(Map<String, dynamic> json) {
+    return ClassInfo(
+      id: json['_id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      grade: json['grade'] ?? 0,
+    );
+  }
+}
