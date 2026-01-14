@@ -23,6 +23,10 @@ import {
 
 const router = express.Router();
 
+router.get("/public", getPublishedUnits);
+
+router.get("/public/:id", getPublishedUnitById);
+
 /* ================= SCHOOL / ADMIN ================= */
 
 router.post(
@@ -57,8 +61,6 @@ router.get("/teacher/:id", authenticate, isTeacher, getUnitById);
 
 /* ================= STUDENT ================= */
 
-router.get("/public", getPublishedUnits);
 
-router.get("/public/:id", getPublishedUnitById);
 
 export default router;
