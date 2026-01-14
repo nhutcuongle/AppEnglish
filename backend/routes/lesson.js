@@ -25,7 +25,14 @@ router.post(
   createLesson
 );
 
-router.patch("/:id", authenticate, isSchool, updateLesson);
+router.patch(
+  "/:id",
+  authenticate,
+  isSchool,
+  uploadMultipleMedia,
+  uploadErrorHandler,
+  updateLesson
+);
 
 router.delete("/:id", authenticate, isSchool, deleteLesson);
 

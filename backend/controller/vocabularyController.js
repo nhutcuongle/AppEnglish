@@ -1,5 +1,6 @@
 import Vocabulary from "../models/Vocabulary.js";
 import Lesson from "../models/Lesson.js";
+import { processMedia } from "../utils/mediaHelper.js";
 
 /* ================= CREATE VOCABULARY ================= */
 export const createVocabulary = async (req, res) => {
@@ -27,88 +28,8 @@ export const createVocabulary = async (req, res) => {
 
     const nextOrder = lastVocab ? lastVocab.order + 1 : 1;
 
-    /* ===== IMAGE ===== */
-    const imageCaptions = Array.isArray(req.body.imageCaptions)
-      ? req.body.imageCaptions
-      : req.body.imageCaptions
-      ? [req.body.imageCaptions]
-      : [];
-
-    const images =
-      req.files?.images?.map((file, index) => ({
-        url: file.path,
-        caption: imageCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    /* ===== AUDIO ===== */
-    const audioCaptions = Array.isArray(req.body.audioCaptions)
-      ? req.body.audioCaptions
-      : req.body.audioCaptions
-      ? [req.body.audioCaptions]
-      : [];
-
-    const audios =
-      req.files?.audios?.map((file, index) => ({
-        url: file.path,
-        caption: audioCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    /* ===== VIDEO (UPLOAD + YOUTUBE) ===== */
-
-    // caption cho video upload
-    const videoCaptions = Array.isArray(req.body.videoCaptions)
-      ? req.body.videoCaptions
-      : req.body.videoCaptions
-      ? [req.body.videoCaptions]
-      : [];
-
-    // video upload từ máy
-    const uploadVideos =
-      req.files?.videos?.map((file, index) => ({
-        type: "upload",
-        url: file.path,
-        caption: videoCaptions[index] || "",
-        order: index + 1,
-      })) || [];
-
-    // ===== YOUTUBE URL =====
-    const youtubeUrls = Array.isArray(req.body.youtubeVideos)
-      ? req.body.youtubeVideos
-      : req.body.youtubeVideos
-      ? [req.body.youtubeVideos]
-      : [];
-
-    const youtubeCaptions = Array.isArray(req.body.youtubeVideoCaptions)
-      ? req.body.youtubeVideoCaptions
-      : req.body.youtubeVideoCaptions
-      ? [req.body.youtubeVideoCaptions]
-      : [];
-
-    const youtubeVideos = youtubeUrls.map((url, index) => {
-      // Regex support:
-      // - https://youtu.be/ID
-      // - https://www.youtube.com/watch?v=ID
-      // - https://www.youtube.com/watch?v=ID&list=...
-      // - https://www.youtube.com/watch?param=...&v=ID
-      // - https://www.youtube.com/embed/ID
-      const match = url.match(
-        /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-      );
-      const youtubeId = match && match[2].length === 11 ? match[2] : null;
-
-      return {
-        type: "youtube",
-        url,
-        youtubeId,
-        caption: youtubeCaptions[index] || "",
-        order: uploadVideos.length + index + 1,
-      };
-    });
-
-    // ===== GỘP CHUNG =====
-    const videos = [...uploadVideos, ...youtubeVideos];
+    /* ===== MEDIA ===== */
+    const media = processMedia(req.files, req.body);
 
     /* ===== CREATE ===== */
     const vocab = await Vocabulary.create({
@@ -119,9 +40,9 @@ export const createVocabulary = async (req, res) => {
       example,
       isPublished,
       order: nextOrder,
-      images,
-      audios,
-      videos,
+      images: media.images || [],
+      audios: media.audios || [],
+      videos: media.videos || [],
     });
 
     res.status(201).json({
@@ -174,6 +95,12 @@ export const updateVocabulary = async (req, res) => {
       }
     });
 
+    /* ===== XỬ LÝ MEDIA MỚI (NẾU CÓ) ===== */
+    const media = processMedia(req.files, req.body);
+    if (media.images) updateData.images = media.images;
+    if (media.audios) updateData.audios = media.audios;
+    if (media.videos) updateData.videos = media.videos;
+
     const vocab = await Vocabulary.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -181,7 +108,7 @@ export const updateVocabulary = async (req, res) => {
     );
 
     if (!vocab) {
-      return res.status(404).json({ message: "Không tìm thấy từ vựng" });
+return res.status(404).json({ message: "Không tìm thấy từ vựng" });
     }
 
     res.json({

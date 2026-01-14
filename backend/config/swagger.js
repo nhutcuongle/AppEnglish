@@ -10,13 +10,10 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "http://localhost:5000",
-        description: "Local development server",
-      },
-      {
+     //   url: "http://localhost:5000",
         url: "https://appenglish-0uee.onrender.com",
-        description: "Production server",
       },
+    
     ],
 
     tags: [

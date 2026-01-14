@@ -135,47 +135,77 @@
  *                 type: number
  *               isPublished:
  *                 type: boolean
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Present Simple Tense (Updated)
+ *
+ *               theory:
+ *                 type: string
+ *                 description: Nội dung lý thuyết (HTML / rich text)
+ *                 example: "<p>Updated theory content...</p>"
+ *
+ *               examples:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example:
+ *                   - "I go to school every day."
+ *
+ *               order:
+ *                 type: number
+ *                 example: 1
+ *
+ *               isPublished:
+ *                 type: boolean
+ *                 example: true
  *
  *               images:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
+ *                   type: string
+ *                   format: binary
  *
+ *               imageCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
+ * 
  *               audios:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
+ *                   type: string
+ *                   format: binary
  *
+ *               audioCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
+ * 
  *               videos:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *                     type:
- *                       type: string
- *                       enum: [upload, youtube]
- *                     youtubeId:
- *                       type: string
+ *                   type: string
+ *                   format: binary
+ * 
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of YouTube URLs
+ *
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Cập nhật grammar thành công

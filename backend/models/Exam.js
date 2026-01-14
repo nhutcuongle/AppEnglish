@@ -32,19 +32,6 @@ const examSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    description: {
-      type: String,
-      default: "",
-    },
-    semester: {
-      type: String,
-      enum: ["1", "2"],
-      default: "1",
-    },
-    academicYear: {
-      type: String,
-      default: "",
-    },
     isPublished: {
       type: Boolean,
       default: true,

@@ -57,16 +57,6 @@
  *           type: string
  *           format: date-time
  *           description: Thời gian kết thúc/hết hạn nộp bài
- *         description:
- *           type: string
- *           description: Mô tả chi tiết bài kiểm tra
- *         semester:
- *           type: string
- *           enum: ["1", "2"]
- *           description: Học kỳ
- *         academicYear:
- *           type: string
- *           description: Năm học (VD 2023-2024)
  */
 
 /**
@@ -113,12 +103,6 @@
  *               endTime:
  *                 type: string
  *                 format: date-time
- *               description:
- *                 type: string
- *               semester:
- *                 type: string
- *               academicYear:
- *                 type: string
  *               isPublished:
  *                 type: boolean
  *         multipart/form-data:
@@ -136,12 +120,6 @@
  *               endTime:
  *                 type: string
  *                 format: date-time
- *               description:
- *                 type: string
- *               semester:
- *                 type: string
- *               academicYear:
- *                 type: string
  *               isPublished:
  *                 type: boolean
  *     responses:

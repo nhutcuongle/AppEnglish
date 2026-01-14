@@ -6,7 +6,7 @@ import Question from "../models/Question.js";
 /* ================= CREATE EXAM ================= */
 export const createExam = async (req, res) => {
   try {
-    const { title, type, classId, startTime, endTime, description, semester, academicYear } = req.body;
+    const { title, type, classId, startTime, endTime } = req.body;
 
     if (!title || !type || !classId || !startTime || !endTime) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc" });
@@ -20,7 +20,7 @@ export const createExam = async (req, res) => {
     });
 
     if (!targetClass) {
-      return res.status(403).json({ message: " Bạn không có quyền tạo bài kiểm tra cho lớp này" });
+      return res.status(403).json({ message: "Bạn không có quyền tạo bài kiểm tra cho lớp này" });
     }
 
     const exam = await Exam.create({
@@ -30,9 +30,6 @@ export const createExam = async (req, res) => {
       teacher: req.user._id,
       startTime,
       endTime,
-      description: description || "",
-      semester: semester || "1",
-      academicYear: academicYear || "",
     });
 
     res.status(201).json({ message: "Tạo bài kiểm tra thành công", exam });
@@ -58,9 +55,6 @@ export const updateExam = async (req, res) => {
     if (type) exam.type = type;
     if (startTime) exam.startTime = startTime;
     if (endTime) exam.endTime = endTime;
-    if (description !== undefined) exam.description = description;
-    if (semester !== undefined) exam.semester = semester;
-    if (academicYear !== undefined) exam.academicYear = academicYear;
     if (isPublished !== undefined) exam.isPublished = isPublished;
 
     await exam.save();
@@ -142,13 +136,11 @@ export const getExamReport = async (req, res) => {
       .sort({ totalScore: -1 });
 
     const report = submissions.map(s => ({
-      submissionId: s._id,
       student: {
         username: s.user.username,
         fullName: s.user.fullName || s.user.username,
         email: s.user.email,
       },
-      skills: s.scores, // Bao gồm điểm theo kỹ năng
       totalScore: s.totalScore,
       submittedAt: s.submittedAt,
     }));
