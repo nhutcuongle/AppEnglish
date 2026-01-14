@@ -79,7 +79,7 @@ export const getAllClasses = async (req, res) => {
       classes.map(async (classDoc) => {
         const studentCount = await User.countDocuments({
           role: "student",
-          classes: classDoc.name, // Students store class name in their classes array
+          class: classDoc._id,
         });
 
         return {
@@ -209,4 +209,3 @@ export const getTeacherClasses = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
