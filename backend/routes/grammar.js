@@ -25,7 +25,14 @@ router.post(
   createGrammar
 );
 
-router.patch("/:id", authenticate, isSchool, updateGrammar);
+router.patch(
+  "/:id",
+  authenticate,
+  isSchool,
+  uploadMultipleMedia,
+  uploadErrorHandler,
+  updateGrammar
+);
 
 router.delete("/:id", authenticate, isSchool, deleteGrammar);
 

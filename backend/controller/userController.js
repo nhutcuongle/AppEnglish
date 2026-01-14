@@ -161,7 +161,9 @@ export const getAssignableStudents = async (req, res) => {
 =========================== */
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .populate("class", "name");
     if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
     res.json(user);
   } catch (err) {

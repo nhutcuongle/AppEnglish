@@ -111,44 +111,58 @@
  *                 type: number
  *               isPublished:
  *                 type: boolean
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               word:
+ *                 type: string
+ *               phonetic:
+ *                 type: string
+ *               meaning:
+ *                 type: string
+ *               example:
+ *                 type: string
+ *               order:
+ *                 type: number
+ *               isPublished:
+ *                 type: boolean
  *               images:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
+ *                   type: string
+ *                   format: binary
+ *               imageCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
  *               audios:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
+ *                   type: string
+ *                   format: binary
+ *               audioCaptions:
+ *                  type: array
+ *                  items:
+ *                    type: string
  *               videos:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *                     type:
- *                       type: string
- *                       enum: [upload, youtube]
- *                     youtubeId:
- *                       type: string
+ *                   type: string
+ *                   format: binary
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of YouTube URLs
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Cập nhật từ vựng thành công

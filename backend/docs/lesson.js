@@ -129,47 +129,55 @@
  *                 type: string
  *               isPublished:
  *                 type: boolean
- *
+ *               order:
+ *                 type: number
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               isPublished:
+ *                 type: boolean
+ *               order:
+ *                 type: number
  *               images:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *
+ *                   type: string
+ *                   format: binary
+ *               imageCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               audios:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *
+ *                   type: string
+ *                   format: binary
+ *               audioCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               videos:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     caption:
- *                       type: string
- *                     order:
- *                       type: number
- *                     type:
- *                       type: string
- *                       enum: [upload, youtube]
- *                     youtubeId:
- *                       type: string
+ *                   type: string
+ *                   format: binary
+ *               videoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               youtubeVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               youtubeVideoCaptions:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Cập nhật lesson thành công
