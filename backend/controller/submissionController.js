@@ -140,6 +140,7 @@ export const getMySubmissions = async (req, res) => {
     const result = submissions.map((sub) => ({
       submissionId: sub._id,
       lesson: sub.lesson,
+      exam: sub.exam, // Add this line
       scores: sub.scores,
       totalScore: sub.totalScore,
       submittedAt: sub.submittedAt,

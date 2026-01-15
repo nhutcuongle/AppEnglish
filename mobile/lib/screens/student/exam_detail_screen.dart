@@ -21,6 +21,8 @@ class ExamDetailScreen extends StatefulWidget {
 class _ExamDetailScreenState extends State<ExamDetailScreen> {
   bool isLoading = true;
   bool isSubmitting = false;
+  bool isCheckingSubmission = true;
+  Map<String, dynamic>? submittedResult; // Store previous result
   List<dynamic> questions = [];
   Map<String, dynamic> userAnswers = {};
   
@@ -30,8 +32,47 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchQuestions();
-    _startTimer();
+    _checkSubmissionStatus();
+  }
+
+  Future<void> _checkSubmissionStatus() async {
+    try {
+      final submissions = await ApiService.getMySubmissions();
+      print('CHECKING SUBMISSIONS: Found ${submissions.length} items');
+      
+      // Find submission for this exam
+      final submission = submissions.firstWhere(
+        (s) {
+          final sExam = s['exam'];
+          print('Item: ${s['_id']} - Exam: $sExam vs Widget: ${widget.examId}');
+          
+          if (sExam is Map) return sExam['_id'] == widget.examId;
+          return sExam == widget.examId;
+        },
+        orElse: () => null,
+      );
+
+      if (submission != null) {
+        if (mounted) {
+          setState(() {
+            submittedResult = submission;
+            isLoading = false;
+            isCheckingSubmission = false;
+          });
+        }
+      } else {
+        // Not submitted yet, load questions
+        if (mounted) setState(() => isCheckingSubmission = false);
+        _fetchQuestions();
+        _startTimer();
+      }
+    } catch (e) {
+      print("Error checking submission: $e");
+      // Fallback to loading exam if check fails (or handle error)
+       if (mounted) setState(() => isCheckingSubmission = false);
+       _fetchQuestions();
+       _startTimer();
+    }
   }
 
   @override
@@ -180,19 +221,35 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
   @override
   Widget build(BuildContext context) {
     // Check if time is up initially
-    if (_timeLeft == Duration.zero && !isSubmitting && !isLoading) {
+    // Check for existing submission
+    if (submittedResult != null) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.title)),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.timer_off, size: 60, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text("Bài kiểm tra đã kết thúc.", style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("Quay lại"))
-            ],
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+               color: Colors.white,
+               borderRadius: BorderRadius.circular(16),
+               boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black12)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, size: 80, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text("Bạn đã hoàn thành bài kiểm tra này!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                Text("Điểm số: ${submittedResult!['totalScore']}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue)),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)),
+                  child: const Text("Quay lại"),
+                )
+              ],
+            ),
           ),
         ),
       );
