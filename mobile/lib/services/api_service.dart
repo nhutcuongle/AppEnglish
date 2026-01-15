@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
 import 'package:mime/mime.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://appenglish-0uee.onrender.com/api';
+  static final String baseUrl = dotenv.env['BASE_URL'] ?? 'https://appenglish-0uee.onrender.com/api';
   // static const String baseUrl = 'http://10.0.2.2:5000/api'; // Localhost for Android Emulator
 
   static String? _authToken;
@@ -49,7 +50,10 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Connection': 'keep-alive',
+        },
         body: jsonEncode({'username': username, 'password': password}),
       ).timeout(const Duration(seconds: 60)); // Tăng timeout lên 60s cho Render
 

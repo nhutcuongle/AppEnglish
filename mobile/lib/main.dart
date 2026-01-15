@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apptienganh10/screens/login_screen.dart';
 import 'package:apptienganh10/screens/school/school_home_screen.dart';
 import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
@@ -7,6 +8,12 @@ import 'package:apptienganh10/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize dotenv
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Error loading .env file: $e");
+  }
   // Initialize AuthService to load saved token
   await AuthService.init();
   runApp(const MyApp());
