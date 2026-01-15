@@ -41,6 +41,19 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
         String? className;
         if (student['class'] is Map) {
           className = student['class']['name']?.toString();
+        } else if (student['class'] is String) {
+          // Fallback if populate failed or ID is string
+          // Try to match by ID from the classes list we just fetched
+          final classId = student['class'];
+          final matchClass = classData.firstWhere((c) => c['_id'].toString() == classId, orElse: () => null);
+          if (matchClass != null) {
+            className = matchClass['name']?.toString();
+          } else {
+             // If still not found, assume the string might be the name itself (edge case for legacy data)
+             // or just use it as is if it looks like a name? Bad practice but better than nothing?
+             // Safest is to rely on ID match. If no match, ignore.
+             // But user says "lost gender display", and we know 10A1 causes issues.
+          }
         }
         if (className != null && className.isNotEmpty) {
           final gender = student['gender']?.toString().toLowerCase() ?? '';
