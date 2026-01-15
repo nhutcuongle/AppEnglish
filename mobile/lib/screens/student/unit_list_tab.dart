@@ -47,8 +47,16 @@ class _UnitListTabState extends State<UnitListTab> {
         setState(() {
           if (response is List) {
             units = response;
-          } else if (response is Map && response['data'] != null) {
-            units = response['data'] as List? ?? [];
+          } else if (response is Map) {
+            if (response.containsKey('error')) {
+              // Show error
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi tải bài học: ${response['error']}')));
+              units = [];
+            } else if (response['data'] != null) {
+              units = response['data'] as List? ?? [];
+            } else {
+              units = [];
+            }
           } else {
             units = [];
           }

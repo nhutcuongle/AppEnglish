@@ -403,10 +403,10 @@ class ApiService {
         }
         return data;
       }
-      return [];
+      return {'error': 'Lỗi server: ${response.statusCode}'};
     } catch (e) {
       print('=== getPublicUnits ERROR: $e ===');
-      return [];
+      return {'error': e.toString()};
     }
   }
 
