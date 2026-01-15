@@ -5,8 +5,11 @@ import 'package:apptienganh10/screens/teacher/teacher_home_screen.dart';
 import 'package:apptienganh10/screens/student/home_screen.dart';
 import 'package:apptienganh10/services/auth_service.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   // Initialize AuthService to load saved token
   await AuthService.init();
   runApp(const MyApp());

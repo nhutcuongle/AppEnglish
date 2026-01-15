@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
@@ -6,8 +7,16 @@ import 'package:mime/mime.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://appenglish-0uee.onrender.com/api';
+  // static const String baseUrl = 'https://appenglish-0uee.onrender.com/api';
   // static const String baseUrl = 'http://10.0.2.2:5000/api'; // Localhost for Android Emulator
+  
+  static String get baseUrl {
+    final url = dotenv.env['API_URL'];
+    if (url == null || url.isEmpty) {
+      throw Exception('API_URL not found in .env file');
+    }
+    return url;
+  }
 
   static String? _authToken;
 
