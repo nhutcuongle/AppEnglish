@@ -176,7 +176,7 @@ export const submitExam = async (req, res) => {
     if (!exam) return res.status(404).json({ message: "Không tìm thấy bài kiểm tra" });
 
     // Kiểm tra thời gian
-   // FIX TIMEZONE: Cộng 7 tiếng để khớp với giờ Face Value trong DB (do lỗi nhập liệu/timezone cũ)
+    // FIX TIMEZONE: Cộng 7 tiếng để khớp với giờ Face Value trong DB (do lỗi nhập liệu/timezone cũ)
     const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
     if (now < new Date(exam.startTime)) {
       return res.status(403).json({ message: "Bài kiểm tra chưa bắt đầu" });
@@ -260,4 +260,3 @@ export const getQuestionsByExam = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-

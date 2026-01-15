@@ -79,7 +79,7 @@ export const getAllClasses = async (req, res) => {
       classes.map(async (classDoc) => {
         const studentCount = await User.countDocuments({
           role: "student",
-          class: classDoc.name, // Thay 'classes' thành 'class' nếu schema của bạn là 'class'
+          class: classDoc._id,
         });
 
         return {
@@ -183,12 +183,12 @@ export const getClassDetail = async (req, res) => {
 /* TEACHER: GET MY CLASSES */
 export const getTeacherClasses = async (req, res) => {
   try {
-    const classes = await Class.find({ 
+    const classes = await Class.find({
       homeroomTeacher: req.user._id,
-      isActive: true 
+      isActive: true
     })
-    .populate("school", "username fullName")
-    .sort({ grade: 1, name: 1 });
+      .populate("school", "username fullName")
+      .sort({ grade: 1, name: 1 });
 
     const classesWithCounts = await Promise.all(
       classes.map(async (classDoc) => {

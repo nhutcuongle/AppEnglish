@@ -49,14 +49,14 @@ export const createNewQuestion = async (user, body, files) => {
       lesson: targetLesson,
       school: user._id,
     }).sort({ order: -1 }).select("order");
-    
+
     let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
     const createdQuestions = [];
-    
+
     for (const qData of questionsData) {
       const {
-         skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
-         images, audios, videos
+        skill, type, content, options, correctAnswer, explanation, isPublished, points, classId: qClassId,
+        images, audios, videos
       } = qData;
 
       if (!skill || !type || !content) continue;
@@ -69,8 +69,8 @@ export const createNewQuestion = async (user, body, files) => {
         class: qClassId || body.classId || null,
         school: user._id,
         order: currentOrder++,
-        images: images || [], 
-        audios: audios || [], 
+        images: images || [],
+        audios: audios || [],
         videos: videos || []
       });
       createdQuestions.push(newQuestion);
@@ -102,9 +102,7 @@ export const createNewQuestion = async (user, body, files) => {
   const question = await Question.create({
     lesson: lessonId,
     exam: null,
-    skill, type, content, 
-    options: parseOptions(options),
-    correctAnswer, explanation,
+    skill, type, content, options, correctAnswer, explanation,
     isPublished,
     points: points || 1,
     order: nextOrder,
@@ -150,11 +148,11 @@ export const createNewQuestionForTeacher = async (user, body, files) => {
     const lastQuestion = await Question.findOne({ exam: targetExamId }).sort({ order: -1 }).select("order");
     let currentOrder = lastQuestion ? lastQuestion.order + 1 : 1;
     const createdQuestions = [];
-    
+
     for (const qData of questionsData) {
       const {
-         skill, type, content, options, correctAnswer, explanation, isPublished, points,
-         images, audios, videos
+        skill, type, content, options, correctAnswer, explanation, isPublished, points,
+        images, audios, videos
       } = qData;
 
       if (!skill || !type || !content) continue;
@@ -167,8 +165,8 @@ export const createNewQuestionForTeacher = async (user, body, files) => {
         class: exam.class,
         school: null,
         order: currentOrder++,
-        images: images || [], 
-        audios: audios || [], 
+        images: images || [],
+        audios: audios || [],
         videos: videos || []
       });
       createdQuestions.push(newQuestion);
@@ -189,9 +187,7 @@ export const createNewQuestionForTeacher = async (user, body, files) => {
   const question = await Question.create({
     lesson: null,
     exam: targetExamId,
-    skill, type, content, 
-    options: parseOptions(options),
-    correctAnswer, explanation,
+    skill, type, content, options, correctAnswer, explanation,
     isPublished,
     points: points || 1,
     order: nextOrder,
@@ -264,8 +260,8 @@ export const updateExistingQuestion = async (questionId, user, body, files) => {
   // Permission Check
   if (user.role === "school") {
     const targetClass = question.class ? await Class.findById(question.class) : null;
-    const isOwner = (targetClass && targetClass.school.toString() === user._id.toString()) || 
-                    (!question.class && question.school && question.school.toString() === user._id.toString());
+    const isOwner = (targetClass && targetClass.school.toString() === user._id.toString()) ||
+      (!question.class && question.school && question.school.toString() === user._id.toString());
     if (!isOwner) throw new Error("Question không thuộc quản lý của trường bạn");
   } else if (user.role === "teacher") {
     if (!question.exam) throw new Error("Giáo viên chỉ được sửa câu hỏi trong bài kiểm tra");
@@ -306,8 +302,8 @@ export const removeQuestion = async (questionId, user) => {
   // Permission Check
   if (user.role === "school") {
     const targetClass = question.class ? await Class.findById(question.class) : null;
-    const isOwner = (targetClass && targetClass.school.toString() === user._id.toString()) || 
-                    (!question.class && question.school && question.school.toString() === user._id.toString());
+    const isOwner = (targetClass && targetClass.school.toString() === user._id.toString()) ||
+      (!question.class && question.school && question.school.toString() === user._id.toString());
     if (!isOwner) throw new Error("Question không thuộc quản lý của trường bạn");
   } else if (user.role === "teacher") {
     if (!question.exam) throw new Error("Giáo viên chỉ được xóa câu hỏi trong bài kiểm tra");

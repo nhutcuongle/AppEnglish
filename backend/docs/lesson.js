@@ -125,23 +125,6 @@
  *           type: string
  *     requestBody:
  *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               content:
- *                 type: string
- *               isPublished:
- *                 type: boolean
- *               order:
- *                 type: number
- *               deadline:
- *                 type: string
- *                 format: date-time
- *                 description: Hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
- *                 example: "2026-01-15T23:59:59Z"
  *         multipart/form-data:
  *           schema:
  *             type: object

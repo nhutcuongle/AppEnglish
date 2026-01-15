@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/screens/teacher/add_question_screen.dart';
 
 class QuestionListScreen extends StatefulWidget {
   final String examId;
@@ -115,92 +116,14 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   }
 
   void _openAddQuestion() {
-    showDialog(
-      context: context,
-      builder: (context) => AddQuestionDialog(
-        examId: widget.examId,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddQuestionScreen(examId: widget.examId),
       ),
-    ).then((_) => _loadQuestions());
+    ).then((value) {
+      if (value == true) _loadQuestions();
+    });
   }
 }
 
-class AddQuestionDialog extends StatefulWidget {
-  final String examId;
-  const AddQuestionDialog({super.key, required this.examId});
-
-  @override
-  State<AddQuestionDialog> createState() => _AddQuestionDialogState();
-}
-
-class _AddQuestionDialogState extends State<AddQuestionDialog> {
-  final _contentController = TextEditingController();
-  String _type = 'mcq';
-  final _opt1 = TextEditingController();
-  final _opt2 = TextEditingController();
-  final _opt3 = TextEditingController();
-  final _opt4 = TextEditingController();
-  int _correctIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Thêm câu hỏi mới'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButton<String>(
-              value: _type,
-              isExpanded: true,
-              items: const [
-                DropdownMenuItem(value: 'mcq', child: Text('Trắc nghiệm (MCQ)')),
-                DropdownMenuItem(value: 'true_false', child: Text('Đúng / Sai')),
-              ],
-              onChanged: (v) => setState(() => _type = v!),
-            ),
-            const SizedBox(height: 10),
-            TextField(controller: _contentController, decoration: const InputDecoration(labelText: 'Nội dung câu hỏi')),
-            const SizedBox(height: 10),
-            if (_type == 'mcq') ...[
-              TextField(controller: _opt1, decoration: const InputDecoration(labelText: 'Đáp án A')),
-              TextField(controller: _opt2, decoration: const InputDecoration(labelText: 'Đáp án B')),
-              TextField(controller: _opt3, decoration: const InputDecoration(labelText: 'Đáp án C')),
-              TextField(controller: _opt4, decoration: const InputDecoration(labelText: 'Đáp án D')),
-              const SizedBox(height: 10),
-              DropdownButton<int>(
-                value: _correctIndex,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text('Đúng là A')),
-                  DropdownMenuItem(value: 1, child: Text('Đúng là B')),
-                  DropdownMenuItem(value: 2, child: Text('Đúng là C')),
-                  DropdownMenuItem(value: 3, child: Text('Đúng là D')),
-                ],
-                onChanged: (v) => setState(() => _correctIndex = v!),
-              ),
-            ]
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
-        ElevatedButton(
-          onPressed: () async {
-            final data = {
-              'exam': widget.examId,
-              'content': _contentController.text,
-              'type': _type,
-              'skill': 'reading',
-              'options': [_opt1.text, _opt2.text, _opt3.text, _opt4.text],
-              'correctAnswer': _correctIndex,
-            };
-            await ApiService.createQuestion(data);
-            if (!mounted) return;
-            Navigator.pop(context);
-          },
-          child: const Text('Lưu'),
-        ),
-      ],
-    );
-  }
-}
