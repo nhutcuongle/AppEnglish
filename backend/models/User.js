@@ -50,6 +50,20 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // 2FA Security
+    is2FAEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    otpCode: {
+      type: String,
+      default: null,
+    },
+    otpExpire: {
+      type: Date,
+      default: null,
+    },
+
     // Profile
     fullName: {
       type: String,
@@ -80,6 +94,11 @@ const userSchema = new mongoose.Schema(
       ref: "Class",
       default: null,
     },
+
+    // Performance fields (for student)
+    score: { type: Number, default: 0 },
+    progress: { type: Number, default: 0 },
+
     // Academic Year (for School role)
     academicYear: { type: String, default: "" },
   },

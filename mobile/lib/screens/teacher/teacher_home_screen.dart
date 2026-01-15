@@ -7,9 +7,10 @@ import 'package:apptienganh10/screens/teacher/class_statistics_screen.dart';
 import 'package:apptienganh10/screens/teacher/announcement_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/lesson_plan_list_screen.dart';
 import 'package:apptienganh10/screens/teacher/gradebook_screen.dart';
-import 'package:apptienganh10/screens/teacher/teacher_calendar_screen.dart';
+
 import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/screens/teacher/teacher_profile_screen.dart';
+import 'package:apptienganh10/screens/teacher/school_gradebook_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -65,24 +66,24 @@ class TeacherDashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildProfileHeader(),
-            const SizedBox(height: 30),
+            const SizedBox(height: 15),
             _buildClassOverview(),
-            const SizedBox(height: 35),
+            const SizedBox(height: 20),
             
             _buildSectionHeader('Bảng Vinh Danh', 'Học sinh xuất sắc 🏆'),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
             _buildPremiumLeaderboard(),
             
-            const SizedBox(height: 35),
-            _buildSectionHeader('Công cụ quản lý', 'Dành cho giáo viên'),
             const SizedBox(height: 20),
+            _buildSectionHeader('Công cụ quản lý', 'Dành cho giáo viên'),
+            const SizedBox(height: 15),
             _buildToolsGrid(context),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -248,14 +249,15 @@ class TeacherDashboardTab extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 20,
-      mainAxisSpacing: 20,
-      childAspectRatio: 1.15,
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
+      childAspectRatio: 1.3,
       children: [
         _buildToolCard(context, 'Học sinh', Icons.people_rounded, Colors.blue, const StudentListScreen()),
         _buildToolCard(context, 'Bài kiểm tra', Icons.quiz_rounded, Colors.purple, const AssignmentListScreen(filterType: 'test')),
         _buildToolCard(context, 'Sổ Điểm', Icons.grid_view_rounded, Colors.teal, const GradebookScreen()),
-        _buildToolCard(context, 'Lịch Dạy', Icons.calendar_today_rounded, Colors.indigo, const TeacherCalendarScreen()),
+        _buildToolCard(context, 'B.Tập Trường', Icons.school_rounded, Colors.orange, const SchoolGradebookScreen()),
+
         _buildToolCard(context, 'Thống kê', Icons.insert_chart_rounded, Colors.green, const ClassStatisticsScreen()),
       ],
     );

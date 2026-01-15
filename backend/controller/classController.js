@@ -184,7 +184,10 @@ export const getClassDetail = async (req, res) => {
 export const getTeacherClasses = async (req, res) => {
   try {
     const classes = await Class.find({
-      homeroomTeacher: req.user._id,
+      $or: [
+        { homeroomTeacher: req.user._id },
+        { teachers: req.user._id }
+      ],
       isActive: true
     })
       .populate("school", "username fullName")

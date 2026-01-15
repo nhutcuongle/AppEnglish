@@ -254,6 +254,13 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<List<dynamic>> getStudentsByClassForTeacher(String classId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/users/teacher/class-students/$classId'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
   // ==================== EXAMS ====================
 
   static Future<List<dynamic>> getTeacherExams() async {
@@ -265,16 +272,49 @@ class ApiService {
 
   static Future<Map<String, dynamic>> createExam(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/exams'), headers: _headers, body: jsonEncode(data));
+      final response = await http.post(
+        Uri.parse('$baseUrl/exams'),
+        headers: _headers,
+        body: jsonEncode({
+          'title': data['title'],
+          'type': data['type'],
+          'classId': data['classId'],
+          'startTime': data['startTime'],
+          'endTime': data['endTime'],
+          'description': data['description'],
+          'semester': data['semester'],
+          'academicYear': data['academicYear'],
+        }),
+      );
       return jsonDecode(response.body);
-    } catch (e) { return {'error': e.toString()}; }
+    } catch (e) {
+      return {'error': e.toString()};
+    }
   }
 
   static Future<Map<String, dynamic>> updateExam(String id, Map<String, dynamic> data) async {
     try {
-      final response = await http.patch(Uri.parse('$baseUrl/exams/$id'), headers: _headers, body: jsonEncode(data));
+      final response = await http.patch(
+        Uri.parse('$baseUrl/exams/$id'),
+        headers: _headers,
+        body: jsonEncode(data),
+      );
       return jsonDecode(response.body);
-    } catch (e) { return {'error': e.toString()}; }
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+  }
+
+  static Future<List<dynamic>> getExamReport(String examId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/exams/report/$examId'), headers: _headers);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<Map<String, dynamic>> deleteExam(String id) async {
@@ -461,6 +501,60 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<void> updateQuestionForTeacher({
+    required String id,
+    required String skill,
+    required String type,
+    required String content,
+    List<String>? options,
+    dynamic correctAnswer,
+    String? explanation,
+    double points = 1.0,
+    List<File>? images,
+    List<File>? audios,
+  }) async {
+    try {
+      var request = http.MultipartRequest('PATCH', Uri.parse('$baseUrl/questions/$id'));
+      request.headers.addAll(_headers);
+
+      request.fields['skill'] = skill;
+      request.fields['type'] = type;
+      request.fields['content'] = content;
+      request.fields['explanation'] = explanation ?? '';
+      request.fields['points'] = points.toString();
+
+      if (options != null) {
+        for (int i = 0; i < options.length; i++) {
+          request.fields['options[$i]'] = options[i];
+        }
+      }
+
+      request.fields['correctAnswer'] = correctAnswer.toString();
+
+      // Images
+      if (images != null && images.isNotEmpty) {
+        for (var image in images) {
+          request.files.add(await http.MultipartFile.fromPath('images', image.path));
+        }
+      }
+
+      // Audios
+      if (audios != null && audios.isNotEmpty) {
+        for (var audio in audios) {
+          request.files.add(await http.MultipartFile.fromPath('audios', audio.path));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      if (streamedResponse.statusCode != 200) {
+        final resp = await http.Response.fromStream(streamedResponse);
+        throw Exception(jsonDecode(resp.body)['message'] ?? 'Lỗi cập nhật câu hỏi');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteQuestion(String id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/questions/$id'), headers: _headers);
@@ -491,6 +585,7 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) { return {'error': e.toString()}; }
   }
+
 
   static Future<Map<String, dynamic>> submitLesson({
     required String lessonId,
@@ -533,6 +628,22 @@ class ApiService {
     } catch (e) {
       return {'error': 'Lỗi kết nối: $e'};
     }
+
+  static Future<List<dynamic>> getScoresByLesson(String lessonId, {String? classId}) async {
+    try {
+      String url = '$baseUrl/submissions/lesson/$lessonId/scores';
+      if (classId != null) url += '?classId=$classId';
+      final response = await http.get(Uri.parse(url), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> getSubmissionDetailForTeacher(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/submissions/teacher/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) { return {'error': e.toString()}; }
+
   }
 
   // ==================== UNITS ====================
@@ -549,6 +660,13 @@ class ApiService {
       print('Error fetching units: $e');
       return [];
     }
+  }
+
+  static Future<List<dynamic>> getTeacherUnits() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/units/teacher/all'), headers: _headers);
+      return _handleListResponse(response);
+    } catch (e) { return []; }
   }
 
   static Future<Map<String, dynamic>> getUnitById(String id) async {
@@ -1079,6 +1197,7 @@ class ApiService {
     }
   }
 
+<<<<<<< HEAD
   /* ================= EXAM APIs ================= */
 
   static Future<List<dynamic>> getStudentExams() async {
@@ -1122,10 +1241,38 @@ class ApiService {
           'examId': examId,
           'answers': answers,
         }),
+=======
+  // ==================== ASSIGNMENTS (Bài tập nhà trường) ====================
+
+  static Future<Map<String, dynamic>> createOrUpdateAssignment(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/assignments'),
+        headers: _headers,
+        body: jsonEncode(data),
+>>>>>>> origin/trandangkhoa
       );
       return jsonDecode(response.body);
     } catch (e) {
       return {'error': 'Lỗi kết nối: $e'};
     }
   }
+<<<<<<< HEAD
+=======
+
+  static Future<Map<String, dynamic>?> getAssignmentSettings(String lessonId, {String? classId}) async {
+    try {
+      String url = '$baseUrl/assignments/lesson/$lessonId';
+      if (classId != null) url += '?classId=$classId';
+      final response = await http.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['data'];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+>>>>>>> origin/trandangkhoa
 }

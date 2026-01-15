@@ -28,6 +28,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   
   List<dynamic> _classes = [];
   String? _selectedClassId;
+  String _selectedSemester = "1";
+  final _academicYearController = TextEditingController(text: "${DateTime.now().year}-${DateTime.now().year + 1}");
   bool _isLoadingClasses = true;
 
   @override
@@ -40,9 +42,11 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
       _titleController.text = a.title;
       _descController.text = a.description;
       _selectedType = a.timeLimit == 45 ? "45m" : "15m";
-      _startTime = DateTime.now(); // Cần backend trả về startTime
+      _startTime = a.startTime;
       _endTime = a.deadline;
       _selectedClassId = a.classId;
+      _selectedSemester = a.semester ?? "1";
+      _academicYearController.text = a.academicYear ?? "";
     }
 
     _fetchClasses();
@@ -71,6 +75,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _academicYearController.dispose();
     super.dispose();
   }
 
@@ -94,6 +99,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
         'startTime': _startTime.toIso8601String(),
         'endTime': _endTime.toIso8601String(),
         'description': _descController.text,
+        'semester': _selectedSemester,
+        'academicYear': _academicYearController.text,
       };
 
       try {
@@ -159,6 +166,34 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                   _buildDurationChip("15m", "15 Phút", themeColor),
                   const SizedBox(width: 15),
                   _buildDurationChip("45m", "45 Phút", themeColor),
+                ],
+              ),
+              const SizedBox(height: 25),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Học kỳ'),
+                        _buildSemesterDropdown(themeColor),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Năm học'),
+                        TextFormField(
+                          controller: _academicYearController,
+                          decoration: _buildInputDecoration('2023-2024'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 25),
@@ -252,6 +287,29 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSemesterDropdown(Color themeColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedSemester,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: themeColor),
+          items: const [
+            DropdownMenuItem(value: "1", child: Text("Học kỳ 1")),
+            DropdownMenuItem(value: "2", child: Text("Học kỳ 2")),
+          ],
+          onChanged: (val) => setState(() => _selectedSemester = val!),
         ),
       ),
     );

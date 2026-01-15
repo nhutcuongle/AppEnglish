@@ -3,10 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:apptienganh10/services/api_service.dart';
+import 'package:apptienganh10/widgets/audio_player_widget.dart';
+import 'package:apptienganh10/widgets/media_preview_dialog.dart';
 
 class AddQuestionScreen extends StatefulWidget {
   final String examId;
-  const AddQuestionScreen({super.key, required this.examId});
+  final Map<String, dynamic>? questionData;
+
+  const AddQuestionScreen({
+    super.key, 
+    required this.examId, 
+    this.questionData,
+  });
 
   @override
   State<AddQuestionScreen> createState() => _AddQuestionScreenState();
@@ -19,7 +27,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   final _pointsController = TextEditingController(text: "1.0");
 
   String _selectedSkill = "reading";
-  String _selectedType = "mcq"; // mcq, fill_blank, ordering, true_false, short_answer
+  String _selectedType = "mcq"; 
 
   // Multiple Choice (mcq)
   final List<TextEditingController> _mcqOptions = List.generate(4, (_) => TextEditingController());
@@ -37,8 +45,65 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   // Media
   File? _selectedImage;
   File? _selectedAudio;
+  String? _existingImageUrl;
+  String? _existingAudioUrl;
 
   final ImagePicker _picker = ImagePicker();
+
+  bool get _isEditMode => widget.questionData != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      _initializeData();
+    }
+  }
+
+  void _initializeData() {
+    final q = widget.questionData!;
+    _contentController.text = q['content'] ?? '';
+    _explanationController.text = q['explanation'] ?? '';
+    _pointsController.text = (q['points'] ?? 1.0).toString();
+    _selectedSkill = q['skill'] ?? 'reading';
+    _selectedType = q['type'] ?? 'mcq';
+
+    if (_selectedType == 'mcq') {
+      final options = q['options'] as List?;
+      if (options != null) {
+        for (int i = 0; i < options.length && i < _mcqOptions.length; i++) {
+          _mcqOptions[i].text = options[i].toString();
+        }
+      }
+      _mcqCorrectIndex = int.tryParse(q['correctAnswer']?.toString() ?? '0') ?? 0;
+    } else if (_selectedType == 'true_false') {
+      _tfCorrect = q['correctAnswer'] == true || q['correctAnswer']?.toString() == 'true';
+    } else if (_selectedType == 'ordering') {
+      final items = q['correctAnswer']?.toString().split('|') ?? [];
+      _orderItems.clear();
+      for (var item in items) {
+        _orderItems.add(TextEditingController(text: item));
+      }
+      if (_orderItems.isEmpty) {
+        _orderItems.addAll([TextEditingController(), TextEditingController()]);
+      }
+    } else {
+      _correctAnswerController.text = q['correctAnswer']?.toString() ?? '';
+    }
+
+    // Load existing media URLs
+    final images = q['images'] as List?;
+    if (images != null && images.isNotEmpty) {
+      final img = images.first;
+      _existingImageUrl = img is Map ? img['url'] : img.toString();
+    }
+
+    final audios = q['audios'] as List?;
+    if (audios != null && audios.isNotEmpty) {
+      final aud = audios.first;
+      _existingAudioUrl = aud is Map ? aud['url'] : aud.toString();
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -70,23 +135,38 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
         finalCorrectAnswer = _correctAnswerController.text;
       }
 
-      await ApiService.createQuestionForTeacher(
-        examId: widget.examId,
-        skill: _selectedSkill,
-        type: _selectedType,
-        content: _contentController.text,
-        options: options,
-        correctAnswer: finalCorrectAnswer,
-        explanation: _explanationController.text,
-        points: double.tryParse(_pointsController.text) ?? 1.0,
-        images: _selectedImage != null ? [_selectedImage!] : null,
-        audios: _selectedAudio != null ? [_selectedAudio!] : null,
-      );
+      if (_isEditMode) {
+        await ApiService.updateQuestionForTeacher(
+          id: widget.questionData!['_id'],
+          skill: _selectedSkill,
+          type: _selectedType,
+          content: _contentController.text,
+          options: options,
+          correctAnswer: finalCorrectAnswer,
+          explanation: _explanationController.text,
+          points: double.tryParse(_pointsController.text) ?? 1.0,
+          images: _selectedImage != null ? [_selectedImage!] : null,
+          audios: _selectedAudio != null ? [_selectedAudio!] : null,
+        );
+      } else {
+        await ApiService.createQuestionForTeacher(
+          examId: widget.examId,
+          skill: _selectedSkill,
+          type: _selectedType,
+          content: _contentController.text,
+          options: options,
+          correctAnswer: finalCorrectAnswer,
+          explanation: _explanationController.text,
+          points: double.tryParse(_pointsController.text) ?? 1.0,
+          images: _selectedImage != null ? [_selectedImage!] : null,
+          audios: _selectedAudio != null ? [_selectedAudio!] : null,
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading
       Navigator.pop(context, true); // Return to list
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tạo câu hỏi thành công!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEditMode ? 'Cập nhật câu hỏi thành công!' : 'Tạo câu hỏi thành công!')));
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
@@ -99,7 +179,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Thêm Câu Hỏi', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(_isEditMode ? 'Chỉnh Sửa Câu Hỏi' : 'Thêm Câu Hỏi', style: const TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -126,7 +206,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
               _buildLabel('Điểm số'),
               TextFormField(controller: _pointsController, keyboardType: TextInputType.number, decoration: _inputDeco('Ví dụ: 1.0')),
               const SizedBox(height: 40),
-              SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _saveQuestion, style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text('LƯU CÂU HỎI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+              SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _saveQuestion, style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: Text(_isEditMode ? 'CẬP NHẬT CÂU HỎI' : 'LƯU CÂU HỎI', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
             ],
           ),
         ),
@@ -201,11 +281,100 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   }
 
   Widget _buildMediaSection() {
-    return Row(children: [
-      Expanded(child: OutlinedButton.icon(onPressed: _pickImage, icon: const Icon(Icons.image), label: Text(_selectedImage == null ? 'Thêm Ảnh' : 'Đã chọn ảnh'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)))),
-      const SizedBox(width: 15),
-      Expanded(child: OutlinedButton.icon(onPressed: _pickAudio, icon: const Icon(Icons.mic), label: Text(_selectedAudio == null ? 'Thêm Audio' : 'Đã chọn âm thanh'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)))),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Expanded(child: OutlinedButton.icon(
+            onPressed: _pickImage, 
+            icon: const Icon(Icons.image), 
+            label: Text(_selectedImage == null && _existingImageUrl == null ? 'Thêm Ảnh' : 'Đổi Ảnh'), 
+            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12))
+          )),
+          const SizedBox(width: 15),
+          Expanded(child: OutlinedButton.icon(
+            onPressed: _pickAudio, 
+            icon: const Icon(Icons.audiotrack), 
+            label: Text(_selectedAudio == null && _existingAudioUrl == null ? 'Thêm Audio' : 'Đổi Audio'), 
+            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12))
+          )),
+        ]),
+        
+        // Image Preview
+        if (_selectedImage != null || _existingImageUrl != null) ...[
+          const SizedBox(height: 15),
+          _buildLabel('Xem trước ảnh'),
+          GestureDetector(
+            onTap: () => MediaPreviewDialog.show(context, _selectedImage != null ? 'file://${_selectedImage!.path}' : _existingImageUrl!),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _selectedImage != null 
+                    ? Image.file(_selectedImage!, height: 180, width: double.infinity, fit: BoxFit.cover)
+                    : Image.network(_existingImageUrl!, height: 180, width: double.infinity, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedImage = null;
+                      _existingImageUrl = null;
+                    }),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.red.withOpacity(0.8),
+                      child: const Icon(Icons.close, color: Colors.white, size: 18),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text('Xem lớn', style: TextStyle(color: Colors.white, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Audio Preview
+        if (_selectedAudio != null || _existingAudioUrl != null) ...[
+          const SizedBox(height: 15),
+          _buildLabel('Nghe thử Audio'),
+          Stack(
+            children: [
+              AudioPlayerWidget(
+                file: _selectedAudio,
+                url: _selectedAudio == null ? _existingAudioUrl : null,
+              ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  onPressed: () => setState(() {
+                    _selectedAudio = null;
+                    _existingAudioUrl = null;
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _buildLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 8, left: 4), child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))));

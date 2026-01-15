@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ứng dụng cần sử dụng microphone để luyện nói tiếng Anh.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Ứng dụng cần truy cập thư viện ảnh để chọn ảnh cho câu hỏi.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Ứng dụng cần truy cập camera để chụp ảnh cho câu hỏi.</string>
 </dict>
 </plist>
