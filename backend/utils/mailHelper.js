@@ -14,6 +14,11 @@ const sendEmail = async (to, subject, html) => {
       socketTimeout: 10000,
     });
 
+    console.log("Debug Email Config:", {
+      user: process.env.EMAIL_USER ? "Present" : "Missing",
+      pass: process.env.EMAIL_PASS ? "Present" : "Missing"
+    });
+
     const mailOptions = {
       from: `"AppEnglish Security" <${process.env.EMAIL_USER}>`,
       to,
