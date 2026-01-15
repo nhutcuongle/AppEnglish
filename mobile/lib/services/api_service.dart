@@ -54,6 +54,36 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> verifyOTP(String username, String otp) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'otp': otp}),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['token'] != null) {
+        _authToken = data['token'];
+      }
+      return data;
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggle2FA(bool isEnabled) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/auth/toggle-2fa'),
+        headers: _headers,
+        body: jsonEncode({'is2FAEnabled': isEnabled}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+  }
+
   // ==================== USER PROFILE ====================
 
   static Future<Map<String, dynamic>> getProfile() async {

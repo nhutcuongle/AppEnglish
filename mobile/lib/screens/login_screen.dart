@@ -42,14 +42,23 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (result['token'] != null && result['user'] != null) {
-      await AuthService.saveLoginData(result['token'], result['user']);
-    }
-
-    if (result['token'] == null) {
-      setState(() => _errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.');
+    // Check for 2FA
+    if (result['is2FARequired'] == true) {
+      _showOTPDialog(result['username'] ?? _usernameController.text.trim());
       return;
     }
+
+    if (result['token'] != null && result['user'] != null) {
+      await _handleLoginSuccess(result);
+    } else {
+      setState(() => _errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.');
+    }
+  }
+
+  Future<void> _handleLoginSuccess(Map<String, dynamic> result) async {
+    await AuthService.saveLoginData(result['token'], result['user']);
+    
+    if (!mounted) return;
 
     // Get user role from response
     final user = result['user'];
@@ -65,6 +74,71 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showOTPDialog(String username) {
+    final otpController = TextEditingController();
+    bool isVerifying = false;
+    String? otpError;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Xác thực OTP'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Mã OTP đã được gửi đến email của bạn. Vui lòng nhập mã để tiếp tục.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  hintText: 'Nhập mã OTP',
+                  errorText: otpError,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying ? null : () async {
+                if (otpController.text.isEmpty) return;
+                
+                setDialogState(() {
+                   isVerifying = true;
+                   otpError = null;
+                });
+
+                final result = await ApiService.verifyOTP(username, otpController.text.trim());
+                
+                if (!context.mounted) return;
+                setDialogState(() => isVerifying = false);
+
+                if (result['token'] != null) {
+                  Navigator.pop(context); // Close dialog
+                  if (context.mounted) {
+                    await _handleLoginSuccess(result);
+                  }
+                } else {
+                  setDialogState(() => otpError = result['message'] ?? result['error'] ?? 'Mã OTP không hợp lệ');
+                }
+              },
+              child: isVerifying 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
+                : const Text('Xác nhận'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

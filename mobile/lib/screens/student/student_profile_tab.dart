@@ -16,6 +16,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
   Map<String, dynamic>? userData;
   String studentName = "Học sinh";
   String className = "Đang tải...";
+  bool is2FAEnabled = false;
 
   @override
   void initState() {
@@ -59,6 +60,23 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
       }
     } else {
       className = "Chưa có lớp";
+    }
+    
+    is2FAEnabled = userData!['is2FAEnabled'] ?? false;
+  }
+
+  Future<void> _toggle2FA(bool value) async {
+    final  previousValue = is2FAEnabled;
+    setState(() => is2FAEnabled = value);
+
+    final result = await ApiService.toggle2FA(value);
+
+    if (result['error'] != null) {
+      if (!mounted) return;
+      setState(() => is2FAEnabled = previousValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error']), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -199,6 +217,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                    const SizedBox(height: 30),
                 ],
 
+                _buildSwitchOption(Icons.security, 'Bảo mật 2 lớp', Colors.green, is2FAEnabled, _toggle2FA),
                 _buildOption(Icons.lock_reset_rounded, 'Đổi mật khẩu', Colors.blue, onTap: _showChangePasswordFeature),
                 _buildOption(Icons.help_outline_rounded, 'Trung tâm trợ giúp', Colors.orange, onTap: () {}),
                 // "Về ứng dụng" removed per request
@@ -269,6 +288,26 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
         title: Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: isLogout ? Colors.red : const Color(0xFF1E293B))),
         trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF94A3B8)),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildSwitchOption(IconData icon, String title, Color color, bool value, Function(bool) onChanged) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: Colors.blue,
+        ),
       ),
     );
   }
