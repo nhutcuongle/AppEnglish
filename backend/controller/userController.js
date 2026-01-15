@@ -148,11 +148,7 @@ export const deleteStudent = async (req, res) => {
     if (user.role === "student" && user.class) {
       await Class.findByIdAndUpdate(user.class, { $pull: { students: user._id } });
     }
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> origin/trandangkhoa
     await user.deleteOne();
     res.json({ message: "Xóa người dùng thành công" });
   } catch (err) {

@@ -55,7 +55,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     try {
       final result = await ApiService.getClasses();
       setState(() {
-        _classes = (result as List).map((c) => {
+        _classes = (result as List).map((c) => <String, dynamic>{
           'id': c['_id']?.toString() ?? '',
           'name': c['name'] ?? 'Lớp không tên',
         }).toList();
@@ -74,7 +74,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     try {
       final result = await ApiService.getQuestions(lessonId: widget.lessonId);
       setState(() {
-        _questions = (result as List).map((q) => {
+        _questions = (result as List).map((q) => <String, dynamic>{
           'id': q['_id']?.toString() ?? '',
           'content': q['content'] ?? '',
           'type': q['type'] ?? 'mcq',

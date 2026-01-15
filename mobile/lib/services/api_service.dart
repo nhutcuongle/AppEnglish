@@ -6,6 +6,7 @@ import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
   static const String baseUrl = 'https://appenglish-0uee.onrender.com/api';
+  // static const String baseUrl = 'http://10.0.2.2:5000/api'; // Localhost for Android Emulator
 
   static String? _authToken;
 
@@ -934,8 +935,13 @@ class ApiService {
     String? content,
     bool isPublished = true,
     List<String>? imagePaths,
+    List<String>? imageCaptions,
     List<String>? audioPaths,
+    List<String>? audioCaptions,
     List<String>? videoPaths,
+    List<String>? videoCaptions,
+    List<String>? youtubeVideos,
+    List<String>? youtubeVideoCaptions,
   }) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/lessons'));
@@ -949,8 +955,10 @@ class ApiService {
       request.fields['content'] = content ?? '';
       request.fields['isPublished'] = isPublished.toString();
 
+      // Image files with captions
       if (imagePaths != null) {
-        for (var path in imagePaths) {
+        for (var i = 0; i < imagePaths.length; i++) {
+          final path = imagePaths[i];
           final mimeType = _getImageMimeType(path);
           final fileName = path.split('/').last.split('\\').last;
           request.files.add(await http.MultipartFile.fromPath(
@@ -959,10 +967,16 @@ class ApiService {
             contentType: http_parser.MediaType.parse(mimeType),
             filename: fileName,
           ));
+          if (imageCaptions != null && i < imageCaptions.length) {
+            request.fields['imageCaptions[$i]'] = imageCaptions[i];
+          }
         }
       }
+      
+      // Audio files with captions
       if (audioPaths != null) {
-        for (var path in audioPaths) {
+        for (var i = 0; i < audioPaths.length; i++) {
+          final path = audioPaths[i];
           final mimeType = _getAudioMimeType(path);
           final fileName = path.split('/').last.split('\\').last;
           request.files.add(await http.MultipartFile.fromPath(
@@ -971,10 +985,16 @@ class ApiService {
             contentType: http_parser.MediaType.parse(mimeType),
             filename: fileName,
           ));
+          if (audioCaptions != null && i < audioCaptions.length) {
+            request.fields['audioCaptions[$i]'] = audioCaptions[i];
+          }
         }
       }
+      
+      // Video files with captions
       if (videoPaths != null) {
-        for (var path in videoPaths) {
+        for (var i = 0; i < videoPaths.length; i++) {
+          final path = videoPaths[i];
           final mimeType = _getVideoMimeType(path);
           final fileName = path.split('/').last.split('\\').last;
           request.files.add(await http.MultipartFile.fromPath(
@@ -983,14 +1003,27 @@ class ApiService {
             contentType: http_parser.MediaType.parse(mimeType),
             filename: fileName,
           ));
+          if (videoCaptions != null && i < videoCaptions.length) {
+            request.fields['videoCaptions[$i]'] = videoCaptions[i];
+          }
+        }
+      }
+      
+      // YouTube videos with captions
+      if (youtubeVideos != null) {
+        for (var i = 0; i < youtubeVideos.length; i++) {
+          request.fields['youtubeVideos[$i]'] = youtubeVideos[i];
+          if (youtubeVideoCaptions != null && i < youtubeVideoCaptions.length) {
+            request.fields['youtubeVideoCaptions[$i]'] = youtubeVideoCaptions[i];
+          }
         }
       }
 
-      // Longer timeout for video uploads (120 seconds)
+      // Longer timeout for video uploads (600 seconds = 10 minutes)
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 120),
+        const Duration(seconds: 600),
         onTimeout: () {
-          throw Exception('Upload timeout - Vui lòng thử lại hoặc chọn file nhỏ hơn');
+          throw Exception('Upload timeout - Mạng chậm hoặc file quá lớn. Vui lòng thử lại!');
         },
       );
       final response = await http.Response.fromStream(streamedResponse);
@@ -1014,6 +1047,114 @@ class ApiService {
     } catch (e) { return {'error': e.toString()}; }
   }
 
+  static Future<Map<String, dynamic>> updateLessonWithMedia({
+    required String id,
+    String? lessonType,
+    String? title,
+    String? content,
+    bool? isPublished,
+    List<String>? imagePaths,
+    List<String>? audioPaths,
+    List<String>? videoPaths,
+    List<String>? keptImages,
+    List<String>? keptAudios,
+    List<String>? youtubeVideos,
+    // Add captions if needed
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/lessons/$id');
+      final request = http.MultipartRequest('PATCH', uri);
+      
+      // Token (Handle if headers map is used directly or function)
+      if (_headers['Authorization'] != null) {
+        request.headers['Authorization'] = _headers['Authorization']!;
+      }
+      
+      // Text fields
+      if (lessonType != null) request.fields['lessonType'] = lessonType;
+      if (title != null) request.fields['title'] = title;
+      if (content != null) request.fields['content'] = content;
+      if (isPublished != null) request.fields['isPublished'] = isPublished.toString();
+      
+      // Kept Media (URLs)
+      if (keptImages != null) {
+        if (keptImages.isEmpty) {
+           request.fields['clearImages'] = 'true';
+        } else {
+           for (var i = 0; i < keptImages.length; i++) {
+             request.fields['keptImages[$i]'] = keptImages[i];
+           }
+        }
+      }
+      
+      if (keptAudios != null) {
+        if (keptAudios.isEmpty) {
+           request.fields['clearAudios'] = 'true';
+        } else {
+           for (var i = 0; i < keptAudios.length; i ++) {
+             request.fields['keptAudios[$i]'] = keptAudios[i];
+           }
+        }
+      }
+      
+      // Kept Videos? For now we only handle YouTube specially. 
+      // Uploaded videos are complex to "keep" via simple API if not reimplemented. 
+      // Assuming frontend logic handles 'videoPaths' only for NEW files.
+
+      // Add Files (Copy logic from createLessonWithMedia)
+      // Images
+      if (imagePaths != null) {
+        for (var path in imagePaths) {
+          final file = File(path);
+          if (await file.exists()) {
+             final mimeType = lookupMimeType(path) ?? 'image/jpeg';
+             request.files.add(await http.MultipartFile.fromPath('images', path, contentType: http_parser.MediaType.parse(mimeType)));
+          }
+        }
+      }
+
+      // Audios
+      if (audioPaths != null) {
+        for (var path in audioPaths) {
+          final file = File(path);
+          if (await file.exists()) {
+             final mimeType = lookupMimeType(path) ?? 'audio/mpeg';
+             request.files.add(await http.MultipartFile.fromPath('audios', path, contentType: http_parser.MediaType.parse(mimeType)));
+          }
+        }
+      }
+
+      // Videos (Upload)
+      if (videoPaths != null) {
+        for (var path in videoPaths) {
+          final file = File(path);
+          if (await file.exists()) {
+             final mimeType = lookupMimeType(path) ?? 'video/mp4';
+             request.files.add(await http.MultipartFile.fromPath('videos', path, contentType: http_parser.MediaType.parse(mimeType)));
+          }
+        }
+      }
+      
+      // YouTube
+      if (youtubeVideos != null) {
+        for (var i = 0; i < youtubeVideos.length; i++) {
+           request.fields['youtubeVideos[$i]'] = youtubeVideos[i];
+        }
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 600));
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body);
+      } else {
+        final errorBody = jsonDecode(response.body);
+        return {'error': errorBody['message'] ?? 'Lỗi server: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
 
   static Future<Map<String, dynamic>> deleteLesson(String id) async {
     try {

@@ -9,7 +9,10 @@
 #include <audioplayers_windows/audioplayers_windows_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <flutter_inappwebview_windows/flutter_inappwebview_windows_plugin_c_api.h>
+<<<<<<< HEAD
 #include <speech_to_text_windows/speech_to_text_windows.h>
+=======
+>>>>>>> origin/school-crud
 #include <url_launcher_windows/url_launcher_windows.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
@@ -19,8 +22,11 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FileSelectorWindows"));
   FlutterInappwebviewWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterInappwebviewWindowsPluginCApi"));
+<<<<<<< HEAD
   SpeechToTextWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("SpeechToTextWindows"));
+=======
+>>>>>>> origin/school-crud
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
 }

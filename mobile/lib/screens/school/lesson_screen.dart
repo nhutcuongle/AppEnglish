@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../services/api_service.dart';
 import 'grammar_management_screen.dart';
 import 'vocabulary_management_screen.dart';
@@ -41,7 +43,7 @@ class _LessonScreenState extends State<LessonScreen> {
     try {
       final lessons = await ApiService.getLessonsByUnit(widget.unitId);
       setState(() {
-        _lessons = lessons.map((l) => {
+        _lessons = lessons.map((l) => <String, dynamic>{
           'id': l['_id']?.toString() ?? '',
           'title': l['title'] ?? '',
           'lessonType': l['lessonType'] ?? 'vocabulary',
@@ -49,6 +51,8 @@ class _LessonScreenState extends State<LessonScreen> {
           'isPublished': l['isPublished'] ?? true,
           'order': l['order'] ?? 0,
           'images': l['images'] ?? [],
+          'audios': l['audios'] ?? [],
+          'videos': l['videos'] ?? [],
         }).toList();
         _isLoading = false;
       });
@@ -76,12 +80,31 @@ class _LessonScreenState extends State<LessonScreen> {
     
     List<String> imagePaths = [], audioPaths = [], videoPaths = [];
     List<String> imageUrls = [], audioUrls = [], videoUrls = [];
+    List<String> youtubeUrls = []; // NEW: separate list for YouTube URLs
     
     // Load existing media
-    if (lesson != null) {
-      if (lesson['images'] != null) imageUrls = List<String>.from(lesson['images']);
-      if (lesson['audios'] != null) audioUrls = List<String>.from(lesson['audios']);
-      if (lesson['videos'] != null) videoUrls = List<String>.from(lesson['videos']);
+    try {
+      if (lesson != null) {
+        if (lesson['images'] != null) imageUrls = (lesson['images'] as List).map((e) => e.toString()).toList();
+        if (lesson['audios'] != null) audioUrls = (lesson['audios'] as List).map((e) => e.toString()).toList();
+        if (lesson['videos'] != null) {
+          // Separate YouTube and upload videos
+          for (var v in lesson['videos']) {
+            if (v is Map) {
+              if (v['type'] == 'youtube' && v['url'] != null) {
+                youtubeUrls.add(v['url']);
+              } else if (v['url'] != null) {
+                videoUrls.add(v['url']);
+              }
+            } else if (v is String) {
+              videoUrls.add(v);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      _showError('Lỗi đọc dữ liệu bài học: $e');
+      return;
     }
 
     final parentContext = context;
@@ -127,24 +150,87 @@ class _LessonScreenState extends State<LessonScreen> {
                   TextField(controller: contentController, maxLines: 4, decoration: InputDecoration(labelText: 'Nội dung', hintText: 'Nội dung bài học...', alignLabelWithHint: true, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: const Color(0xFFF8FAFC))),
                   const SizedBox(height: 20),
                   const Text('📎 Đính kèm Media', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const Text('Chọn file (URL chưa hỗ trợ lưu)', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 12),
-                  _buildMediaSection(title: 'Hình ảnh', icon: Icons.image, color: Colors.blue, localPaths: imagePaths, urls: imageUrls,
-                    onPickFile: () async { try { final images = await ImagePicker().pickMultiImage(); if (images.isNotEmpty) setModalState(() => imagePaths.addAll(images.map((e) => e.path))); } catch (e) { _showError('Lỗi: $e'); } },
-                    onAddUrl: () => _showUrlInputDialog(title: 'URL hình ảnh', hint: 'https://...', onAdd: (u) => setModalState(() => imageUrls.add(u))), // URL just for internal list, won't save to backend without changes
-                    onRemoveLocal: (i) => setModalState(() => imagePaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => imageUrls.removeAt(i)),
+                  _buildMediaSection(
+                    title: 'Hình ảnh', 
+                    icon: Icons.image, 
+                    color: Colors.blue, 
+                    localPaths: imagePaths,
+                    remoteUrls: imageUrls,
+                    onPickFile: () async { try { final images = await ImagePicker().pickMultiImage(imageQuality: 50, maxWidth: 800, maxHeight: 800); if (images.isNotEmpty) setModalState(() => imagePaths.addAll(images.map((e) => e.path))); } catch (e) { _showError('Lỗi: $e'); } },
+                    onRemoveLocal: (i) => setModalState(() => imagePaths.removeAt(i)),
+                    onRemoveRemote: (i) => setModalState(() => imageUrls.removeAt(i)),
                   ),
                   const SizedBox(height: 12),
-                  _buildMediaSection(title: 'Audio', icon: Icons.audiotrack, color: Colors.orange, localPaths: audioPaths, urls: audioUrls,
+                  _buildMediaSection(
+                    title: 'Audio', 
+                    icon: Icons.audiotrack, 
+                    color: Colors.orange, 
+                    localPaths: audioPaths,
+                    remoteUrls: audioUrls,
                     onPickFile: () async { try { final r = await FilePicker.platform.pickFiles(type: FileType.audio, allowMultiple: true); if (r != null) setModalState(() => audioPaths.addAll(r.paths.whereType<String>())); } catch (e) { _showError('Lỗi: $e'); } },
-                    onAddUrl: () => _showUrlInputDialog(title: 'URL audio', hint: 'https://...', onAdd: (u) => setModalState(() => audioUrls.add(u))),
-                    onRemoveLocal: (i) => setModalState(() => audioPaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => audioUrls.removeAt(i)),
+                    onRemoveLocal: (i) => setModalState(() => audioPaths.removeAt(i)),
+                    onRemoveRemote: (i) => setModalState(() => audioUrls.removeAt(i)),
                   ),
                   const SizedBox(height: 12),
-                  _buildMediaSection(title: 'Video', icon: Icons.videocam, color: Colors.purple, localPaths: videoPaths, urls: videoUrls,
-                    onPickFile: () async { try { final r = await FilePicker.platform.pickFiles(type: FileType.video, allowMultiple: true); if (r != null) setModalState(() => videoPaths.addAll(r.paths.whereType<String>())); } catch (e) { _showError('Lỗi: $e'); } },
-                    onAddUrl: () => _showUrlInputDialog(title: 'URL video', hint: 'https://...', onAdd: (u) => setModalState(() => videoUrls.add(u))),
-                    onRemoveLocal: (i) => setModalState(() => videoPaths.removeAt(i)), onRemoveUrl: (i) => setModalState(() => videoUrls.removeAt(i)),
+                  _buildMediaSection(
+                    title: 'Video (Upload)', 
+                    icon: Icons.videocam, 
+                    color: Colors.purple, 
+                    localPaths: videoPaths,
+                    remoteUrls: videoUrls,
+                    onPickFile: () async {
+                      try {
+                        final result = await FilePicker.platform.pickFiles(type: FileType.video, allowMultiple: true);
+                        if (result != null) {
+                          final savedPaths = <String>[];
+                          final appDir = await getApplicationDocumentsDirectory();
+                          final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+                          if (result.paths.length > 2 && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang xử lý video...')));
+                          }
+
+                          for (var i = 0; i < result.paths.length; i++) {
+                            final path = result.paths[i];
+                            if (path != null) {
+                              final file = File(path);
+                              if (await file.exists()) {
+                                try {
+                                  final fileName = '${timestamp}_$i\_${path.split('/').last}';
+                                  final savedFile = await file.copy('${appDir.path}/$fileName');
+                                  savedPaths.add(savedFile.path);
+                                } catch (e) {
+                                  debugPrint('Error copying file: $e');
+                                  savedPaths.add(path);
+                                }
+                              }
+                            }
+                          }
+                          
+                          if (savedPaths.isNotEmpty) {
+                            setModalState(() => videoPaths.addAll(savedPaths));
+                          } else if (result.paths.isNotEmpty) {
+                            _showError('Không thể đọc file video. Vui lòng thử lại!');
+                          }
+                        }
+                      } catch (e) {
+                        _showError('Lỗi chọn video: $e');
+                      }
+                    },
+                    onRemoveLocal: (i) => setModalState(() => videoPaths.removeAt(i)),
+                    onRemoveRemote: (i) => setModalState(() => videoUrls.removeAt(i)),
+                  ),
+                  const SizedBox(height: 12),
+                  // YouTube Video Section
+                  _buildYoutubeSection(
+                    youtubeUrls: youtubeUrls,
+                    onAdd: () => _showUrlInputDialog(
+                      title: 'YouTube URL',
+                      hint: 'https://youtube.com/watch?v=...',
+                      onAdd: (url) => setModalState(() => youtubeUrls.add(url)),
+                    ),
+                    onRemove: (i) => setModalState(() => youtubeUrls.removeAt(i)),
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(title: const Text('Đã xuất bản'), value: isPublished, onChanged: (v) => setModalState(() => isPublished = v), activeColor: const Color(0xFF2196F3), contentPadding: EdgeInsets.zero),
@@ -174,13 +260,38 @@ class _LessonScreenState extends State<LessonScreen> {
       
       Map<String, dynamic> result;
       if (lesson == null) {
-        if (imagePaths.isNotEmpty || audioPaths.isNotEmpty || videoPaths.isNotEmpty) {
-           result = await ApiService.createLessonWithMedia(unitId: widget.unitId, lessonType: selectedType, title: titleController.text.trim(), content: contentController.text.trim(), isPublished: isPublished, imagePaths: imagePaths.isNotEmpty ? imagePaths : null, audioPaths: audioPaths.isNotEmpty ? audioPaths : null, videoPaths: videoPaths.isNotEmpty ? videoPaths : null);
-        } else {
-           result = await ApiService.createLesson(unitId: widget.unitId, lessonType: selectedType, title: titleController.text.trim(), content: contentController.text.trim(), isPublished: isPublished);
-        }
+         // Create logic
+         final hasMedia = imagePaths.isNotEmpty || audioPaths.isNotEmpty || videoPaths.isNotEmpty || youtubeUrls.isNotEmpty;
+         if (hasMedia) {
+            result = await ApiService.createLessonWithMedia(
+              unitId: widget.unitId, 
+              lessonType: selectedType, 
+              title: titleController.text.trim(), 
+              content: contentController.text.trim(), 
+              isPublished: isPublished, 
+              imagePaths: imagePaths.isNotEmpty ? imagePaths : null, 
+              audioPaths: audioPaths.isNotEmpty ? audioPaths : null, 
+              videoPaths: videoPaths.isNotEmpty ? videoPaths : null,
+              youtubeVideos: youtubeUrls.isNotEmpty ? youtubeUrls : null,
+            );
+         } else {
+            result = await ApiService.createLesson(unitId: widget.unitId, lessonType: selectedType, title: titleController.text.trim(), content: contentController.text.trim(), isPublished: isPublished);
+         }
       } else {
-        result = await ApiService.updateLesson(lesson['id'], {'lessonType': selectedType, 'title': titleController.text.trim(), 'content': contentController.text.trim(), 'isPublished': isPublished});
+        // Update logic with media support
+        result = await ApiService.updateLessonWithMedia(
+          id: lesson['id'],
+          lessonType: selectedType,
+          title: titleController.text.trim(),
+          content: contentController.text.trim(),
+          isPublished: isPublished,
+          imagePaths: imagePaths.isNotEmpty ? imagePaths : null,
+          audioPaths: audioPaths.isNotEmpty ? audioPaths : null,
+          videoPaths: videoPaths.isNotEmpty ? videoPaths : null,
+          keptImages: imageUrls,
+          keptAudios: audioUrls,
+          youtubeVideos: youtubeUrls,
+        );
       }
       
       if (mounted) Navigator.of(parentContext).pop();
@@ -194,13 +305,61 @@ class _LessonScreenState extends State<LessonScreen> {
     }
   }
 
-  Widget _buildMediaSection({required String title, required IconData icon, required Color color, required List<String> localPaths, required List<String> urls, required VoidCallback onPickFile, required VoidCallback onAddUrl, required Function(int) onRemoveLocal, required Function(int) onRemoveUrl}) {
+  Widget _buildYoutubeSection({required List<String> youtubeUrls, required VoidCallback onAdd, required Function(int) onRemove}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.red.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withOpacity(0.2))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.play_circle_fill, color: Colors.red, size: 20), 
+          const SizedBox(width: 8), 
+          const Text('YouTube Video', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)), 
+          const Spacer(), 
+          TextButton.icon(
+            onPressed: onAdd, 
+            icon: const Icon(Icons.add, size: 16, color: Colors.red), 
+            label: const Text('Thêm URL', style: TextStyle(color: Colors.red, fontSize: 12)), 
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+          ),
+        ]),
+        if (youtubeUrls.isNotEmpty) ...[
+          const SizedBox(height: 8), 
+          Wrap(spacing: 8, runSpacing: 8, children: youtubeUrls.asMap().entries.map((e) {
+            final url = e.value;
+            String label = url;
+            // Extract video ID for display
+            final match = RegExp(r'(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{11})').firstMatch(url);
+            if (match != null) label = 'YouTube: ${match.group(1)}';
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+              decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.withOpacity(0.5))), 
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.play_circle_fill, size: 14, color: Colors.red), 
+                const SizedBox(width: 4), 
+                Text(label.length > 20 ? '${label.substring(0, 20)}...' : label, style: const TextStyle(fontSize: 11, color: Colors.red)), 
+                const SizedBox(width: 4), 
+                GestureDetector(onTap: () => onRemove(e.key), child: const Icon(Icons.close, size: 14, color: Colors.red)),
+              ]),
+            );
+          }).toList()),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildMediaSection({required String title, required IconData icon, required Color color, required List<String> localPaths, List<String>? remoteUrls, required VoidCallback onPickFile, required Function(int) onRemoveLocal, Function(int)? onRemoveRemote}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)), const Spacer(), TextButton.icon(onPressed: onPickFile, icon: Icon(Icons.folder_open, size: 16, color: color), label: Text('File', style: TextStyle(color: color, fontSize: 12)), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8))), TextButton.icon(onPressed: onAddUrl, icon: Icon(Icons.link, size: 16, color: color), label: Text('URL', style: TextStyle(color: color, fontSize: 12)), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)))]),
-        if (localPaths.isNotEmpty || urls.isNotEmpty) ...[const SizedBox(height: 8), Wrap(spacing: 8, runSpacing: 8, children: [...localPaths.asMap().entries.map((e) => _buildChip(e.value.split('/').last, icon, color, false, () => onRemoveLocal(e.key))), ...urls.asMap().entries.map((e) => _buildChip(e.value.length > 20 ? '${e.value.substring(0, 20)}...' : e.value, Icons.link, color, true, () => onRemoveUrl(e.key)))])],
+        Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)), const Spacer(), TextButton.icon(onPressed: onPickFile, icon: Icon(Icons.folder_open, size: 16, color: color), label: Text('Chọn File', style: TextStyle(color: color, fontSize: 12)), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)))]),
+        if ((remoteUrls != null && remoteUrls.isNotEmpty) || localPaths.isNotEmpty) ...[
+          const SizedBox(height: 8), 
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (remoteUrls != null) ...remoteUrls.asMap().entries.map((e) => _buildChip('URL: ...${e.value.substring(e.value.length > 20 ? e.value.length - 10 : 0)}', icon, color, true, () => onRemoveRemote?.call(e.key))),
+            ...localPaths.asMap().entries.map((e) => _buildChip(e.value.split('/').last, icon, color, false, () => onRemoveLocal(e.key)))
+          ])
+        ],
       ]),
     );
   }
