@@ -51,6 +51,7 @@ export const loginUser = async ({ username, password, use2FA }) => {
     user.otpExpire = Date.now() + 5 * 60 * 1000;
     await user.save();
 
+    console.log("📨 Sending OTP via Email...");
     const emailHtml = VerificationEmail(user.username, otp);
     await sendEmail(user.email, "Mã xác thực đăng nhập 2 lớp", emailHtml);
 
