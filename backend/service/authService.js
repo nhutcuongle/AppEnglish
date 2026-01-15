@@ -46,13 +46,25 @@ export const loginUser = async ({ username, password, use2FA }) => {
 
   // 2FA Logic
   if (use2FA || user.is2FAEnabled) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    let otp;
+    // Kiểm tra cấu hình email, nếu thiếu thì dùng OTP cố định (MOCK MODE)
+    const isEmailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+
+    if (isEmailConfigured) {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+    } else {
+      otp = "123456"; // Default OTP for dev/deployed without email
+      console.log("⚠️ [MOCK OTP] Email config missing. Using fixed OTP: 123456");
+    }
+
     user.otpCode = otp;
     user.otpExpire = Date.now() + 5 * 60 * 1000;
     await user.save();
 
-    const emailHtml = VerificationEmail(user.username, otp);
-    await sendEmail(user.email, "Mã xác thực đăng nhập 2 lớp", emailHtml);
+    if (isEmailConfigured) {
+      const emailHtml = VerificationEmail(user.username, otp);
+      await sendEmail(user.email, "Mã xác thực đăng nhập 2 lớp", emailHtml);
+    }
 
     return { is2FARequired: true, username: user.username };
   }
