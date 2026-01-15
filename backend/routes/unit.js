@@ -23,6 +23,18 @@ import {
 
 const router = express.Router();
 
+/* ================= STUDENT ================= */
+
+router.get("/public", getPublishedUnits);
+
+router.get("/public/:id", getPublishedUnitById);
+
+/* ================= TEACHER ================= */
+
+router.get("/teacher/all", authenticate, isTeacher, getAllUnitsForTeacher);
+
+router.get("/teacher/:id", authenticate, isTeacher, getUnitById);
+
 /* ================= SCHOOL / ADMIN ================= */
 
 router.post(
@@ -49,16 +61,5 @@ router.put(
 
 router.delete("/:id", authenticate, isSchool, deleteUnit);
 
-/* ================= TEACHER ================= */
-
-router.get("/teacher/all", authenticate, isTeacher, getAllUnitsForTeacher);
-
-router.get("/teacher/:id", authenticate, isTeacher, getUnitById);
-
-/* ================= STUDENT ================= */
-
-router.get("/public", getPublishedUnits);
-
-router.get("/public/:id", getPublishedUnitById);
 
 export default router;

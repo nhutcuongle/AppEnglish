@@ -140,6 +140,7 @@ export const getMySubmissions = async (req, res) => {
     const result = submissions.map((sub) => ({
       submissionId: sub._id,
       lesson: sub.lesson,
+      exam: sub.exam, // Add this line
       scores: sub.scores,
       totalScore: sub.totalScore,
       submittedAt: sub.submittedAt,
@@ -158,36 +159,61 @@ export const getMySubmissions = async (req, res) => {
 export const getScoresByLesson = async (req, res) => {
   try {
     const { lessonId } = req.params;
+    const { classId } = req.query; // Nhận classId từ frontend
 
     // 1. Tìm lớp giáo viên tham gia (chủ nhiệm hoặc được gán)
-    const teacherClasses = await Class.find({
+    let query = {
       $or: [
         { homeroomTeacher: req.user._id },
         { teachers: req.user._id }
       ],
       isActive: true,
-    });
+    };
+
+    // Nếu frontend yêu cầu lọc theo classId, ta thêm điều kiện vào query
+    if (classId) {
+      query._id = classId;
+    }
+
+    const teacherClasses = await Class.find(query);
 
     if (teacherClasses.length === 0) {
+      // Nếu lọc theo classId mà không tìm thấy -> có thể giáo viên không quản lý lớp đó hoặc lớp không tồn tại
       return res.status(403).json({
-        message: "Bạn không được phân công quản lý lớp nào",
+        message: "Không có quyền xem điểm lớp này hoặc không có dữ liệu",
       });
     }
 
-    const classIds = teacherClasses.map(c => c._id);
-    const managedStudents = await User.find({ class: { $in: classIds } }).select("_id");
-    const managedStudentIds = managedStudents.map(s => s._id);
+    // Prepare lists for robust matching
+    const allowedClassIds = teacherClasses.map(c => c._id.toString());
+    const allowedClassNames = teacherClasses.map(c => c.name);
 
-    // 2. Chỉ lấy bài nộp của học sinh trong các lớp này
-    const submissions = await Submission.find({
-      lesson: lessonId,
-      user: { $in: managedStudentIds },
-    })
-      .populate("user", "username email fullName")
+    // 2. Fetch ALL submissions for this lesson, populate user info including class
+    // We filter in memory because standard DB query fails on "dirty" data (String vs ObjectId)
+    const allSubmissions = await Submission.find({ lesson: lessonId })
+      .populate("user", "username email fullName class")
       .sort({ createdAt: -1 })
       .lean();
 
-    const result = submissions.map((sub) => ({
+    // 3. Filter submissions: Keep if user belongs to one of the authorized classes
+    // (Check both ID match and Name match to handle legacy/dirty data like "10A1")
+    const filteredSubmissions = allSubmissions.filter(sub => {
+      if (!sub.user) return false;
+
+      const userClass = sub.user.class; // Can be ObjectId string or "10A1"
+      if (!userClass) return false;
+
+      const userClassStr = String(userClass);
+
+      // Check ID match
+      if (allowedClassIds.includes(userClassStr)) return true;
+      // Check Name match (fallback for dirty data)
+      if (allowedClassNames.includes(userClassStr)) return true;
+
+      return false;
+    });
+
+    const result = filteredSubmissions.map((sub) => ({
       submissionId: sub._id,
       student: {
         id: sub.user._id,

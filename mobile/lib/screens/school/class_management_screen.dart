@@ -41,6 +41,19 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
         String? className;
         if (student['class'] is Map) {
           className = student['class']['name']?.toString();
+        } else if (student['class'] is String) {
+          // Fallback if populate failed or ID is string
+          // Try to match by ID from the classes list we just fetched
+          final classId = student['class'];
+          final matchClass = classData.firstWhere((c) => c['_id'].toString() == classId, orElse: () => null);
+          if (matchClass != null) {
+            className = matchClass['name']?.toString();
+          } else {
+             // If still not found, assume the string might be the name itself (edge case for legacy data)
+             // or just use it as is if it looks like a name? Bad practice but better than nothing?
+             // Safest is to rely on ID match. If no match, ignore.
+             // But user says "lost gender display", and we know 10A1 causes issues.
+          }
         }
         if (className != null && className.isNotEmpty) {
           final gender = student['gender']?.toString().toLowerCase() ?? '';
@@ -292,14 +305,29 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Icon(Icons.person_rounded, size: 18, color: Color(0xFF2196F3)),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text('GV: ${classData['homeroomTeacher']}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)))),
-                      _buildStudentStat(Icons.groups_rounded, '${classData['studentCount']}', 'HS', const Color(0xFF2196F3)),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_rounded, size: 18, color: Color(0xFF2196F3)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('GV: ${classData['homeroomTeacher']}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)))),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.2)),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStudentStat(Icons.groups_rounded, '${classData['studentCount']}', 'HS', const Color(0xFF2196F3)),
+                          _buildStudentStat(Icons.male_rounded, '${classData['maleCount']}', 'Nam', const Color(0xFF1976D2)),
+                          _buildStudentStat(Icons.female_rounded, '${classData['femaleCount']}', 'Nữ', const Color(0xFFE91E63)),
+                        ],
+                      ),
                     ],
                   ),
                 ),

@@ -3,7 +3,9 @@ import 'package:apptienganh10/services/api_service.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 import 'package:apptienganh10/services/teacher_service.dart';
 import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
+import 'package:apptienganh10/screens/teacher/add_assignment_screen.dart';
 import 'package:apptienganh10/screens/teacher/question_list_screen.dart';
+import 'package:apptienganh10/screens/teacher/exam_result_screen.dart';
 import 'package:intl/intl.dart';
 
 class AssignmentListScreen extends StatefulWidget {
@@ -190,7 +192,17 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
                 );
               }),
               const SizedBox(width: 8),
-              _buildActionBtn('Kết quả', Colors.purple),
+              _buildActionBtn('Kết quả', Colors.purple, onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ExamResultScreen(
+                      examId: item.id,
+                      examTitle: item.title,
+                    ),
+                  ),
+                );
+              }),
             ],
           ),
         ],

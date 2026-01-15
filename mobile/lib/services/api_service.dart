@@ -32,6 +32,17 @@ class ApiService {
     return [];
   }
 
+  // ==================== EXAMS ====================
+
+  static Future<Map<String, dynamic>> getExamReport(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/exams/report/$id'), headers: _headers);
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
   // ==================== AUTH ====================
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
@@ -338,17 +349,6 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getExamReport(String examId) async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/exams/report/$examId'), headers: _headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
 
   static Future<Map<String, dynamic>> deleteExam(String id) async {
     try {
@@ -433,10 +433,10 @@ class ApiService {
         }
         return data;
       }
-      return [];
+      return {'error': 'Lỗi server: ${response.statusCode}'};
     } catch (e) {
       print('=== getPublicUnits ERROR: $e ===');
-      return [];
+      return {'error': e.toString()};
     }
   }
 

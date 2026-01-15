@@ -77,10 +77,15 @@ export const getAllClasses = async (req, res) => {
     // Count students for each class by querying Users with matching class name
     const classesWithCounts = await Promise.all(
       classes.map(async (classDoc) => {
-        const studentCount = await User.countDocuments({
-          role: "student",
-          class: classDoc._id,
-        });
+        let studentCount = 0;
+        try {
+          studentCount = await User.countDocuments({
+            role: "student",
+            class: classDoc._id,
+          });
+        } catch (e) {
+          console.error(`Error counting students: ${e.message}`);
+        }
 
         return {
           ...classDoc.toObject(),
@@ -195,10 +200,15 @@ export const getTeacherClasses = async (req, res) => {
 
     const classesWithCounts = await Promise.all(
       classes.map(async (classDoc) => {
-        const studentCount = await User.countDocuments({
-          role: "student",
-          class: classDoc._id,
-        });
+        let studentCount = 0;
+        try {
+          studentCount = await User.countDocuments({
+            role: "student",
+            class: classDoc._id,
+          });
+        } catch (e) {
+          console.error(`Error counting students: ${e.message}`);
+        }
 
         return {
           ...classDoc.toObject(),
