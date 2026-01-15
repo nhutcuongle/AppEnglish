@@ -96,6 +96,12 @@
  *                 items:
  *                   type: string
  *                 description: Captions for YouTube videos
+ *
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
+ *                 example: "2026-01-15T23:59:59Z"
  *     responses:
  *       201:
  *         description: Tạo lesson thành công
@@ -131,6 +137,11 @@
  *                 type: boolean
  *               order:
  *                 type: number
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
+ *                 example: "2026-01-15T23:59:59Z"
  *         multipart/form-data:
  *           schema:
  *             type: object
@@ -143,6 +154,11 @@
  *                 type: boolean
  *               order:
  *                 type: number
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
+ *                 example: "2026-01-15T23:59:59Z"
  *               images:
  *                 type: array
  *                 items:

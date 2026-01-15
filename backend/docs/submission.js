@@ -115,7 +115,8 @@
  *                 deadline:
  *                   type: string
  *                   format: date-time
- *                   example: "2026-01-30T23:59:59+07:00"
+ *                   description: Hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
+ *                   example: "2026-01-30T23:59:59Z"
  *       500:
  *         description: Lỗi server
  *         content:

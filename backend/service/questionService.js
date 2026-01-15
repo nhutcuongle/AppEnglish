@@ -5,6 +5,23 @@ import Exam from "../models/Exam.js";
 import { processMedia } from "../utils/mediaHelper.js";
 
 /**
+ * Helper to parse options (handles comma-separated string or array)
+ */
+const parseOptions = (options) => {
+  if (!options) return [];
+  if (typeof options === "string") {
+    return options.split(",").map((opt) => opt.trim()).filter((opt) => opt !== "");
+  }
+  if (Array.isArray(options)) {
+    if (options.length === 1 && typeof options[0] === "string" && options[0].includes(",")) {
+      return options[0].split(",").map((opt) => opt.trim()).filter((opt) => opt !== "");
+    }
+    return options;
+  }
+  return [];
+};
+
+/**
  * CREATE QUESTION (SCHOOL ONLY - FOR LESSONS)
  */
 export const createNewQuestion = async (user, body, files) => {
@@ -85,7 +102,9 @@ export const createNewQuestion = async (user, body, files) => {
   const question = await Question.create({
     lesson: lessonId,
     exam: null,
-    skill, type, content, options, correctAnswer, explanation,
+    skill, type, content, 
+    options: parseOptions(options),
+    correctAnswer, explanation,
     isPublished,
     points: points || 1,
     order: nextOrder,
@@ -170,7 +189,9 @@ export const createNewQuestionForTeacher = async (user, body, files) => {
   const question = await Question.create({
     lesson: null,
     exam: targetExamId,
-    skill, type, content, options, correctAnswer, explanation,
+    skill, type, content, 
+    options: parseOptions(options),
+    correctAnswer, explanation,
     isPublished,
     points: points || 1,
     order: nextOrder,

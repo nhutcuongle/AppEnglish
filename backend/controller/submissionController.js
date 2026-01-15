@@ -15,14 +15,15 @@ export const submitLesson = async (req, res) => {
 
     /* ===== CHECK DEADLINE ===== */
     if (req.user.role === "student") {
-      const lesson = await Lesson.findById(lessonId)
-        .select("deadline")
-        .lean();
+      const lesson = await Lesson.findById(lessonId).select("deadline").lean();
 
-      if (lesson && lesson.deadline && new Date() > new Date(lesson.deadline)) {
+      // FIX TIMEZONE: Cộng 7 tiếng để khớp với giờ Face Value trong DB
+      const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+
+      if (lesson && lesson.deadline && now > new Date(lesson.deadline)) {
         return res.status(403).json({
           message: "Đã hết hạn nộp bài cho bài tập này",
-          deadline: lesson.deadline
+          deadline: lesson.deadline,
         });
       }
     }

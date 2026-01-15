@@ -52,11 +52,13 @@
  *         startTime:
  *           type: string
  *           format: date-time
- *           description: Thời gian bắt đầu làm bài
+ *           description: Thời gian bắt đầu làm bài (Hệ thống tính theo múi giờ VN +7)
+ *           example: "2026-01-15T08:00:00Z"
  *         endTime:
  *           type: string
  *           format: date-time
- *           description: Thời gian kết thúc/hết hạn nộp bài
+ *           description: Thời gian kết thúc/hết hạn nộp bài (Hệ thống tính theo múi giờ VN +7)
+ *           example: "2026-01-15T09:00:00Z"
  */
 
 /**
@@ -181,9 +183,50 @@
  *                 type: array
  *                 items:
  *                   type: object
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [examId, answers]
+ *             properties:
+ *               examId:
+ *                 type: string
+ *               answers:
+ *                 type: string
+ *                 description: Mảng đáp án dưới dạng chuỗi JSON bài thi.
+ *                 example: '[{"question": "id_1", "userAnswer": "A"}]'
  *     responses:
  *       201:
- *         description: Nộp bài thành công
+ *         description: Nộp bài thành công. Trả về kết quả chi tiết bao gồm đáp án đúng và giải thích.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 submissionId:
+ *                   type: string
+ *                 totalScore:
+ *                   type: number
+ *                 answers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       question:
+ *                         type: string
+ *                       userAnswer:
+ *                         type: object
+ *                       isCorrect:
+ *                         type: boolean
+ *                       pointsAwarded:
+ *                         type: number
+ *                       correctAnswer:
+ *                         type: object
+ *                         description: Đáp án đúng (Chỉ hiện sau khi nộp bài)
+ *                       explanation:
+ *                         type: string
+ *                         description: Giải thích chi tiết (Chỉ hiện sau khi nộp bài)
  */
 
 /**
@@ -210,6 +253,9 @@
  * /api/exams/{id}/questions:
  *   get:
  *     summary: Lấy danh sách câu hỏi của bài kiểm tra
+ *     description: >
+ *       Lấy toàn bộ câu hỏi trong bài thi.
+ *       Lưu ý: Đối với tài khoản **Học sinh**, các trường `correctAnswer` và `explanation` sẽ bị ẩn đi để bảo mật đề thi.
  *     tags: [Exams]
  *     security:
  *       - bearerAuth: []
@@ -221,5 +267,5 @@
  *           type: string
  *     responses:
  *       200:
- *         description: Danh sách câu hỏi
+ *         description: Danh sách câu hỏi. (Học sinh sẽ không thấy đáp án và giải thích ở đây).
  */

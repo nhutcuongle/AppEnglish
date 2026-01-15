@@ -66,6 +66,9 @@ export const uploadMultipleMedia = multer({
   { name: "videos", maxCount: 5 },
 ]);
 
+/* ================= NO FILES (ONLY FIELDS) ================= */
+export const uploadNone = multer().none();
+
 /* ================= ERROR HANDLER ================= */
 export const uploadErrorHandler = (err, req, res, next) => {
   if (err) {

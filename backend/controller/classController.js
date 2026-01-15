@@ -79,7 +79,7 @@ export const getAllClasses = async (req, res) => {
       classes.map(async (classDoc) => {
         const studentCount = await User.countDocuments({
           role: "student",
-          class: classDoc._id,
+          class: classDoc.name, // Thay 'classes' thành 'class' nếu schema của bạn là 'class'
         });
 
         return {

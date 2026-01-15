@@ -65,7 +65,8 @@
  *               deadline:
  *                 type: string
  *                 format: date-time
- *                 description: Cập nhật hạn nộp cho Bài học.
+ *                 description: Cập nhật hạn nộp cho Bài học (Hệ thống tính theo múi giờ VN +7)
+ *                 example: "2026-01-15T23:59:59Z"
  *               images:
  *                 type: array
  *                 items:

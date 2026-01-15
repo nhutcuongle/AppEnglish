@@ -160,8 +160,17 @@ export const getExamReport = async (req, res) => {
 /* ================= SUBMIT EXAM ================= */
 export const submitExam = async (req, res) => {
   try {
-    const { examId, answers } = req.body;
+    let { examId, answers } = req.body;
     const userId = req.user._id;
+
+    // Nếu gửi qua multipart/form-data, answers có thể là chuỗi JSON
+    if (typeof answers === "string") {
+      try {
+        answers = JSON.parse(answers);
+      } catch (e) {
+        return res.status(400).json({ error: "Định dạng answers không hợp lệ (phải là JSON string)" });
+      }
+    }
 
     const exam = await Exam.findById(examId);
     if (!exam) return res.status(404).json({ message: "Không tìm thấy bài kiểm tra" });
@@ -197,6 +206,8 @@ export const submitExam = async (req, res) => {
         userAnswer: ans.userAnswer,
         isCorrect,
         pointsAwarded: p,
+        correctAnswer: question.correctAnswer, // REVEAL AFTER SUBMIT
+        explanation: question.explanation,   // REVEAL AFTER SUBMIT
       });
     }
 
@@ -211,6 +222,7 @@ export const submitExam = async (req, res) => {
       message: "Nộp bài kiểm tra thành công",
       submissionId: submission._id,
       totalScore,
+      answers: checkedAnswers, // RETURN RESULTS WITH ANSWERS
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -227,13 +239,22 @@ export const getQuestionsByExam = async (req, res) => {
 
     // Nếu là Học sinh, phải kiểm tra thời gian bắt đầu
     if (req.user.role === "student") {
-      const now = new Date();
+      // FIX TIMEZONE: Cộng 7 tiếng để khớp với giờ Face Value trong DB (giống submitExam)
+      const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
       if (now < new Date(exam.startTime)) {
         return res.status(403).json({ message: "Chưa đến giờ làm bài kiểm tra" });
       }
     }
 
-    const questions = await Question.find({ exam: id }).sort({ order: 1 });
+    let query = { exam: id };
+    let projection = {};
+
+    // HIDE SECRETS FROM STUDENTS
+    if (req.user.role === "student") {
+      projection = { correctAnswer: 0, explanation: 0 };
+    }
+
+    const questions = await Question.find(query, projection).sort({ order: 1 });
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: err.message });
