@@ -139,3 +139,12 @@ export const changeUserPassword = async (userId, { oldPassword, newPassword }) =
 
   return true;
 };
+
+export const toggle2FA = async (userId, is2FAEnabled) => {
+  const user = await User.findById(userId);
+  if (!user) throw new Error("Không tìm thấy người dùng");
+
+  user.is2FAEnabled = is2FAEnabled;
+  await user.save();
+  return { is2FAEnabled: user.is2FAEnabled };
+};

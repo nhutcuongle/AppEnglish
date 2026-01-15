@@ -83,3 +83,13 @@ export const changePassword = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+/* TOGGLE 2FA (Authenticated) */
+export const toggle2FA = async (req, res) => {
+  try {
+    const result = await authService.toggle2FA(req.user.id, req.body.is2FAEnabled);
+    res.status(200).json({ message: "Cập nhật bảo mật 2 lớp thành công!", data: result });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
