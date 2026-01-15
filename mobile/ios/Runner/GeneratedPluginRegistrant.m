@@ -6,17 +6,16 @@
 
 #import "GeneratedPluginRegistrant.h"
 
-#if __has_include(<audioplayers_darwin/AudioplayersDarwinPlugin.h>)
-#import <audioplayers_darwin/AudioplayersDarwinPlugin.h>
-#else
-@import audioplayers_darwin;
-#endif
-
 #if __has_include(<audio_session/AudioSessionPlugin.h>)
 #import <audio_session/AudioSessionPlugin.h>
 #else
 @import audio_session;
 #endif
+
+#if __has_include(<audioplayers_darwin/AudioplayersDarwinPlugin.h>)
+#import <audioplayers_darwin/AudioplayersDarwinPlugin.h>
+#else
+@import audioplayers_darwin;
 #endif
 
 #if __has_include(<file_picker/FilePickerPlugin.h>)
@@ -42,6 +41,7 @@
 #else
 @import google_mlkit_text_recognition;
 #endif
+
 #if __has_include(<image_picker_ios/FLTImagePickerPlugin.h>)
 #import <image_picker_ios/FLTImagePickerPlugin.h>
 #else
@@ -71,6 +71,7 @@
 #else
 @import speech_to_text;
 #endif
+
 #if __has_include(<url_launcher_ios/URLLauncherPlugin.h>)
 #import <url_launcher_ios/URLLauncherPlugin.h>
 #else
@@ -86,8 +87,8 @@
 @implementation GeneratedPluginRegistrant
 
 + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
-  [AudioplayersDarwinPlugin registerWithRegistrar:[registry registrarForPlugin:@"AudioplayersDarwinPlugin"]];
   [AudioSessionPlugin registerWithRegistrar:[registry registrarForPlugin:@"AudioSessionPlugin"]];
+  [AudioplayersDarwinPlugin registerWithRegistrar:[registry registrarForPlugin:@"AudioplayersDarwinPlugin"]];
   [FilePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FilePickerPlugin"]];
   [InAppWebViewFlutterPlugin registerWithRegistrar:[registry registrarForPlugin:@"InAppWebViewFlutterPlugin"]];
   [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitCommonsPlugin"]];

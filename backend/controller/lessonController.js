@@ -37,15 +37,6 @@ export const updateLesson = async (req, res) => {
     res.status(statusCode).json({ error: err.message });
   }
 };
-res.json({
-  message: "Cập nhật lesson thành công",
-  lesson,
-});
-  } catch (err) {
-  const statusCode = err.message.includes("Không tìm thấy") ? 404 : 500;
-  res.status(statusCode).json({ error: err.message });
-}
-};
 
 /* ================= DELETE LESSON ================= */
 export const deleteLesson = async (req, res) => {

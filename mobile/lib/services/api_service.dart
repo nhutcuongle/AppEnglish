@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
+import 'package:mime/mime.dart';
 import 'package:apptienganh10/models/teacher_models.dart';
 
 class ApiService {
@@ -27,6 +28,7 @@ class ApiService {
       if (data is Map) return [data];
       return [];
     }
+    print('API Error: ${response.statusCode} - ${response.body}');
     return [];
   }
 
@@ -629,6 +631,7 @@ class ApiService {
     } catch (e) {
       return {'error': 'Lỗi kết nối: $e'};
     }
+  }
 
   static Future<List<dynamic>> getScoresByLesson(String lessonId, {String? classId}) async {
     try {
@@ -1338,7 +1341,6 @@ class ApiService {
     }
   }
 
-<<<<<<< HEAD
   /* ================= EXAM APIs ================= */
 
   static Future<List<dynamic>> getStudentExams() async {
@@ -1382,7 +1384,14 @@ class ApiService {
           'examId': examId,
           'answers': answers,
         }),
-=======
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Lỗi kết nối: $e'};
+    }
+  }
+
+
   // ==================== ASSIGNMENTS (Bài tập nhà trường) ====================
 
   static Future<Map<String, dynamic>> createOrUpdateAssignment(Map<String, dynamic> data) async {
@@ -1391,15 +1400,12 @@ class ApiService {
         Uri.parse('$baseUrl/assignments'),
         headers: _headers,
         body: jsonEncode(data),
->>>>>>> origin/trandangkhoa
       );
       return jsonDecode(response.body);
     } catch (e) {
       return {'error': 'Lỗi kết nối: $e'};
     }
   }
-<<<<<<< HEAD
-=======
 
   static Future<Map<String, dynamic>?> getAssignmentSettings(String lessonId, {String? classId}) async {
     try {
@@ -1415,5 +1421,4 @@ class ApiService {
       return null;
     }
   }
->>>>>>> origin/trandangkhoa
 }
